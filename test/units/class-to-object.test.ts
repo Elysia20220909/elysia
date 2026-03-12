@@ -26,7 +26,7 @@
 // 		expect(result.computedProperty).toBe(42)
 
 // 		// Check that method is not included
-// 		// @ts-ignore
+// 		// @ts-expect-error
 // 		expect(result.method).toBeUndefined()
 
 // 		// Check that private property is not included

@@ -1,315 +1,299 @@
-import { Elysia, t } from '../../src'
+import { describe, expect, it } from "bun:test";
+import { Elysia, t } from "../../src";
+import { req } from "../utils";
 
-import { describe, expect, it } from 'bun:test'
-import { req } from '../utils'
-
-describe('Transform', () => {
-	it('globally Transform', async () => {
+describe("Transform", () => {
+	it("globally Transform", async () => {
 		const app = new Elysia()
 			.onTransform<{
 				params: {
-					id: number
-				} | null
+					id: number;
+				} | null;
 			}>((request) => {
-				if (request.params?.id) request.params.id = +request.params.id
+				if (request.params?.id) request.params.id = +request.params.id;
 			})
-			.get('/id/:id', ({ params: { id } }) => typeof id)
+			.get("/id/:id", ({ params: { id } }) => typeof id);
 
-		const res = await app.handle(req('/id/1'))
+		const res = await app.handle(req("/id/1"));
 
-		expect(await res.text()).toBe('number')
-	})
+		expect(await res.text()).toBe("number");
+	});
 
-	it('locally transform', async () => {
-		const app = new Elysia().get(
-			'/id/:id',
-			({ params: { id } }) => typeof id,
-			{
-				transform: (request) => {
-					if (request.params?.id)
-						request.params.id = +request.params.id
-				},
-				params: t.Object({
-					id: t.Number()
-				})
-			}
-		)
-		const res = await app.handle(req('/id/1'))
+	it("locally transform", async () => {
+		const app = new Elysia().get("/id/:id", ({ params: { id } }) => typeof id, {
+			transform: (request) => {
+				if (request.params?.id) request.params.id = +request.params.id;
+			},
+			params: t.Object({
+				id: t.Number(),
+			}),
+		});
+		const res = await app.handle(req("/id/1"));
 
-		expect(await res.text()).toBe('number')
-	})
+		expect(await res.text()).toBe("number");
+	});
 
-	it('group transform', async () => {
+	it("group transform", async () => {
 		const app = new Elysia()
-			.group('/scoped/id/:id', (app) =>
+			.group("/scoped/id/:id", (app) =>
 				app
 					.onTransform(({ params }) => {
-						// @ts-ignore
-						if (params.id) params.id = +params.id
+						// @ts-expect-error
+						if (params.id) params.id = +params.id;
 					})
-					.get('', ({ params: { id } }) => typeof id)
+					.get("", ({ params: { id } }) => typeof id),
 			)
-			.get('/id/:id', ({ params: { id } }) => typeof id)
+			.get("/id/:id", ({ params: { id } }) => typeof id);
 
-		const base = await app.handle(req('/id/1'))
-		const scoped = await app.handle(req('/scoped/id/1'))
+		const base = await app.handle(req("/id/1"));
+		const scoped = await app.handle(req("/scoped/id/1"));
 
-		expect(await base.text()).toBe('string')
-		expect(await scoped.text()).toBe('number')
-	})
+		expect(await base.text()).toBe("string");
+		expect(await scoped.text()).toBe("number");
+	});
 
-	it('transform from plugin', async () => {
+	it("transform from plugin", async () => {
 		const transformId = new Elysia().onTransform<
 			{
 				params: {
-					id: number
-				} | null
+					id: number;
+				} | null;
 			},
-			'global'
-		>({ as: 'global' }, (request) => {
-			// @ts-ignore
-			if (request.params?.id) request.params.id = +request.params.id
-		})
+			"global"
+		>({ as: "global" }, (request) => {
+			// @ts-expect-error
+			if (request.params?.id) request.params.id = +request.params.id;
+		});
 
 		const app = new Elysia()
 			.use(transformId)
-			.get('/id/:id', ({ params: { id } }) => typeof id)
+			.get("/id/:id", ({ params: { id } }) => typeof id);
 
-		const res = await app.handle(req('/id/1'))
+		const res = await app.handle(req("/id/1"));
 
-		expect(await res.text()).toBe('number')
-	})
+		expect(await res.text()).toBe("number");
+	});
 
-	it('transform from on', async () => {
+	it("transform from on", async () => {
 		const app = new Elysia()
-			.on('transform', (request) => {
-				if (request.params?.id) request.params.id = +request.params.id
+			.on("transform", (request) => {
+				if (request.params?.id) request.params.id = +request.params.id;
 			})
-			.get('/id/:id', ({ params: { id } }) => typeof id)
+			.get("/id/:id", ({ params: { id } }) => typeof id);
 
-		const res = await app.handle(req('/id/1'))
+		const res = await app.handle(req("/id/1"));
 
-		expect(await res.text()).toBe('number')
-	})
+		expect(await res.text()).toBe("number");
+	});
 
-	it('transform in order', async () => {
-		let order = <string[]>[]
+	it("transform in order", async () => {
+		const order = <string[]>[];
 
 		const app = new Elysia()
 			.onTransform(() => {
-				order.push('A')
+				order.push("A");
 			})
 			.onTransform(() => {
-				order.push('B')
+				order.push("B");
 			})
-			.get('/', () => '')
+			.get("/", () => "");
 
-		await app.handle(req('/'))
+		await app.handle(req("/"));
 
-		expect(order).toEqual(['A', 'B'])
-	})
+		expect(order).toEqual(["A", "B"]);
+	});
 
-	it('globally and locally pre handle', async () => {
+	it("globally and locally pre handle", async () => {
 		const app = new Elysia()
 			.onTransform<{
 				params: {
-					id: number
-				} | null
+					id: number;
+				} | null;
 			}>((request) => {
-				if (request.params?.id) request.params.id = +request.params.id
+				if (request.params?.id) request.params.id = +request.params.id;
 			})
-			.get('/id/:id', ({ params: { id } }) => id, {
+			.get("/id/:id", ({ params: { id } }) => id, {
 				params: t.Object({
-					id: t.Number()
+					id: t.Number(),
 				}),
 				transform: (request) => {
-					if (
-						request.params?.id &&
-						typeof request.params?.id === 'number'
-					)
-						request.params.id = request.params.id + 1
-				}
-			})
+					if (request.params?.id && typeof request.params?.id === "number")
+						request.params.id = request.params.id + 1;
+				},
+			});
 
-		const res = await app.handle(req('/id/1'))
+		const res = await app.handle(req("/id/1"));
 
-		expect(await res.text()).toBe('2')
-	})
+		expect(await res.text()).toBe("2");
+	});
 
-	it('accept multiple transform', async () => {
+	it("accept multiple transform", async () => {
 		const app = new Elysia()
 			.onTransform<{
 				params: {
-					id: number
-				} | null
+					id: number;
+				} | null;
 			}>((request) => {
-				if (request.params?.id) request.params.id = +request.params.id
+				if (request.params?.id) request.params.id = +request.params.id;
 			})
 			.onTransform<{
 				params: {
-					id: number
-				} | null
+					id: number;
+				} | null;
 			}>((request) => {
-				if (
-					request.params?.id &&
-					typeof request.params?.id === 'number'
-				)
-					request.params.id = request.params.id + 1
+				if (request.params?.id && typeof request.params?.id === "number")
+					request.params.id = request.params.id + 1;
 			})
-			.get('/id/:id', ({ params: { id } }) => id)
+			.get("/id/:id", ({ params: { id } }) => id);
 
-		const res = await app.handle(req('/id/1'))
+		const res = await app.handle(req("/id/1"));
 
-		expect(await res.text()).toBe('2')
-	})
+		expect(await res.text()).toBe("2");
+	});
 
-	it('transform async', async () => {
-		const app = new Elysia().get(
-			'/id/:id',
-			({ params: { id } }) => typeof id,
-			{
-				params: t.Object({
-					id: t.Number()
-				}),
-				transform: async ({ params }) => {
-					await new Promise<void>((resolve) =>
-						setTimeout(() => {
-							resolve()
-						}, 1)
-					)
-
-					if (params?.id) params.id = +params.id
-				}
-			}
-		)
-
-		const res = await app.handle(req('/id/1'))
-
-		expect(await res.text()).toBe('number')
-	})
-
-	it('map returned value', async () => {
-		const app = new Elysia()
-			.onTransform<{
-				params: {
-					id: number
-				} | null
-			}>((request) => {
-				if (request.params?.id) request.params.id = +request.params.id
-			})
-			.get('/id/:id', ({ params: { id } }) => typeof id)
-
-		const res = await app.handle(req('/id/1'))
-		expect(await res.text()).toBe('number')
-	})
-
-	it('validate property', async () => {
-		const app = new Elysia().get('/id/:id', ({ params: { id } }) => id, {
+	it("transform async", async () => {
+		const app = new Elysia().get("/id/:id", ({ params: { id } }) => typeof id, {
 			params: t.Object({
-				id: t.Numeric({ minimum: 0 })
+				id: t.Number(),
+			}),
+			transform: async ({ params }) => {
+				await new Promise<void>((resolve) =>
+					setTimeout(() => {
+						resolve();
+					}, 1),
+				);
+
+				if (params?.id) params.id = +params.id;
+			},
+		});
+
+		const res = await app.handle(req("/id/1"));
+
+		expect(await res.text()).toBe("number");
+	});
+
+	it("map returned value", async () => {
+		const app = new Elysia()
+			.onTransform<{
+				params: {
+					id: number;
+				} | null;
+			}>((request) => {
+				if (request.params?.id) request.params.id = +request.params.id;
 			})
-		})
+			.get("/id/:id", ({ params: { id } }) => typeof id);
 
-		const correct = await app.handle(req('/id/1')).then((x) => x.status)
-		expect(correct).toBe(200)
+		const res = await app.handle(req("/id/1"));
+		expect(await res.text()).toBe("number");
+	});
 
-		const invalid = await app.handle(req('/id/-1')).then((x) => x.status)
-		expect(invalid).toBe(422)
-	})
+	it("validate property", async () => {
+		const app = new Elysia().get("/id/:id", ({ params: { id } }) => id, {
+			params: t.Object({
+				id: t.Numeric({ minimum: 0 }),
+			}),
+		});
 
-	it('inherits from plugin', async () => {
+		const correct = await app.handle(req("/id/1")).then((x) => x.status);
+		expect(correct).toBe(200);
+
+		const invalid = await app.handle(req("/id/-1")).then((x) => x.status);
+		expect(invalid).toBe(422);
+	});
+
+	it("inherits from plugin", async () => {
 		const transformId = new Elysia().onTransform<
 			{
 				params: {
-					name: string
-				} | null
+					name: string;
+				} | null;
 			},
-			'global'
-		>({ as: 'global' }, ({ params }) => {
-			if (params?.name === 'Fubuki') params.name = 'Cat'
-		})
+			"global"
+		>({ as: "global" }, ({ params }) => {
+			if (params?.name === "Fubuki") params.name = "Cat";
+		});
 
 		const app = new Elysia()
 			.use(transformId)
-			.get('/name/:name', ({ params: { name } }) => name)
+			.get("/name/:name", ({ params: { name } }) => name);
 
-		const res = await app.handle(req('/name/Fubuki'))
+		const res = await app.handle(req("/name/Fubuki"));
 
-		expect(await res.text()).toBe('Cat')
-	})
+		expect(await res.text()).toBe("Cat");
+	});
 
-	it('not inherits plugin on local', async () => {
+	it("not inherits plugin on local", async () => {
 		const transformId = new Elysia().onTransform<{
 			params: {
-				name: string
-			} | null
+				name: string;
+			} | null;
 		}>(({ params }) => {
-			if (params?.name === 'Fubuki') params.name = 'Cat'
-		})
+			if (params?.name === "Fubuki") params.name = "Cat";
+		});
 
 		const app = new Elysia()
 			.use(transformId)
-			.get('/name/:name', ({ params: { name } }) => name)
+			.get("/name/:name", ({ params: { name } }) => name);
 
-		const res = await app.handle(req('/name/Fubuki'))
+		const res = await app.handle(req("/name/Fubuki"));
 
-		expect(await res.text()).toBe('Fubuki')
-	})
+		expect(await res.text()).toBe("Fubuki");
+	});
 
-	it('global true', async () => {
-		const called = <string[]>[]
-
-		const plugin = new Elysia()
-			.onTransform({ as: 'global' }, ({ path }) => {
-				called.push(path)
-			})
-			.get('/inner', () => 'NOOP')
-
-		const app = new Elysia().use(plugin).get('/outer', () => 'NOOP')
-
-		const res = await Promise.all([
-			app.handle(req('/inner')),
-			app.handle(req('/outer'))
-		])
-
-		expect(called).toEqual(['/inner', '/outer'])
-	})
-
-	it('global false', async () => {
-		const called = <string[]>[]
+	it("global true", async () => {
+		const called = <string[]>[];
 
 		const plugin = new Elysia()
-			.onTransform({ as: 'local' }, ({ path }) => {
-				called.push(path)
+			.onTransform({ as: "global" }, ({ path }) => {
+				called.push(path);
 			})
-			.get('/inner', () => 'NOOP')
+			.get("/inner", () => "NOOP");
 
-		const app = new Elysia().use(plugin).get('/outer', () => 'NOOP')
+		const app = new Elysia().use(plugin).get("/outer", () => "NOOP");
 
 		const res = await Promise.all([
-			app.handle(req('/inner')),
-			app.handle(req('/outer'))
-		])
+			app.handle(req("/inner")),
+			app.handle(req("/outer")),
+		]);
 
-		expect(called).toEqual(['/inner'])
-	})
+		expect(called).toEqual(["/inner", "/outer"]);
+	});
 
-	it('support array', async () => {
-		let total = 0
+	it("global false", async () => {
+		const called = <string[]>[];
+
+		const plugin = new Elysia()
+			.onTransform({ as: "local" }, ({ path }) => {
+				called.push(path);
+			})
+			.get("/inner", () => "NOOP");
+
+		const app = new Elysia().use(plugin).get("/outer", () => "NOOP");
+
+		const res = await Promise.all([
+			app.handle(req("/inner")),
+			app.handle(req("/outer")),
+		]);
+
+		expect(called).toEqual(["/inner"]);
+	});
+
+	it("support array", async () => {
+		let total = 0;
 
 		const app = new Elysia()
 			.onTransform([
 				() => {
-					total++
+					total++;
 				},
 				() => {
-					total++
-				}
+					total++;
+				},
 			])
-			.get('/', () => 'NOOP')
+			.get("/", () => "NOOP");
 
-		const res = await app.handle(req('/'))
+		const res = await app.handle(req("/"));
 
-		expect(total).toEqual(2)
-	})
-})
+		expect(total).toEqual(2);
+	});
+});

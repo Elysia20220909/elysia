@@ -1,346 +1,343 @@
-import { Elysia, form } from '../../src'
+import { describe, expect, it } from "bun:test";
+import { Elysia, form } from "../../src";
+import { req } from "../utils";
 
-import { describe, expect, it } from 'bun:test'
-import { req } from '../utils'
-
-describe('Map Response', () => {
-	it('work global', async () => {
+describe("Map Response", () => {
+	it("work global", async () => {
 		const app = new Elysia()
-			.mapResponse(() => new Response('A'))
-			.get('/', () => 'Hutao')
+			.mapResponse(() => new Response("A"))
+			.get("/", () => "Hutao");
 
-		const res = await app.handle(req('/')).then((x) => x.text())
+		const res = await app.handle(req("/")).then((x) => x.text());
 
-		expect(res).toBe('A')
-	})
+		expect(res).toBe("A");
+	});
 
-	it('work local', async () => {
-		const app = new Elysia().get('/', () => 'Hutao', {
+	it("work local", async () => {
+		const app = new Elysia().get("/", () => "Hutao", {
 			mapResponse() {
-				return new Response('A')
-			}
-		})
+				return new Response("A");
+			},
+		});
 
-		const res = await app.handle(req('/')).then((x) => x.text())
+		const res = await app.handle(req("/")).then((x) => x.text());
 
-		expect(res).toBe('A')
-	})
+		expect(res).toBe("A");
+	});
 
-	it('set header', async () => {
+	it("set header", async () => {
 		const app = new Elysia().get(
-			'/',
+			"/",
 			({ set }) => {
-				set.headers['X-Powered-By'] = 'Elysia'
+				set.headers["X-Powered-By"] = "Elysia";
 
-				return 'a'
+				return "a";
 			},
 			{
 				mapResponse() {
-					return new Response('A', {
+					return new Response("A", {
 						headers: {
-							'X-Test': 'OK'
-						}
-					})
-				}
-			}
-		)
+							"X-Test": "OK",
+						},
+					});
+				},
+			},
+		);
 
-		const headers = await app.handle(req('/')).then((x) => x.headers)
+		const headers = await app.handle(req("/")).then((x) => x.headers);
 
-		expect(headers.get('X-Test')).toContain('OK')
-		expect(headers.get('X-Powered-By')).toContain('Elysia')
-	})
+		expect(headers.get("X-Test")).toContain("OK");
+		expect(headers.get("X-Powered-By")).toContain("Elysia");
+	});
 
-	it('inherits plugin', async () => {
+	it("inherits plugin", async () => {
 		const plugin = new Elysia().mapResponse(
-			{ as: 'global' },
-			() => new Response('Fubuki')
-		)
+			{ as: "global" },
+			() => new Response("Fubuki"),
+		);
 
-		const app = new Elysia().use(plugin).get('/', () => 'a')
+		const app = new Elysia().use(plugin).get("/", () => "a");
 
-		const res = await app.handle(req('/')).then((t) => t.text())
-		expect(res).toBe('Fubuki')
-	})
+		const res = await app.handle(req("/")).then((t) => t.text());
+		expect(res).toBe("Fubuki");
+	});
 
-	it('not inherits plugin on local', async () => {
-		const plugin = new Elysia().mapResponse(() => new Response('Fubuki'))
+	it("not inherits plugin on local", async () => {
+		const plugin = new Elysia().mapResponse(() => new Response("Fubuki"));
 
-		const app = new Elysia().use(plugin).get('/', () => 'a')
+		const app = new Elysia().use(plugin).get("/", () => "a");
 
-		const res = await app.handle(req('/')).then((t) => t.text())
-		expect(res).toBe('a')
-	})
+		const res = await app.handle(req("/")).then((t) => t.text());
+		expect(res).toBe("a");
+	});
 
-	it('map response only once', async () => {
-		const app = new Elysia().get('/', () => 'Hutao', {
+	it("map response only once", async () => {
+		const app = new Elysia().get("/", () => "Hutao", {
 			mapResponse: [
 				() => {},
 				() => {
-					return new Response('A')
+					return new Response("A");
 				},
 				() => {
-					return new Response('B')
-				}
-			]
-		})
+					return new Response("B");
+				},
+			],
+		});
 
-		const res = await app.handle(req('/')).then((x) => x.text())
+		const res = await app.handle(req("/")).then((x) => x.text());
 
-		expect(res).toBe('A')
-	})
+		expect(res).toBe("A");
+	});
 
-	it('inherit response', async () => {
-		const app = new Elysia().get('/', () => 'Hu', {
+	it("inherit response", async () => {
+		const app = new Elysia().get("/", () => "Hu", {
 			mapResponse({ response }) {
-				if (typeof response === 'string')
-					return new Response(response + 'tao')
-			}
-		})
+				if (typeof response === "string") return new Response(response + "tao");
+			},
+		});
 
-		const res = await app.handle(req('/')).then((x) => x.text())
+		const res = await app.handle(req("/")).then((x) => x.text());
 
-		expect(res).toBe('Hutao')
-	})
+		expect(res).toBe("Hutao");
+	});
 
-	it('inherit response using responseValue', async () => {
-		const app = new Elysia().get('/', () => 'Hu', {
+	it("inherit response using responseValue", async () => {
+		const app = new Elysia().get("/", () => "Hu", {
 			mapResponse({ responseValue }) {
-				if (typeof responseValue === 'string')
-					return new Response(responseValue + 'tao')
-			}
-		})
+				if (typeof responseValue === "string")
+					return new Response(responseValue + "tao");
+			},
+		});
 
-		const res = await app.handle(req('/')).then((x) => x.text())
+		const res = await app.handle(req("/")).then((x) => x.text());
 
-		expect(res).toBe('Hutao')
-	})
+		expect(res).toBe("Hutao");
+	});
 
-	it('inherit set', async () => {
-		const app = new Elysia().get('/', () => 'Hu', {
+	it("inherit set", async () => {
+		const app = new Elysia().get("/", () => "Hu", {
 			mapResponse({ response, set }) {
-				set.headers['X-Powered-By'] = 'Elysia'
+				set.headers["X-Powered-By"] = "Elysia";
 
-				if (typeof response === 'string')
-					return new Response(response + 'tao', {
+				if (typeof response === "string")
+					return new Response(response + "tao", {
 						headers: {
-							'X-Series': 'Genshin'
-						}
-					})
-			}
-		})
+							"X-Series": "Genshin",
+						},
+					});
+			},
+		});
 
-		const res = await app.handle(req('/')).then((x) => x.headers)
+		const res = await app.handle(req("/")).then((x) => x.headers);
 
-		expect(res.get('X-Powered-By')).toBe('Elysia')
-		expect(res.get('X-Series')).toBe('Genshin')
-	})
+		expect(res.get("X-Powered-By")).toBe("Elysia");
+		expect(res.get("X-Series")).toBe("Genshin");
+	});
 
-	it('inherit set using responseValue', async () => {
-		const app = new Elysia().get('/', () => 'Hu', {
+	it("inherit set using responseValue", async () => {
+		const app = new Elysia().get("/", () => "Hu", {
 			mapResponse({ responseValue, set }) {
-				set.headers['X-Powered-By'] = 'Elysia'
+				set.headers["X-Powered-By"] = "Elysia";
 
-				if (typeof responseValue === 'string')
-					return new Response(responseValue + 'tao', {
+				if (typeof responseValue === "string")
+					return new Response(responseValue + "tao", {
 						headers: {
-							'X-Series': 'Genshin'
-						}
-					})
-			}
-		})
+							"X-Series": "Genshin",
+						},
+					});
+			},
+		});
 
-		const res = await app.handle(req('/')).then((x) => x.headers)
+		const res = await app.handle(req("/")).then((x) => x.headers);
 
-		expect(res.get('X-Powered-By')).toBe('Elysia')
-		expect(res.get('X-Series')).toBe('Genshin')
-	})
+		expect(res.get("X-Powered-By")).toBe("Elysia");
+		expect(res.get("X-Series")).toBe("Genshin");
+	});
 
-	it('return async', async () => {
+	it("return async", async () => {
 		const app = new Elysia()
-			.mapResponse(async () => new Response('A'))
-			.get('/', () => 'Hutao')
+			.mapResponse(async () => new Response("A"))
+			.get("/", () => "Hutao");
 
-		const res = await app.handle(req('/')).then((x) => x.text())
+		const res = await app.handle(req("/")).then((x) => x.text());
 
-		expect(res).toBe('A')
-	})
+		expect(res).toBe("A");
+	});
 
-	it('skip async', async () => {
+	it("skip async", async () => {
 		const app = new Elysia()
 			.mapResponse(async () => {})
-			.get('/', () => 'Hutao')
+			.get("/", () => "Hutao");
 
-		const res = await app.handle(req('/')).then((x) => x.text())
+		const res = await app.handle(req("/")).then((x) => x.text());
 
-		expect(res).toBe('Hutao')
-	})
+		expect(res).toBe("Hutao");
+	});
 
-	it('map response in order', async () => {
-		let order = <string[]>[]
+	it("map response in order", async () => {
+		const order = <string[]>[];
 
 		const app = new Elysia()
 			.mapResponse(() => {
-				order.push('A')
+				order.push("A");
 			})
 			.mapResponse(() => {
-				order.push('B')
+				order.push("B");
 			})
-			.get('/', () => '')
+			.get("/", () => "");
 
-		await app.handle(req('/'))
+		await app.handle(req("/"));
 
-		expect(order).toEqual(['A', 'B'])
-	})
+		expect(order).toEqual(["A", "B"]);
+	});
 
-	it('as global', async () => {
-		const called = <string[]>[]
+	it("as global", async () => {
+		const called = <string[]>[];
 
 		const plugin = new Elysia()
-			.mapResponse({ as: 'global' }, ({ path }) => {
-				called.push(path)
+			.mapResponse({ as: "global" }, ({ path }) => {
+				called.push(path);
 			})
-			.get('/inner', () => 'NOOP')
+			.get("/inner", () => "NOOP");
 
-		const app = new Elysia().use(plugin).get('/outer', () => 'NOOP')
+		const app = new Elysia().use(plugin).get("/outer", () => "NOOP");
 
 		const res = await Promise.all([
-			app.handle(req('/inner')),
-			app.handle(req('/outer'))
-		])
+			app.handle(req("/inner")),
+			app.handle(req("/outer")),
+		]);
 
-		expect(called).toEqual(['/inner', '/outer'])
-	})
+		expect(called).toEqual(["/inner", "/outer"]);
+	});
 
-	it('as local', async () => {
-		const called = <string[]>[]
+	it("as local", async () => {
+		const called = <string[]>[];
 
 		const plugin = new Elysia()
-			.mapResponse({ as: 'local' }, ({ path }) => {
-				called.push(path)
+			.mapResponse({ as: "local" }, ({ path }) => {
+				called.push(path);
 			})
-			.get('/inner', () => 'NOOP')
+			.get("/inner", () => "NOOP");
 
-		const app = new Elysia().use(plugin).get('/outer', () => 'NOOP')
+		const app = new Elysia().use(plugin).get("/outer", () => "NOOP");
 
 		const res = await Promise.all([
-			app.handle(req('/inner')),
-			app.handle(req('/outer'))
-		])
+			app.handle(req("/inner")),
+			app.handle(req("/outer")),
+		]);
 
-		expect(called).toEqual(['/inner'])
-	})
+		expect(called).toEqual(["/inner"]);
+	});
 
-	it('support array', async () => {
-		let total = 0
+	it("support array", async () => {
+		let total = 0;
 
 		const app = new Elysia()
 			.mapResponse([
 				() => {
-					total++
+					total++;
 				},
 				() => {
-					total++
-				}
+					total++;
+				},
 			])
-			.get('/', () => 'NOOP')
+			.get("/", () => "NOOP");
 
-		const res = await app.handle(req('/'))
+		const res = await app.handle(req("/"));
 
-		expect(total).toEqual(2)
-	})
+		expect(total).toEqual(2);
+	});
 
-	it('mapResponse in error', async () => {
+	it("mapResponse in error", async () => {
 		class CustomClass {
 			constructor(public name: string) {}
 		}
 
 		const app = new Elysia()
 			.trace(() => {})
-			.onError(() => new CustomClass('aru'))
+			.onError(() => new CustomClass("aru"))
 			.mapResponse(({ response }) => {
-				if (response instanceof CustomClass)
-					return new Response(response.name)
+				if (response instanceof CustomClass) return new Response(response.name);
 			})
-			.get('/', () => {
-				throw new Error('Hello')
-			})
+			.get("/", () => {
+				throw new Error("Hello");
+			});
 
-		const response = await app.handle(req('/')).then((x) => x.text())
+		const response = await app.handle(req("/")).then((x) => x.text());
 
-		expect(response).toBe('aru')
-	})
+		expect(response).toBe("aru");
+	});
 
-	it('mapResponse in error using responseValue', async () => {
+	it("mapResponse in error using responseValue", async () => {
 		class CustomClass {
 			constructor(public name: string) {}
 		}
 
 		const app = new Elysia()
 			.trace(() => {})
-			.onError(() => new CustomClass('aru'))
+			.onError(() => new CustomClass("aru"))
 			.mapResponse(({ responseValue }) => {
 				if (responseValue instanceof CustomClass)
-					return new Response(responseValue.name)
+					return new Response(responseValue.name);
 			})
-			.get('/', () => {
-				throw new Error('Hello')
-			})
+			.get("/", () => {
+				throw new Error("Hello");
+			});
 
-		const response = await app.handle(req('/')).then((x) => x.text())
+		const response = await app.handle(req("/")).then((x) => x.text());
 
-		expect(response).toBe('aru')
-	})
+		expect(response).toBe("aru");
+	});
 
 	// https://github.com/elysiajs/elysia/issues/965
-	it('mapResponse with after handle', async () => {
+	it("mapResponse with after handle", async () => {
 		const app = new Elysia()
 			.onAfterHandle(() => {})
 			.mapResponse((context) => {
-				return new Response(context.response + '')
+				return new Response(context.response + "");
 			})
-			.get('/', async () => 'aru')
+			.get("/", async () => "aru");
 
-		const response = await app.handle(req('/')).then((x) => x.text())
+		const response = await app.handle(req("/")).then((x) => x.text());
 
-		expect(response).toBe('aru')
-	})
+		expect(response).toBe("aru");
+	});
 
-	it('mapResponse with after handle using responseValue', async () => {
+	it("mapResponse with after handle using responseValue", async () => {
 		const app = new Elysia()
 			.onAfterHandle(() => {})
 			.mapResponse((context) => {
-				return new Response(context.responseValue + '')
+				return new Response(context.responseValue + "");
 			})
-			.get('/', async () => 'aru')
+			.get("/", async () => "aru");
 
-		const response = await app.handle(req('/')).then((x) => x.text())
+		const response = await app.handle(req("/")).then((x) => x.text());
 
-		expect(response).toBe('aru')
-	})
+		expect(response).toBe("aru");
+	});
 
-	it('mapResponse with onError', async () => {
+	it("mapResponse with onError", async () => {
 		const app = new Elysia()
 			.onError(() => {})
 			.mapResponse(() => {})
-			.get('/', () => 'ok')
+			.get("/", () => "ok");
 
-		const response = await app.handle(req('/')).then((x) => x.text())
+		const response = await app.handle(req("/")).then((x) => x.text());
 
-		expect(response).toBe('ok')
-	})
+		expect(response).toBe("ok");
+	});
 
-	it('handle set in mapResonse', async () => {
+	it("handle set in mapResonse", async () => {
 		const app = new Elysia()
 			.mapResponse(({ set }) => {
-				set.headers['x-powered-by'] = 'Elysia'
+				set.headers["x-powered-by"] = "Elysia";
 			})
-			.get('/', new Response('ok'))
+			.get("/", new Response("ok"));
 
-		const response = await app.handle(req('/'))
-		const value = await response.text()
+		const response = await app.handle(req("/"));
+		const value = await response.text();
 
-		expect(value).toBe('ok')
-		expect(response.headers.get('x-powered-by')).toBe('Elysia')
-	})
-})
+		expect(value).toBe("ok");
+		expect(response.headers.get("x-powered-by")).toBe("Elysia");
+	});
+});

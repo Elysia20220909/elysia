@@ -1,13 +1,11 @@
-import { Elysia, file, form, t } from '../../src'
+import { describe, expect, it } from "bun:test";
+import { Value } from "@sinclair/typebox/value";
+import { Elysia, file, form, t } from "../../src";
+import { req } from "../utils";
 
-import { describe, expect, it } from 'bun:test'
-
-import { Value } from '@sinclair/typebox/value'
-import { req } from '../utils'
-
-describe('TypeSystem - Form', () => {
-	it('Create', () => {
-		expect(Value.Create(t.Form({}))).toEqual(form({}))
+describe("TypeSystem - Form", () => {
+	it("Create", () => {
+		expect(Value.Create(t.Form({}))).toEqual(form({}));
 
 		expect(
 			Value.Create(
@@ -15,81 +13,81 @@ describe('TypeSystem - Form', () => {
 					{},
 					{
 						default: form({
-							name: 'saltyaom'
-						})
-					}
-				)
-			)
+							name: "saltyaom",
+						}),
+					},
+				),
+			),
 		).toEqual(
 			form({
-				name: 'saltyaom'
-			})
-		)
-	})
+				name: "saltyaom",
+			}),
+		);
+	});
 
-	it('Check', () => {
+	it("Check", () => {
 		const schema = t.Form({
 			name: t.String(),
-			age: t.Number()
-		})
+			age: t.Number(),
+		});
 
 		expect(
 			Value.Check(
 				schema,
 				form({
-					name: 'saltyaom',
-					age: 20
-				})
-			)
-		).toBe(true)
+					name: "saltyaom",
+					age: 20,
+				}),
+			),
+		).toBe(true);
 
 		try {
 			Value.Check(
 				schema,
 				form({
-					name: 'saltyaom'
-				})
-			)
-			expect(true).toBe(false)
+					name: "saltyaom",
+				}),
+			);
+			expect(true).toBe(false);
 		} catch {
-			expect(true).toBe(true)
+			expect(true).toBe(true);
 		}
-	})
+	});
 
-	it('Integrate', async () => {
+	it("Integrate", async () => {
 		const app = new Elysia()
 			.get(
-				'/form/:name',
+				"/form/:name",
 				({ params: { name } }) =>
 					form({
-						name: name as any
+						name: name as any,
 					}),
 				{
 					response: t.Form({
-						name: t.Literal('saltyaom')
-					})
-				}
+						name: t.Literal("saltyaom"),
+					}),
+				},
 			)
 			.get(
-				'/file',
+				"/file",
 				() =>
 					form({
-						teapot: file('example/teapot.webp')
+						teapot: file("example/teapot.webp"),
 					}),
 				{
 					response: t.Form({
-						teapot: t.File()
-					})
-				}
-			)
+						teapot: t.File(),
+					}),
+				},
+			);
 
-		const res1 = await app.handle(req('/form/saltyaom'))
-		expect(res1.status).toBe(200)
+		const res1 = await app.handle(req("/form/saltyaom"));
+		expect(res1.status).toBe(200);
 
-		const res2 = await app.handle(req('/form/felis'))
-		expect(res2.status).toBe(422)
+		const res2 = await app.handle(req("/form/felis"));
+		expect(res2.status).toBe(422);
 
-		const res3 = await app.handle(req('/file'))
-		expect(res3.status).toBe(200)
-	})
-})
+		const res3 = await app.handle(req("/file"));
+		expect(res3.status).toBe(200);
+	});
+});

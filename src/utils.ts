@@ -1,102 +1,102 @@
-import type { Sucrose } from './sucrose'
-import type { TraceHandler } from './trace'
+import type { Sucrose } from "./sucrose";
+import type { TraceHandler } from "./trace";
 
 import type {
-	LifeCycleStore,
-	MaybeArray,
-	InputSchema,
-	LifeCycleType,
-	HookContainer,
-	GracefulHandler,
-	PreHandler,
-	BodyHandler,
-	TransformHandler,
-	OptionalHandler,
-	MapResponse,
-	ErrorHandler,
-	Replace,
 	AfterResponseHandler,
-	SchemaValidator,
 	AnyLocalHook,
-	SSEPayload,
+	BodyHandler,
+	ErrorHandler,
+	GracefulHandler,
+	HookContainer,
+	InputSchema,
+	LifeCycleStore,
+	LifeCycleType,
+	MapResponse,
+	MaybeArray,
+	OptionalHandler,
+	PreHandler,
 	Prettify,
-	RouteSchema
-} from './types'
-import { ElysiaFile } from './universal/file'
-import { isBun, isCloudflareWorker } from './universal/utils'
+	Replace,
+	RouteSchema,
+	SchemaValidator,
+	SSEPayload,
+	TransformHandler,
+} from "./types";
+import { ElysiaFile } from "./universal/file";
+import { isBun, isCloudflareWorker } from "./universal/utils";
 
 export const replaceUrlPath = (url: string, pathname: string) => {
-	const pathStartIndex = url.indexOf('/', 11)
-	const queryIndex = url.indexOf('?', pathStartIndex)
+	const pathStartIndex = url.indexOf("/", 11);
+	const queryIndex = url.indexOf("?", pathStartIndex);
 
 	if (queryIndex === -1)
-		return `${url.slice(0, pathStartIndex)}${pathname.charCodeAt(0) === 47 ? '' : '/'}${pathname}`
+		return `${url.slice(0, pathStartIndex)}${pathname.charCodeAt(0) === 47 ? "" : "/"}${pathname}`;
 
-	return `${url.slice(0, pathStartIndex)}${pathname.charCodeAt(0) === 47 ? '' : '/'}${pathname}${url.slice(queryIndex)}`
-}
+	return `${url.slice(0, pathStartIndex)}${pathname.charCodeAt(0) === 47 ? "" : "/"}${pathname}${url.slice(queryIndex)}`;
+};
 
 export const isClass = (v: Object) =>
-	(typeof v === 'function' && /^\s*class\s+/.test(v.toString())) ||
+	(typeof v === "function" && /^\s*class\s+/.test(v.toString())) ||
 	// Handle Object.create(null)
 	(v.toString &&
 		// Handle import * as Sentry from '@sentry/bun'
 		// This also handle [object Date], [object Array]
 		// and FFI value like [object Prisma]
-		v.toString().startsWith('[object ') &&
-		v.toString() !== '[object Object]') ||
+		v
+			.toString()
+			.startsWith("[object ") &&
+		v.toString() !== "[object Object]") ||
 	// If object prototype is not pure, then probably a class-like object
-	isNotEmpty(Object.getPrototypeOf(v))
+	isNotEmpty(Object.getPrototypeOf(v));
 
 const isObject = (item: any): item is Object =>
-	item && typeof item === 'object' && !Array.isArray(item)
+	item && typeof item === "object" && !Array.isArray(item);
 
 export const mergeDeep = <
 	A extends Record<string, any>,
-	B extends Record<string, any>
+	B extends Record<string, any>,
 >(
 	target: A,
 	source: B,
 	options?: {
-		skipKeys?: string[]
-		override?: boolean
-		mergeArray?: boolean
-		seen?: WeakSet<object>
-	}
+		skipKeys?: string[];
+		override?: boolean;
+		mergeArray?: boolean;
+		seen?: WeakSet<object>;
+	},
 ): A & B => {
-	const skipKeys = options?.skipKeys
-	const override = options?.override ?? true
-	const mergeArray = options?.mergeArray ?? false
-	const seen = options?.seen ?? new WeakSet<object>()
+	const skipKeys = options?.skipKeys;
+	const override = options?.override ?? true;
+	const mergeArray = options?.mergeArray ?? false;
+	const seen = options?.seen ?? new WeakSet<object>();
 
-	if (!isObject(target) || !isObject(source)) return target as A & B
+	if (!isObject(target) || !isObject(source)) return target as A & B;
 
-	if (seen.has(source)) return target as A & B
-	seen.add(source)
+	if (seen.has(source)) return target as A & B;
+	seen.add(source);
 
 	for (const [key, value] of Object.entries(source)) {
 		if (
 			skipKeys?.includes(key) ||
-			['__proto__', 'constructor', 'prototype'].includes(key)
+			["__proto__", "constructor", "prototype"].includes(key)
 		)
-			continue
+			continue;
 
 		if (mergeArray && Array.isArray(value)) {
-			target[key as keyof typeof target] = Array.isArray(
-				(target as any)[key]
-			)
+			target[key as keyof typeof target] = Array.isArray((target as any)[key])
 				? [...(target as any)[key], ...value]
-				: (target[key as keyof typeof target] = value as any)
+				: (target[key as keyof typeof target] = value as any);
 
-			continue
+			continue;
 		}
 
 		if (!isObject(value) || !(key in target) || isClass(value)) {
 			if ((override || !(key in target)) && !Object.isFrozen(target))
 				try {
-					target[key as keyof typeof target] = value
+					target[key as keyof typeof target] = value;
 				} catch {}
 
-			continue
+			continue;
 		}
 
 		if (!Object.isFrozen(target[key]))
@@ -104,109 +104,109 @@ export const mergeDeep = <
 				target[key as keyof typeof target] = mergeDeep(
 					(target as any)[key] as any,
 					value,
-					{ skipKeys, override, mergeArray, seen }
-				)
+					{ skipKeys, override, mergeArray, seen },
+				);
 			} catch {}
 	}
 
-	seen.delete(source)
+	seen.delete(source);
 
-	return target as A & B
-}
+	return target as A & B;
+};
 export const mergeCookie = <const A extends Object, const B extends Object>(
 	a: A,
-	b: B
+	b: B,
 ): A & B => {
 	const v = mergeDeep(Object.assign({}, a), b, {
-		skipKeys: ['properties'],
-		mergeArray: false
-	}) as A & B
+		skipKeys: ["properties"],
+		mergeArray: false,
+	}) as A & B;
 
 	// @ts-expect-error
-	if (v.properties) delete v.properties
+	if (v.properties) delete v.properties;
 
-	return v
-}
+	return v;
+};
 
 export const mergeObjectArray = <T extends HookContainer>(
 	a: T | T[] | undefined,
-	b: T | T[] | undefined
+	b: T | T[] | undefined,
 ): T[] | undefined => {
-	if (!b) return a as any
+	if (!b) return a as any;
 
 	// ! Must copy to remove side-effect
-	const array = <T[]>[]
-	const checksums = <(number | undefined)[]>[]
+	const array = <T[]>[];
+	const checksums = <(number | undefined)[]>[];
 
 	if (a) {
-		if (!Array.isArray(a)) a = [a]
+		if (!Array.isArray(a)) a = [a];
 		for (const item of a) {
-			array.push(item)
+			array.push(item);
 
-			if (item.checksum) checksums.push(item.checksum)
+			if (item.checksum) checksums.push(item.checksum);
 		}
 	}
 
 	if (b) {
-		if (!Array.isArray(b)) b = [b]
+		if (!Array.isArray(b)) b = [b];
 		for (const item of b)
-			if (!checksums.includes(item.checksum)) array.push(item)
+			if (!checksums.includes(item.checksum)) array.push(item);
 	}
 
-	return array
-}
+	return array;
+};
 
 export const primitiveHooks = [
-	'start',
-	'request',
-	'parse',
-	'transform',
-	'resolve',
-	'beforeHandle',
-	'afterHandle',
-	'mapResponse',
-	'afterResponse',
-	'trace',
-	'error',
-	'stop',
-	'body',
-	'headers',
-	'params',
-	'query',
-	'response',
-	'type',
-	'detail'
-] as const
+	"start",
+	"request",
+	"parse",
+	"transform",
+	"resolve",
+	"beforeHandle",
+	"afterHandle",
+	"mapResponse",
+	"afterResponse",
+	"trace",
+	"error",
+	"stop",
+	"body",
+	"headers",
+	"params",
+	"query",
+	"response",
+	"type",
+	"detail",
+] as const;
 
 const primitiveHookMap = primitiveHooks.reduce(
 	(acc, x) => ((acc[x] = true), acc),
-	{} as Record<string, boolean>
-)
+	{} as Record<string, boolean>,
+);
 
 // If both are Record<number, ...> then merge them,
 // giving preference to b.
-type RecordNumber = Record<number, any>
+type RecordNumber = Record<number, any>;
 const isRecordNumber = (
-	x: Record<keyof object, unknown> | undefined
+	x: Record<keyof object, unknown> | undefined,
 ): x is RecordNumber =>
-	typeof x === 'object' && Object.keys(x).every((x) => !isNaN(+x))
+	typeof x === "object" && Object.keys(x).every((x) => !isNaN(+x));
 
 export const mergeResponse = (
-	a: InputSchema['response'],
-	b: InputSchema['response']
+	a: InputSchema["response"],
+	b: InputSchema["response"],
 ) => {
 	if (isRecordNumber(a) && isRecordNumber(b))
 		// Prevent side effect
-		return Object.assign({}, a, b)
+		return Object.assign({}, a, b);
 	else if (a && !isRecordNumber(a) && isRecordNumber(b))
-		return Object.assign({ 200: a }, b)
+		return Object.assign({ 200: a }, b);
 
-	return b ?? a
-}
+	return b ?? a;
+};
 
 export const mergeSchemaValidator = (
 	a?: SchemaValidator | null,
-	b?: SchemaValidator | null
+	b?: SchemaValidator | null,
 ): SchemaValidator => {
 	if (!a && !b)
 		return {
@@ -215,8 +215,8 @@ export const mergeSchemaValidator = (
 			params: undefined,
 			query: undefined,
 			cookie: undefined,
-			response: undefined
-		}
+			response: undefined,
+		};
 
 	return {
 		body: b?.body ?? a?.body,
@@ -224,19 +224,19 @@ export const mergeSchemaValidator = (
 		params: b?.params ?? a?.params,
 		query: b?.query ?? a?.query,
 		cookie: b?.cookie ?? a?.cookie,
-		// @ts-ignore ? This order is correct - SaltyAom
+		// @ts-expect-error ? This order is correct - SaltyAom
 		response: mergeResponse(
-			// @ts-ignore
+			// @ts-expect-error
 			a?.response,
-			// @ts-ignore
-			b?.response
-		)
-	}
-}
+			// @ts-expect-error
+			b?.response,
+		),
+	};
+};
 
 export const mergeHook = (
 	a?: Partial<LifeCycleStore>,
-	b?: AnyLocalHook
+	b?: AnyLocalHook,
 	// { allowMacro = false }: { allowMacro?: boolean } = {}
 ): LifeCycleStore => {
 	// In case if merging union is need
@@ -268,64 +268,58 @@ export const mergeHook = (
 	// 		customBStore[union]
 	// 	)
 
-	if (!b) return (a as any) ?? {}
-	if (!a) return b ?? {}
+	if (!b) return (a as any) ?? {};
+	if (!a) return b ?? {};
 
 	if (!Object.values(b).find((x) => x !== undefined && x !== null))
-		return { ...a } as any
+		return { ...a } as any;
 
 	const hook = {
 		...a,
 		...b,
 		// Merge local hook first
-		// @ts-ignore
+		// @ts-expect-error
 		body: b.body ?? a.body,
-		// @ts-ignore
+		// @ts-expect-error
 		headers: b.headers ?? a.headers,
-		// @ts-ignore
+		// @ts-expect-error
 		params: b.params ?? a.params,
-		// @ts-ignore
+		// @ts-expect-error
 		query: b.query ?? a.query,
-		// @ts-ignore
+		// @ts-expect-error
 		cookie: b.cookie ?? a.cookie,
 		// ? This order is correct - SaltyAom
 		response: mergeResponse(
-			// @ts-ignore
+			// @ts-expect-error
 			a.response,
-			// @ts-ignore
-			b.response
+			// @ts-expect-error
+			b.response,
 		),
 		type: a.type || b.type,
 		detail: mergeDeep(
-			// @ts-ignore
+			// @ts-expect-error
 			b.detail ?? {},
-			// @ts-ignore
-			a.detail ?? {}
+			// @ts-expect-error
+			a.detail ?? {},
 		),
 		parse: mergeObjectArray(a.parse as any, b.parse),
 		transform: mergeObjectArray(a.transform, b.transform),
 		beforeHandle: mergeObjectArray(
 			mergeObjectArray(
-				// @ts-ignore
-				fnToContainer(a.resolve, 'resolve'),
-				a.beforeHandle
+				// @ts-expect-error
+				fnToContainer(a.resolve, "resolve"),
+				a.beforeHandle,
 			),
-			mergeObjectArray(
-				fnToContainer(b.resolve, 'resolve'),
-				b.beforeHandle
-			)
+			mergeObjectArray(fnToContainer(b.resolve, "resolve"), b.beforeHandle),
 		),
 		afterHandle: mergeObjectArray(a.afterHandle, b.afterHandle),
 		mapResponse: mergeObjectArray(a.mapResponse, b.mapResponse) as any,
-		afterResponse: mergeObjectArray(
-			a.afterResponse,
-			b.afterResponse
-		) as any,
+		afterResponse: mergeObjectArray(a.afterResponse, b.afterResponse) as any,
 		trace: mergeObjectArray(a.trace, b.trace) as any,
 		error: mergeObjectArray(a.error, b.error),
-		// @ts-ignore
+		// @ts-expect-error
 		standaloneSchema:
-			// @ts-ignore
+			// @ts-expect-error
 			a.standaloneSchema || b.standaloneSchema
 				? // @ts-ignore
 
@@ -338,219 +332,214 @@ export const mergeHook = (
 						b.standaloneSchema && !a.standaloneSchema
 						? b.standaloneSchema
 						: [
-								// @ts-ignore
+								// @ts-expect-error
 								...(a.standaloneSchema ?? []),
-								...(b.standaloneSchema ?? [])
+								...(b.standaloneSchema ?? []),
 							]
-				: undefined
-	}
+				: undefined,
+	};
 
-	if (hook.resolve) delete hook.resolve
+	if (hook.resolve) delete hook.resolve;
 
-	return hook
-}
+	return hook;
+};
 
 export const lifeCycleToArray = (a: LifeCycleStore) => {
-	if (a.parse && !Array.isArray(a.parse)) a.parse = [a.parse]
+	if (a.parse && !Array.isArray(a.parse)) a.parse = [a.parse];
 
-	if (a.transform && !Array.isArray(a.transform)) a.transform = [a.transform]
+	if (a.transform && !Array.isArray(a.transform)) a.transform = [a.transform];
 
 	if (a.afterHandle && !Array.isArray(a.afterHandle))
-		a.afterHandle = [a.afterHandle]
+		a.afterHandle = [a.afterHandle];
 
 	if (a.mapResponse && !Array.isArray(a.mapResponse))
-		a.mapResponse = [a.mapResponse]
+		a.mapResponse = [a.mapResponse];
 
 	if (a.afterResponse && !Array.isArray(a.afterResponse))
-		a.afterResponse = [a.afterResponse]
+		a.afterResponse = [a.afterResponse];
 
-	if (a.trace && !Array.isArray(a.trace)) a.trace = [a.trace]
-	if (a.error && !Array.isArray(a.error)) a.error = [a.error]
+	if (a.trace && !Array.isArray(a.trace)) a.trace = [a.trace];
+	if (a.error && !Array.isArray(a.error)) a.error = [a.error];
 
-	let beforeHandle = []
+	let beforeHandle = [];
 
 	// @ts-expect-error
 	if (a.resolve) {
 		beforeHandle = fnToContainer(
 			// @ts-expect-error
 			Array.isArray(a.resolve) ? a.resolve : [a.resolve],
-			'resolve'
-		) as any[]
+			"resolve",
+		) as any[];
 
 		// @ts-expect-error
-		delete a.resolve
+		delete a.resolve;
 	}
 
 	if (a.beforeHandle) {
 		if (beforeHandle.length)
 			beforeHandle = beforeHandle.concat(
-				Array.isArray(a.beforeHandle)
-					? a.beforeHandle
-					: [a.beforeHandle]
-			)
+				Array.isArray(a.beforeHandle) ? a.beforeHandle : [a.beforeHandle],
+			);
 		else
 			beforeHandle = Array.isArray(a.beforeHandle)
 				? a.beforeHandle
-				: [a.beforeHandle]
+				: [a.beforeHandle];
 	}
 
-	if (beforeHandle.length) a.beforeHandle = beforeHandle
+	if (beforeHandle.length) a.beforeHandle = beforeHandle;
 
-	return a
-}
+	return a;
+};
 
-export const hasHeaderShorthand = isBun ? 'toJSON' in new Headers() : false
-export const hasSetImmediate = typeof setImmediate === 'function'
+export const hasHeaderShorthand = isBun ? "toJSON" in new Headers() : false;
+export const hasSetImmediate = typeof setImmediate === "function";
 
 // https://stackoverflow.com/a/52171480
 export const checksum = (s: string) => {
-	let h = 9
+	let h = 9;
 
-	for (let i = 0; i < s.length; ) h = Math.imul(h ^ s.charCodeAt(i++), 9 ** 9)
+	for (let i = 0; i < s.length; ) h = Math.imul(h ^ s.charCodeAt(i++), 9 ** 9);
 
-	return (h = h ^ (h >>> 9))
-}
+	return (h = h ^ (h >>> 9));
+};
 
 export const injectChecksum = (
 	checksum: number | undefined,
-	x: MaybeArray<HookContainer> | undefined
+	x: MaybeArray<HookContainer> | undefined,
 ) => {
-	if (!x) return
+	if (!x) return;
 
 	if (!Array.isArray(x)) {
 		// ? clone fn is required to prevent side-effect from changing hookType
-		const fn = x
+		const fn = x;
 
-		if (checksum && !fn.checksum) fn.checksum = checksum
-		if (fn.scope === 'scoped') fn.scope = 'local'
+		if (checksum && !fn.checksum) fn.checksum = checksum;
+		if (fn.scope === "scoped") fn.scope = "local";
 
-		return fn
+		return fn;
 	}
 
 	// ? clone fns is required to prevent side-effect from changing hookType
-	const fns = [...x]
+	const fns = [...x];
 
 	for (const fn of fns) {
-		if (checksum && !fn.checksum) fn.checksum = checksum
+		if (checksum && !fn.checksum) fn.checksum = checksum;
 
-		if (fn.scope === 'scoped') fn.scope = 'local'
+		if (fn.scope === "scoped") fn.scope = "local";
 	}
 
-	return fns
-}
+	return fns;
+};
 
 export const mergeLifeCycle = (
 	a: Partial<LifeCycleStore>,
 	b: Partial<LifeCycleStore | AnyLocalHook>,
-	checksum?: number
+	checksum?: number,
 ): LifeCycleStore => {
 	return {
 		start: mergeObjectArray(
 			a.start,
-			injectChecksum(checksum, b?.start)
+			injectChecksum(checksum, b?.start),
 		) as HookContainer<GracefulHandler<any>>[],
 		request: mergeObjectArray(
 			a.request,
-			injectChecksum(checksum, b?.request)
+			injectChecksum(checksum, b?.request),
 		) as HookContainer<PreHandler<any, any>>[],
 		parse: mergeObjectArray(
 			a.parse,
-			injectChecksum(checksum, b?.parse)
+			injectChecksum(checksum, b?.parse),
 		) as HookContainer<BodyHandler<any, any>>[],
 		transform: mergeObjectArray(
 			a.transform,
-			injectChecksum(checksum, b?.transform)
+			injectChecksum(checksum, b?.transform),
 		) as HookContainer<TransformHandler<any, any>>[],
 		beforeHandle: mergeObjectArray(
 			mergeObjectArray(
-				// @ts-ignore
-				fnToContainer(a.resolve, 'resolve'),
-				a.beforeHandle
+				// @ts-expect-error
+				fnToContainer(a.resolve, "resolve"),
+				a.beforeHandle,
 			),
 			injectChecksum(
 				checksum,
-				mergeObjectArray(
-					fnToContainer(b?.resolve, 'resolve'),
-					b?.beforeHandle
-				)
-			)
+				mergeObjectArray(fnToContainer(b?.resolve, "resolve"), b?.beforeHandle),
+			),
 		) as HookContainer<OptionalHandler<any, any>>[],
 		afterHandle: mergeObjectArray(
 			a.afterHandle,
-			injectChecksum(checksum, b?.afterHandle)
+			injectChecksum(checksum, b?.afterHandle),
 		) as HookContainer<OptionalHandler<any, any>>[],
 		mapResponse: mergeObjectArray(
 			a.mapResponse,
-			injectChecksum(checksum, b?.mapResponse)
+			injectChecksum(checksum, b?.mapResponse),
 		) as HookContainer<MapResponse<any, any>>[],
 		afterResponse: mergeObjectArray(
 			a.afterResponse,
-			injectChecksum(checksum, b?.afterResponse)
+			injectChecksum(checksum, b?.afterResponse),
 		) as HookContainer<AfterResponseHandler<any, any>>[],
 		// Already merged on Elysia._use, also logic is more complicated, can't directly merge
 		trace: mergeObjectArray(
 			a.trace,
-			injectChecksum(checksum, b?.trace)
+			injectChecksum(checksum, b?.trace),
 		) as HookContainer<TraceHandler<any, any>>[],
 		error: mergeObjectArray(
 			a.error,
-			injectChecksum(checksum, b?.error)
+			injectChecksum(checksum, b?.error),
 		) as HookContainer<ErrorHandler<any, any, any>>[],
 		stop: mergeObjectArray(
 			a.stop,
-			injectChecksum(checksum, b?.stop)
-		) as HookContainer<GracefulHandler<any>>[]
-	}
-}
+			injectChecksum(checksum, b?.stop),
+		) as HookContainer<GracefulHandler<any>>[],
+	};
+};
 
 export const asHookType = (
 	fn: HookContainer,
 	inject: LifeCycleType,
-	{ skipIfHasType = false }: { skipIfHasType?: boolean }
+	{ skipIfHasType = false }: { skipIfHasType?: boolean },
 ) => {
-	if (!fn) return fn
+	if (!fn) return fn;
 
 	if (!Array.isArray(fn)) {
-		if (skipIfHasType) fn.scope ??= inject
-		else fn.scope = inject
+		if (skipIfHasType) fn.scope ??= inject;
+		else fn.scope = inject;
 
-		return fn
+		return fn;
 	}
 
 	for (const x of fn)
-		if (skipIfHasType) x.scope ??= inject
-		else x.scope = inject
+		if (skipIfHasType) x.scope ??= inject;
+		else x.scope = inject;
 
-	return fn
-}
+	return fn;
+};
 
 const filterGlobal = (fn: MaybeArray<HookContainer>) => {
-	if (!fn) return fn
+	if (!fn) return fn;
 
 	if (!Array.isArray(fn))
 		switch (fn.scope) {
-			case 'global':
-			case 'scoped':
-				return { ...fn }
+			case "global":
+			case "scoped":
+				return { ...fn };
 
 			default:
-				return { fn }
+				return { fn };
 		}
 
-	const array = <any>[]
+	const array = <any>[];
 
 	for (const x of fn)
 		switch (x.scope) {
-			case 'global':
-			case 'scoped':
+			case "global":
+			case "scoped":
 				array.push({
-					...x
-				})
-				break
+					...x,
+				});
+				break;
 		}
 
-	return array
-}
+	return array;
+};
 
 export const filterGlobalHook = (hook: AnyLocalHook): AnyLocalHook => {
 	return {
@@ -565,114 +554,114 @@ export const filterGlobalHook = (hook: AnyLocalHook): AnyLocalHook => {
 		mapResponse: filterGlobal(hook?.mapResponse),
 		afterResponse: filterGlobal(hook?.afterResponse),
 		error: filterGlobal(hook?.error),
-		trace: filterGlobal(hook?.trace)
-	}
-}
+		trace: filterGlobal(hook?.trace),
+	};
+};
 
 export const StatusMap = {
 	Continue: 100,
-	'Switching Protocols': 101,
+	"Switching Protocols": 101,
 	Processing: 102,
-	'Early Hints': 103,
+	"Early Hints": 103,
 	OK: 200,
 	Created: 201,
 	Accepted: 202,
-	'Non-Authoritative Information': 203,
-	'No Content': 204,
-	'Reset Content': 205,
-	'Partial Content': 206,
-	'Multi-Status': 207,
-	'Already Reported': 208,
-	'Multiple Choices': 300,
-	'Moved Permanently': 301,
+	"Non-Authoritative Information": 203,
+	"No Content": 204,
+	"Reset Content": 205,
+	"Partial Content": 206,
+	"Multi-Status": 207,
+	"Already Reported": 208,
+	"Multiple Choices": 300,
+	"Moved Permanently": 301,
 	Found: 302,
-	'See Other': 303,
-	'Not Modified': 304,
-	'Temporary Redirect': 307,
-	'Permanent Redirect': 308,
-	'Bad Request': 400,
+	"See Other": 303,
+	"Not Modified": 304,
+	"Temporary Redirect": 307,
+	"Permanent Redirect": 308,
+	"Bad Request": 400,
 	Unauthorized: 401,
-	'Payment Required': 402,
+	"Payment Required": 402,
 	Forbidden: 403,
-	'Not Found': 404,
-	'Method Not Allowed': 405,
-	'Not Acceptable': 406,
-	'Proxy Authentication Required': 407,
-	'Request Timeout': 408,
+	"Not Found": 404,
+	"Method Not Allowed": 405,
+	"Not Acceptable": 406,
+	"Proxy Authentication Required": 407,
+	"Request Timeout": 408,
 	Conflict: 409,
 	Gone: 410,
-	'Length Required': 411,
-	'Precondition Failed': 412,
-	'Payload Too Large': 413,
-	'URI Too Long': 414,
-	'Unsupported Media Type': 415,
-	'Range Not Satisfiable': 416,
-	'Expectation Failed': 417,
+	"Length Required": 411,
+	"Precondition Failed": 412,
+	"Payload Too Large": 413,
+	"URI Too Long": 414,
+	"Unsupported Media Type": 415,
+	"Range Not Satisfiable": 416,
+	"Expectation Failed": 417,
 	"I'm a teapot": 418,
-	'Enhance Your Calm': 420,
-	'Misdirected Request': 421,
-	'Unprocessable Content': 422,
+	"Enhance Your Calm": 420,
+	"Misdirected Request": 421,
+	"Unprocessable Content": 422,
 	Locked: 423,
-	'Failed Dependency': 424,
-	'Too Early': 425,
-	'Upgrade Required': 426,
-	'Precondition Required': 428,
-	'Too Many Requests': 429,
-	'Request Header Fields Too Large': 431,
-	'Unavailable For Legal Reasons': 451,
-	'Internal Server Error': 500,
-	'Not Implemented': 501,
-	'Bad Gateway': 502,
-	'Service Unavailable': 503,
-	'Gateway Timeout': 504,
-	'HTTP Version Not Supported': 505,
-	'Variant Also Negotiates': 506,
-	'Insufficient Storage': 507,
-	'Loop Detected': 508,
-	'Not Extended': 510,
-	'Network Authentication Required': 511
-} as const
+	"Failed Dependency": 424,
+	"Too Early": 425,
+	"Upgrade Required": 426,
+	"Precondition Required": 428,
+	"Too Many Requests": 429,
+	"Request Header Fields Too Large": 431,
+	"Unavailable For Legal Reasons": 451,
+	"Internal Server Error": 500,
+	"Not Implemented": 501,
+	"Bad Gateway": 502,
+	"Service Unavailable": 503,
+	"Gateway Timeout": 504,
+	"HTTP Version Not Supported": 505,
+	"Variant Also Negotiates": 506,
+	"Insufficient Storage": 507,
+	"Loop Detected": 508,
+	"Not Extended": 510,
+	"Network Authentication Required": 511,
+} as const;
 
 export const InvertedStatusMap = Object.fromEntries(
-	Object.entries(StatusMap).map(([k, v]) => [v, k])
+	Object.entries(StatusMap).map(([k, v]) => [v, k]),
 ) as {
-	[K in keyof StatusMap as StatusMap[K]]: K
-}
+	[K in keyof StatusMap as StatusMap[K]]: K;
+};
 
-export type StatusMap = typeof StatusMap
-export type InvertedStatusMap = typeof InvertedStatusMap
+export type StatusMap = typeof StatusMap;
+export type InvertedStatusMap = typeof InvertedStatusMap;
 
 function removeTrailingEquals(digest: string): string {
-	let trimmedDigest = digest
+	let trimmedDigest = digest;
 
-	while (trimmedDigest.endsWith('='))
-		trimmedDigest = trimmedDigest.slice(0, -1)
+	while (trimmedDigest.endsWith("="))
+		trimmedDigest = trimmedDigest.slice(0, -1);
 
-	return trimmedDigest
+	return trimmedDigest;
 }
 
-const encoder = new TextEncoder()
+const encoder = new TextEncoder();
 
 export const signCookie = async (val: string, secret: string | null) => {
-	if (typeof val === 'object') val = JSON.stringify(val)
-	else if (typeof val !== 'string') val = val + ''
+	if (typeof val === "object") val = JSON.stringify(val);
+	else if (typeof val !== "string") val = val + "";
 
 	if (secret === null || secret === undefined)
-		throw new TypeError('Secret key must be provided')
+		throw new TypeError("Secret key must be provided");
 
 	const secretKey = await crypto.subtle.importKey(
-		'raw',
+		"raw",
 		encoder.encode(secret),
-		{ name: 'HMAC', hash: 'SHA-256' },
+		{ name: "HMAC", hash: "SHA-256" },
 		false,
-		['sign']
-	)
+		["sign"],
+	);
 
 	const hmacBuffer = await crypto.subtle.sign(
-		'HMAC',
+		"HMAC",
 		secretKey,
-		encoder.encode(val)
-	)
+		encoder.encode(val),
+	);
 
 	// console.log({
 	// 	val,
@@ -681,45 +670,43 @@ export const signCookie = async (val: string, secret: string | null) => {
 	// })
 
 	return (
-		val +
-		'.' +
-		removeTrailingEquals(Buffer.from(hmacBuffer).toString('base64'))
-	)
-}
+		val + "." + removeTrailingEquals(Buffer.from(hmacBuffer).toString("base64"))
+	);
+};
 
 const constantTimeEqual =
-	typeof crypto?.timingSafeEqual === 'function'
+	typeof crypto?.timingSafeEqual === "function"
 		? (a: string, b: string) => {
 				// Compare as UTF-8 bytes; timingSafeEqual requires equal length
-				const ab = Buffer.from(a, 'utf8')
-				const bb = Buffer.from(b, 'utf8')
+				const ab = Buffer.from(a, "utf8");
+				const bb = Buffer.from(b, "utf8");
 
-				if (ab.length !== bb.length) return false
-				return crypto.timingSafeEqual(ab, bb)
+				if (ab.length !== bb.length) return false;
+				return crypto.timingSafeEqual(ab, bb);
 			}
-		: (a: string, b: string) => a === b
+		: (a: string, b: string) => a === b;
 
 export const unsignCookie = async (input: string, secret: string | null) => {
-	if (typeof input !== 'string')
-		throw new TypeError('Signed cookie string must be provided.')
+	if (typeof input !== "string")
+		throw new TypeError("Signed cookie string must be provided.");
 
-	const dot = input.lastIndexOf('.')
+	const dot = input.lastIndexOf(".");
 	if (dot === -1) {
-		if (secret === null) return input
+		if (secret === null) return input;
 
-		return false
+		return false;
 	}
 
-	const tentativeValue = input.slice(0, dot)
-	const expectedInput = await signCookie(tentativeValue, secret)
+	const tentativeValue = input.slice(0, dot);
+	const expectedInput = await signCookie(tentativeValue, secret);
 
-	return constantTimeEqual(expectedInput, input) ? tentativeValue : false
-}
+	return constantTimeEqual(expectedInput, input) ? tentativeValue : false;
+};
 
 export const insertStandaloneValidator = <const Name extends keyof InputSchema>(
 	hook: { standaloneValidator: InputSchema[] },
 	name: Name,
-	value: InputSchema[Name]
+	value: InputSchema[Name],
 ) => {
 	if (
 		!hook.standaloneValidator?.length ||
@@ -727,63 +714,63 @@ export const insertStandaloneValidator = <const Name extends keyof InputSchema>(
 	) {
 		hook.standaloneValidator = [
 			{
-				[name]: value
-			}
-		]
-		return
+				[name]: value,
+			},
+		];
+		return;
 	}
 
-	const last = hook.standaloneValidator[hook.standaloneValidator.length - 1]
+	const last = hook.standaloneValidator[hook.standaloneValidator.length - 1];
 
 	if (name in last)
 		hook.standaloneValidator.push({
-			[name]: value
-		})
-	else last[name] = value
-}
+			[name]: value,
+		});
+	else last[name] = value;
+};
 
 const parseNumericString = (message: string | number): number | null => {
-	if (typeof message === 'number') return message
+	if (typeof message === "number") return message;
 
 	if (message.length < 16) {
-		if (message.trim().length === 0) return null
+		if (message.trim().length === 0) return null;
 
-		const length = Number(message)
-		if (Number.isNaN(length)) return null
+		const length = Number(message);
+		if (Number.isNaN(length)) return null;
 
-		return length
+		return length;
 	}
 
 	// if 16 digit but less then 9,007,199,254,740,991 then can be parsed
 	if (message.length === 16) {
-		if (message.trim().length === 0) return null
+		if (message.trim().length === 0) return null;
 
-		const number = Number(message)
-		if (Number.isNaN(number) || number.toString() !== message) return null
+		const number = Number(message);
+		if (Number.isNaN(number) || number.toString() !== message) return null;
 
-		return number
+		return number;
 	}
 
-	return null
-}
+	return null;
+};
 
 export const isNumericString = (message: string | number): boolean =>
-	parseNumericString(message) !== null
+	parseNumericString(message) !== null;
 
 export class PromiseGroup implements PromiseLike<void> {
-	root: Promise<any> | null = null
-	promises: Promise<any>[] = []
+	root: Promise<any> | null = null;
+	promises: Promise<any>[] = [];
 
 	constructor(
 		public onError: (error: any) => void = console.error,
-		public onFinally: () => void = () => {}
+		public onFinally: () => void = () => {},
 	) {}
 
 	/**
 	 * The number of promises still being awaited.
 	 */
 	get size() {
-		return this.promises.length
+		return this.promises.length;
 	}
 
 	/**
@@ -791,23 +778,23 @@ export class PromiseGroup implements PromiseLike<void> {
 	 * @returns The promise that was added.
 	 */
 	add<T>(promise: Promise<T>) {
-		this.promises.push(promise)
-		this.root ||= this.drain()
+		this.promises.push(promise);
+		this.root ||= this.drain();
 
-		if (this.promises.length === 1) this.then(this.onFinally)
-		return promise
+		if (this.promises.length === 1) this.then(this.onFinally);
+		return promise;
 	}
 
 	private async drain() {
 		while (this.promises.length > 0) {
 			try {
-				await this.promises[0]
+				await this.promises[0];
 			} catch (error) {
-				this.onError(error)
+				this.onError(error);
 			}
-			this.promises.shift()
+			this.promises.shift();
 		}
-		this.root = null
+		this.root = null;
 	}
 
 	// Allow the group to be awaited.
@@ -819,76 +806,76 @@ export class PromiseGroup implements PromiseLike<void> {
 		onrejected?:
 			| ((reason: any) => TResult2 | PromiseLike<TResult2>)
 			| undefined
-			| null
+			| null,
 	): PromiseLike<TResult1 | TResult2> {
-		return (this.root ?? Promise.resolve()).then(onfulfilled, onrejected)
+		return (this.root ?? Promise.resolve()).then(onfulfilled, onrejected);
 	}
 }
 
 export const fnToContainer = (
 	fn: MaybeArray<Function | HookContainer>,
 	/** Only add subType to non contained fn */
-	subType?: HookContainer['subType']
+	subType?: HookContainer["subType"],
 ): MaybeArray<HookContainer> => {
-	if (!fn) return fn
+	if (!fn) return fn;
 
 	if (!Array.isArray(fn)) {
 		// parse can be a label since 1.2.0
-		if (typeof fn === 'function' || typeof fn === 'string')
-			return subType ? { fn, subType } : { fn }
-		else if ('fn' in fn) return fn
+		if (typeof fn === "function" || typeof fn === "string")
+			return subType ? { fn, subType } : { fn };
+		else if ("fn" in fn) return fn;
 	}
 
-	const fns = <HookContainer[]>[]
+	const fns = <HookContainer[]>[];
 	for (const x of fn) {
 		// parse can be a label since 1.2.0
-		if (typeof x === 'function' || typeof x === 'string')
-			fns.push(subType ? { fn: x, subType } : { fn: x })
-		else if ('fn' in x) fns.push(x)
+		if (typeof x === "function" || typeof x === "string")
+			fns.push(subType ? { fn: x, subType } : { fn: x });
+		else if ("fn" in x) fns.push(x);
 	}
 
-	return fns
-}
+	return fns;
+};
 
 export const localHookToLifeCycleStore = (a: AnyLocalHook): LifeCycleStore => {
-	if (a.start) a.start = fnToContainer(a.start)
-	if (a.request) a.request = fnToContainer(a.request)
-	if (a.parse) a.parse = fnToContainer(a.parse)
-	if (a.transform) a.transform = fnToContainer(a.transform)
-	if (a.beforeHandle) a.beforeHandle = fnToContainer(a.beforeHandle)
-	if (a.afterHandle) a.afterHandle = fnToContainer(a.afterHandle)
-	if (a.mapResponse) a.mapResponse = fnToContainer(a.mapResponse)
-	if (a.afterResponse) a.afterResponse = fnToContainer(a.afterResponse)
-	if (a.trace) a.trace = fnToContainer(a.trace)
-	if (a.error) a.error = fnToContainer(a.error)
-	if (a.stop) a.stop = fnToContainer(a.stop)
+	if (a.start) a.start = fnToContainer(a.start);
+	if (a.request) a.request = fnToContainer(a.request);
+	if (a.parse) a.parse = fnToContainer(a.parse);
+	if (a.transform) a.transform = fnToContainer(a.transform);
+	if (a.beforeHandle) a.beforeHandle = fnToContainer(a.beforeHandle);
+	if (a.afterHandle) a.afterHandle = fnToContainer(a.afterHandle);
+	if (a.mapResponse) a.mapResponse = fnToContainer(a.mapResponse);
+	if (a.afterResponse) a.afterResponse = fnToContainer(a.afterResponse);
+	if (a.trace) a.trace = fnToContainer(a.trace);
+	if (a.error) a.error = fnToContainer(a.error);
+	if (a.stop) a.stop = fnToContainer(a.stop);
 
-	return a
-}
+	return a;
+};
 
 export const lifeCycleToFn = (a: Partial<LifeCycleStore>): AnyLocalHook => {
-	const lifecycle = Object.create(null)
+	const lifecycle = Object.create(null);
 
-	if (a.start?.map) lifecycle.start = a.start.map((x) => x.fn)
-	if (a.request?.map) lifecycle.request = a.request.map((x) => x.fn)
-	if (a.parse?.map) lifecycle.parse = a.parse.map((x) => x.fn)
-	if (a.transform?.map) lifecycle.transform = a.transform.map((x) => x.fn)
+	if (a.start?.map) lifecycle.start = a.start.map((x) => x.fn);
+	if (a.request?.map) lifecycle.request = a.request.map((x) => x.fn);
+	if (a.parse?.map) lifecycle.parse = a.parse.map((x) => x.fn);
+	if (a.transform?.map) lifecycle.transform = a.transform.map((x) => x.fn);
 	if (a.beforeHandle?.map)
-		lifecycle.beforeHandle = a.beforeHandle.map((x) => x.fn)
+		lifecycle.beforeHandle = a.beforeHandle.map((x) => x.fn);
 	if (a.afterHandle?.map)
-		lifecycle.afterHandle = a.afterHandle.map((x) => x.fn)
+		lifecycle.afterHandle = a.afterHandle.map((x) => x.fn);
 	if (a.mapResponse?.map)
-		lifecycle.mapResponse = a.mapResponse.map((x) => x.fn)
+		lifecycle.mapResponse = a.mapResponse.map((x) => x.fn);
 	if (a.afterResponse?.map)
-		lifecycle.afterResponse = a.afterResponse.map((x) => x.fn)
-	if (a.error?.map) lifecycle.error = a.error.map((x) => x.fn)
-	if (a.stop?.map) lifecycle.stop = a.stop.map((x) => x.fn)
+		lifecycle.afterResponse = a.afterResponse.map((x) => x.fn);
+	if (a.error?.map) lifecycle.error = a.error.map((x) => x.fn);
+	if (a.stop?.map) lifecycle.stop = a.stop.map((x) => x.fn);
 
-	if (a.trace?.map) lifecycle.trace = a.trace.map((x) => x.fn)
-	else lifecycle.trace = []
+	if (a.trace?.map) lifecycle.trace = a.trace.map((x) => x.fn);
+	else lifecycle.trace = [];
 
-	return lifecycle
-}
+	return lifecycle;
+};
 
 export const cloneInference = (inference: Sucrose.Inference) =>
 	({
@@ -900,8 +887,8 @@ export const cloneInference = (inference: Sucrose.Inference) =>
 		server: inference.server,
 		path: inference.path,
 		route: inference.route,
-		url: inference.url
-	}) satisfies Sucrose.Inference
+		url: inference.url,
+	}) satisfies Sucrose.Inference;
 
 /**
  *
@@ -910,19 +897,19 @@ export const cloneInference = (inference: Sucrose.Inference) =>
  */
 export const redirect = (
 	url: string,
-	status: 301 | 302 | 303 | 307 | 308 = 302
-) => Response.redirect(url, status)
+	status: 301 | 302 | 303 | 307 | 308 = 302,
+) => Response.redirect(url, status);
 
-export type redirect = typeof redirect
+export type redirect = typeof redirect;
 
-export const ELYSIA_FORM_DATA = Symbol('ElysiaFormData')
-export type ELYSIA_FORM_DATA = typeof ELYSIA_FORM_DATA
+export const ELYSIA_FORM_DATA = Symbol("ElysiaFormData");
+export type ELYSIA_FORM_DATA = typeof ELYSIA_FORM_DATA;
 
 type IsTuple<T> = T extends readonly any[]
-	? number extends T['length']
+	? number extends T["length"]
 		? false
 		: true
-	: false
+	: false;
 
 export type ElysiaFormData<T extends Record<keyof any, unknown>> = FormData & {
 	[ELYSIA_FORM_DATA]: Replace<T, Blob | ElysiaFile, File> extends infer A
@@ -932,53 +919,52 @@ export type ElysiaFormData<T extends Record<keyof any, unknown>> = FormData & {
 						A[key][number] extends Blob | ElysiaFile
 						? File[]
 						: A[key]
-					: A[key]
+					: A[key];
 			}
-		: T
-}
+		: T;
+};
 
-export const ELYSIA_REQUEST_ID = Symbol('ElysiaRequestId')
-export type ELYSIA_REQUEST_ID = typeof ELYSIA_REQUEST_ID
+export const ELYSIA_REQUEST_ID = Symbol("ElysiaRequestId");
+export type ELYSIA_REQUEST_ID = typeof ELYSIA_REQUEST_ID;
 
 export const form = <const T extends Record<keyof any, unknown>>(
-	items: T
+	items: T,
 ): ElysiaFormData<T> => {
-	const formData = new FormData()
-	// @ts-ignore
-	formData[ELYSIA_FORM_DATA] = {}
+	const formData = new FormData();
+	// @ts-expect-error
+	formData[ELYSIA_FORM_DATA] = {};
 
 	if (items)
 		for (const [key, value] of Object.entries(items)) {
 			if (Array.isArray(value)) {
 				// @ts-expect-error
-				formData[ELYSIA_FORM_DATA][key] = []
+				formData[ELYSIA_FORM_DATA][key] = [];
 
 				for (const v of value) {
-					if (value instanceof File)
-						formData.append(key, value, value.name)
+					if (value instanceof File) formData.append(key, value, value.name);
 					else if (value instanceof ElysiaFile)
 						// @ts-expect-error
-						formData.append(key, value.value, value.value?.name)
-					else formData.append(key, value as any)
+						formData.append(key, value.value, value.value?.name);
+					else formData.append(key, value as any);
 
 					// @ts-expect-error
-					formData[ELYSIA_FORM_DATA][key].push(value)
+					formData[ELYSIA_FORM_DATA][key].push(value);
 				}
 
-				continue
+				continue;
 			}
 
-			if (value instanceof File) formData.append(key, value, value.name)
+			if (value instanceof File) formData.append(key, value, value.name);
 			else if (value instanceof ElysiaFile)
 				// @ts-expect-error
-				formData.append(key, value.value, value.value?.name)
-			else formData.append(key, value as any)
+				formData.append(key, value.value, value.value?.name);
+			else formData.append(key, value as any);
 			// @ts-expect-error
-			formData[ELYSIA_FORM_DATA][key] = value
+			formData[ELYSIA_FORM_DATA][key] = value;
 		}
 
-	return formData as any
-}
+	return formData as any;
+};
 
 /**
  * Generates a random ID for schema identification.
@@ -990,49 +976,49 @@ export const form = <const T extends Record<keyof any, unknown>>(
  * @see https://developers.cloudflare.com/workers/runtime-apis/handlers/
  */
 export const randomId =
-	typeof crypto === 'undefined' || isCloudflareWorker()
+	typeof crypto === "undefined" || isCloudflareWorker()
 		? (): string => {
-				let result = ''
+				let result = "";
 
 				const characters =
-					'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+					"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
 				for (let i = 0; i < 16; i++)
 					result += characters.charAt(
 						// 62 is characters.length
-						Math.floor(Math.random() * 62)
-					)
+						Math.floor(Math.random() * 62),
+					);
 
-				return result
+				return result;
 			}
 		: (): string => {
-				const uuid = crypto.randomUUID()
-				return uuid.slice(0, 8) + uuid.slice(24, 32)
-			}
+				const uuid = crypto.randomUUID();
+				return uuid.slice(0, 8) + uuid.slice(24, 32);
+			};
 
 // ! Deduplicate current instance
 export const deduplicateChecksum = <T extends Function>(
-	array: HookContainer<T>[]
+	array: HookContainer<T>[],
 ): HookContainer<T>[] => {
-	if (!array.length) return []
+	if (!array.length) return [];
 
-	const hashes: number[] = []
+	const hashes: number[] = [];
 
 	for (let i = 0; i < array.length; i++) {
-		const item = array[i]
+		const item = array[i];
 
 		if (item.checksum) {
 			if (hashes.includes(item.checksum)) {
-				array.splice(i, 1)
-				i--
+				array.splice(i, 1);
+				i--;
 			}
 
-			hashes.push(item.checksum)
+			hashes.push(item.checksum);
 		}
 	}
 
-	return array
-}
+	return array;
+};
 
 /**
  * Since it's a plugin, which means that ephemeral is demoted to volatile.
@@ -1041,20 +1027,19 @@ export const deduplicateChecksum = <T extends Function>(
  */
 export const promoteEvent = (
 	events?: (HookContainer | Function)[],
-	as: 'scoped' | 'global' = 'scoped'
+	as: "scoped" | "global" = "scoped",
 ): void => {
-	if (!events) return
+	if (!events) return;
 
-	if (as === 'scoped') {
+	if (as === "scoped") {
 		for (const event of events)
-			if ('scope' in event && event.scope === 'local')
-				event.scope = 'scoped'
+			if ("scope" in event && event.scope === "local") event.scope = "scoped";
 
-		return
+		return;
 	}
 
-	for (const event of events) if ('scope' in event) event.scope = 'global'
-}
+	for (const event of events) if ("scope" in event) event.scope = "global";
+};
 
 // type PropertyKeys<T> = {
 // 	[K in keyof T]: T[K] extends (...args: any[]) => any ? never : K
@@ -1109,38 +1094,38 @@ export const promoteEvent = (
 
 export const getLoosePath = (path: string) => {
 	if (path.charCodeAt(path.length - 1) === 47)
-		return path.slice(0, path.length - 1)
+		return path.slice(0, path.length - 1);
 
-	return path + '/'
-}
+	return path + "/";
+};
 
 export const isNotEmpty = (obj?: Object) => {
-	if (!obj) return false
+	if (!obj) return false;
 
-	for (const _ in obj) return true
+	for (const _ in obj) return true;
 
-	return false
-}
+	return false;
+};
 
 export const encodePath = (path: string, { dynamic = false } = {}) => {
-	let encoded = encodeURIComponent(path).replace(/%2F/g, '/')
+	let encoded = encodeURIComponent(path).replace(/%2F/g, "/");
 
-	if (dynamic) encoded = encoded.replace(/%3A/g, ':').replace(/%3F/g, '?')
+	if (dynamic) encoded = encoded.replace(/%3A/g, ":").replace(/%3F/g, "?");
 
-	return encoded
-}
+	return encoded;
+};
 
 export const supportPerMethodInlineHandler = (() => {
-	if (typeof Bun === 'undefined') return true
+	if (typeof Bun === "undefined") return true;
 
-	if (Bun.semver?.satisfies?.(Bun.version, '>=1.2.14')) return true
+	if (Bun.semver?.satisfies?.(Bun.version, ">=1.2.14")) return true;
 
-	return false
-})()
+	return false;
+})();
 
 type FormatSSEPayload<T = unknown> = T extends string
 	? { readonly data: T }
-	: Prettify<SSEPayload<T>>
+	: Prettify<SSEPayload<T>>;
 
 /**
  * Return a Server Sent Events (SSE) payload
@@ -1164,9 +1149,9 @@ export const sse = <
 		| SSEPayload
 		| Generator
 		| AsyncGenerator
-		| ReadableStream
+		| ReadableStream,
 >(
-	_payload: T
+	_payload: T,
 ): T extends string
 	? { readonly data: T }
 	: T extends SSEPayload
@@ -1180,57 +1165,57 @@ export const sse = <
 					: T => {
 	if (_payload instanceof ReadableStream) {
 		// @ts-expect-error
-		_payload.sse = true
-		return _payload as any
+		_payload.sse = true;
+		return _payload as any;
 	}
 
 	const payload: SSEPayload =
-		typeof _payload === 'string'
+		typeof _payload === "string"
 			? { data: _payload }
-			: (_payload as SSEPayload)
+			: (_payload as SSEPayload);
 
 	// if (payload.id === undefined) payload.id = randomId()
 
-	// @ts-ignore
-	payload.sse = true
+	// @ts-expect-error
+	payload.sse = true;
 
-	// @ts-ignore
+	// @ts-expect-error
 	payload.toSSE = () => {
-		let payloadString = ''
+		let payloadString = "";
 
 		if (payload.id !== undefined && payload.id !== null)
-			payloadString += `id: ${payload.id}\n`
-		if (payload.event) payloadString += `event: ${payload.event}\n`
+			payloadString += `id: ${payload.id}\n`;
+		if (payload.event) payloadString += `event: ${payload.event}\n`;
 		if (payload.retry !== undefined)
-			payloadString += `retry: ${payload.retry}\n`
+			payloadString += `retry: ${payload.retry}\n`;
 
-		if (payload.data === null) payloadString += 'data: null\n'
-		else if (typeof payload.data === 'string')
-			payloadString += `data: ${payload.data}\n`
-		else if (typeof payload.data === 'object')
-			payloadString += `data: ${JSON.stringify(payload.data)}\n`
+		if (payload.data === null) payloadString += "data: null\n";
+		else if (typeof payload.data === "string")
+			payloadString += `data: ${payload.data}\n`;
+		else if (typeof payload.data === "object")
+			payloadString += `data: ${JSON.stringify(payload.data)}\n`;
 
-		if (payloadString) payloadString += '\n'
+		if (payloadString) payloadString += "\n";
 
-		return payloadString
-	}
+		return payloadString;
+	};
 
-	return payload as any
-}
+	return payload as any;
+};
 
 export async function getResponseLength(response: Response) {
-	if (response.bodyUsed || !response.body) return 0
+	if (response.bodyUsed || !response.body) return 0;
 
-	let length = 0
-	const reader = response.body.getReader()
+	let length = 0;
+	const reader = response.body.getReader();
 
 	while (true) {
-		const { done, value } = await reader.read()
-		if (done) break
-		length += value.byteLength
+		const { done, value } = await reader.read();
+		if (done) break;
+		length += value.byteLength;
 	}
 
-	return length
+	return length;
 }
 
 export const emptySchema = {
@@ -1239,43 +1224,43 @@ export const emptySchema = {
 	query: true,
 	params: true,
 	body: true,
-	response: true
-} as const satisfies RouteSchema
+	response: true,
+} as const satisfies RouteSchema;
 
 export function deepClone<T>(source: T, weak = new WeakMap<object, any>()): T {
 	if (
 		source === null ||
-		typeof source !== 'object' ||
-		typeof source === 'function'
+		typeof source !== "object" ||
+		typeof source === "function"
 	)
-		return source
+		return source;
 
 	// Circular‑reference guard
-	if (weak.has(source as object)) return weak.get(source as object)
+	if (weak.has(source as object)) return weak.get(source as object);
 
 	if (Array.isArray(source)) {
-		const copy: any[] = new Array(source.length)
-		weak.set(source, copy)
+		const copy: any[] = new Array(source.length);
+		weak.set(source, copy);
 
 		for (let i = 0; i < source.length; i++)
-			copy[i] = deepClone(source[i], weak)
+			copy[i] = deepClone(source[i], weak);
 
-		return copy as any
+		return copy as any;
 	}
 
-	if (typeof source === 'object') {
+	if (typeof source === "object") {
 		const keys = Object.keys(source).concat(
-			Object.getOwnPropertySymbols(source) as any[]
-		)
+			Object.getOwnPropertySymbols(source) as any[],
+		);
 
-		const cloned: Partial<T> = {}
+		const cloned: Partial<T> = {};
 
-		weak.set(source as object, cloned)
+		weak.set(source as object, cloned);
 		for (const key of keys)
-			cloned[key as keyof T] = deepClone((source as any)[key], weak)
+			cloned[key as keyof T] = deepClone((source as any)[key], weak);
 
-		return cloned as T
+		return cloned as T;
 	}
 
-	return source
+	return source;
 }

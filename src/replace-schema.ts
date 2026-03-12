@@ -85,7 +85,7 @@ const replaceSchemaTypeFromOption = (
 			if (shouldTransform) {
 				return option.to(s) as TSchema;
 			}
-            return s;
+			return s;
 		}
 
 		if (isRoot && option.rootOnly) {
@@ -173,8 +173,11 @@ const replaceSchemaTypeFromOption = (
  * }
  */
 export const revertObjAndArrStr = (schema: TSchema): TSchema => {
-	if (schema.elysiaMeta !== "ObjectString" && schema.elysiaMeta !== "ArrayString")
-	    return schema;
+	if (
+		schema.elysiaMeta !== "ObjectString" &&
+		schema.elysiaMeta !== "ArrayString"
+	)
+		return schema;
 
 	const anyOf = schema.anyOf;
 	if (!anyOf?.[1]) return schema;
@@ -251,14 +254,14 @@ export const coerceFormData = () => {
 			{
 				from: t.Object({}),
 				to: (schema) => t.ObjectString(schema.properties ?? {}, schema),
-				onlyFirst: 'object',
-				excludeRoot: true
+				onlyFirst: "object",
+				excludeRoot: true,
 			},
 			{
 				from: t.Array(t.Any()),
 				to: (schema) => t.ArrayString(schema.items ?? t.Any(), schema),
-				onlyFirst: 'array',
-				excludeRoot: true
+				onlyFirst: "array",
+				excludeRoot: true,
 			},
 		] satisfies ReplaceSchemaTypeOptions[];
 

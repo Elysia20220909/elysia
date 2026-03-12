@@ -1,34 +1,34 @@
-import { Elysia, t } from '../src'
+import { Elysia, t } from "../src";
 
 new Elysia()
-	.state('name', 'salt')
-	.get('/', ({ store: { name } }) => `Hi ${name}`, {
+	.state("name", "salt")
+	.get("/", ({ store: { name } }) => `Hi ${name}`, {
 		query: t.Object({
-			name: t.String()
-		})
+			name: t.String(),
+		}),
 	})
 	// If query 'name' is not preset, skip the whole handler
 	.guard(
 		{
 			query: t.Object({
-				name: t.String()
-			})
+				name: t.String(),
+			}),
 		},
 		(app) =>
 			app
 				// Query type is inherited from guard
-				.get('/profile', ({ query }) => `Hi`)
+				.get("/profile", ({ query }) => `Hi`)
 				// Store is inherited
-				.post('/name', ({ store: { name }, body, query }) => name, {
+				.post("/name", ({ store: { name }, body, query }) => name, {
 					body: t.Object({
 						id: t.Number({
-							minimum: 5
+							minimum: 5,
 						}),
 						username: t.String(),
 						profile: t.Object({
-							name: t.String()
-						})
-					})
-				})
+							name: t.String(),
+						}),
+					}),
+				}),
 	)
-	.listen(3000)
+	.listen(3000);

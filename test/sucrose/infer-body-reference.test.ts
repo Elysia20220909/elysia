@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'bun:test'
-import { inferBodyReference, Sucrose } from '../../src/sucrose'
+import { describe, expect, it } from "bun:test";
+import { inferBodyReference, type Sucrose } from "../../src/sucrose";
 
-describe('infer body reference', () => {
-	it('infer dot notation', () => {
-		const code = 'context.body.a'
-		const aliases = ['context']
+describe("infer body reference", () => {
+	it("infer dot notation", () => {
+		const code = "context.body.a";
+		const aliases = ["context"];
 		const inference = {
 			query: false,
 			headers: false,
@@ -14,17 +14,17 @@ describe('infer body reference', () => {
 			server: false,
 			path: false,
 			route: false,
-			url: false
-		} satisfies Sucrose.Inference
+			url: false,
+		} satisfies Sucrose.Inference;
 
-		inferBodyReference(code, aliases, inference)
+		inferBodyReference(code, aliases, inference);
 
-		expect(inference.body as boolean).toBe(true)
-	})
+		expect(inference.body as boolean).toBe(true);
+	});
 
-	it('infer property access', () => {
-		const code = 'context["body"]["a"]'
-		const aliases = ['context']
+	it("infer property access", () => {
+		const code = 'context["body"]["a"]';
+		const aliases = ["context"];
 		const inference = {
 			query: false,
 			headers: false,
@@ -34,24 +34,24 @@ describe('infer body reference', () => {
 			server: false,
 			path: false,
 			route: false,
-			url: false
-		} satisfies Sucrose.Inference
+			url: false,
+		} satisfies Sucrose.Inference;
 
-		inferBodyReference(code, aliases, inference)
+		inferBodyReference(code, aliases, inference);
 
-		expect(inference.body as boolean).toBe(true)
-	})
+		expect(inference.body as boolean).toBe(true);
+	});
 
-	it('infer multiple query', () => {
+	it("infer multiple query", () => {
 		const code = `{
 			console.log({ a: query.quack }, {
 				b: query.duck
 			});
 			const b = query.bark;
 			return "a";
-		}`
+		}`;
 
-		const aliases = ['query']
+		const aliases = ["query"];
 		const inference = {
 			body: false,
 			cookie: false,
@@ -61,10 +61,10 @@ describe('infer body reference', () => {
 			server: false,
 			path: false,
 			route: false,
-			url: false
-		} satisfies Sucrose.Inference
+			url: false,
+		} satisfies Sucrose.Inference;
 
-		inferBodyReference(code, aliases, inference)
+		inferBodyReference(code, aliases, inference);
 
 		expect(inference).toEqual({
 			body: false,
@@ -75,9 +75,9 @@ describe('infer body reference', () => {
 			server: false,
 			path: false,
 			route: false,
-			url: false
-		})
-	})
+			url: false,
+		});
+	});
 
 	// This is not use in Bun
 	// it('infer single quote query', () => {
@@ -140,13 +140,13 @@ describe('infer body reference', () => {
 	// 	})
 	// })
 
-	it('skip dynamic quote query', () => {
+	it("skip dynamic quote query", () => {
 		const code = `{
 			const b = query[quack];
 			return "a";
-		}`
+		}`;
 
-		const aliases = ['query']
+		const aliases = ["query"];
 		const inference = {
 			body: false,
 			cookie: false,
@@ -156,10 +156,10 @@ describe('infer body reference', () => {
 			server: false,
 			path: false,
 			route: false,
-			url: false
-		} satisfies Sucrose.Inference
+			url: false,
+		} satisfies Sucrose.Inference;
 
-		inferBodyReference(code, aliases, inference)
+		inferBodyReference(code, aliases, inference);
 
 		expect(inference).toEqual({
 			body: false,
@@ -170,15 +170,15 @@ describe('infer body reference', () => {
 			server: false,
 			path: false,
 			route: false,
-			url: false
-		})
-	})
+			url: false,
+		});
+	});
 
-	it('infer dot notation', () => {
+	it("infer dot notation", () => {
 		const code = `
 			context.server?.upgrade(request)
-		`
-		const aliases = ['context']
+		`;
+		const aliases = ["context"];
 		const inference = {
 			query: false,
 			headers: false,
@@ -188,11 +188,11 @@ describe('infer body reference', () => {
 			server: false,
 			path: false,
 			route: false,
-			url: false
-		} satisfies Sucrose.Inference
+			url: false,
+		} satisfies Sucrose.Inference;
 
-		inferBodyReference(code, aliases, inference)
+		inferBodyReference(code, aliases, inference);
 
-		expect(inference.server as boolean).toBe(true)
-	})
-})
+		expect(inference.server as boolean).toBe(true);
+	});
+});

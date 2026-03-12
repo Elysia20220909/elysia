@@ -1,56 +1,56 @@
-import { describe, it, expect } from 'bun:test'
+import { describe, expect, it } from "bun:test";
 
-import { t } from '../../src'
-import { hasTransform } from '../../src/schema'
+import { t } from "../../src";
+import { hasTransform } from "../../src/schema";
 
-describe('Has Transform', () => {
-	it('find primitive', () => {
+describe("Has Transform", () => {
+	it("find primitive", () => {
 		const schema = t
 			.Transform(t.String())
 			.Decode((v) => v)
-			.Encode((v) => v)
+			.Encode((v) => v);
 
-		expect(hasTransform(schema)).toBe(true)
-	})
+		expect(hasTransform(schema)).toBe(true);
+	});
 
-	it('find in root object', () => {
+	it("find in root object", () => {
 		const schema = t.Object({
 			liyue: t
 				.Transform(t.String())
 				.Decode((v) => v)
-				.Encode((v) => v)
-		})
+				.Encode((v) => v),
+		});
 
-		expect(hasTransform(schema)).toBe(true)
-	})
+		expect(hasTransform(schema)).toBe(true);
+	});
 
-	it('find in nested object', () => {
+	it("find in nested object", () => {
 		const schema = t.Object({
 			liyue: t.Object({
 				id: t
 					.Transform(t.String())
 					.Decode((v) => v)
-					.Encode((v) => v)
-			})
-		})
+					.Encode((v) => v),
+			}),
+		});
 
-		expect(hasTransform(schema)).toBe(true)
-	})
+		expect(hasTransform(schema)).toBe(true);
+	});
 
-	it('find in Optional', () => {
+	it("find in Optional", () => {
 		const schema = t.Optional(
 			t.Object({
 				prop1: t
 					.Transform(t.String())
 					.Decode((v) => v)
-					.Encode((v) => v)
-			})
-		)
+					.Encode((v) => v),
+			}),
+		);
 
-		expect(hasTransform(schema)).toBe(true)
-	})
+		expect(hasTransform(schema)).toBe(true);
+	});
 
-	it('find on multiple transform', () => {
+	it("find on multiple transform", () => {
 		const schema = t.Object({
 			id: t
 				.Transform(t.String())
@@ -59,22 +59,22 @@ describe('Has Transform', () => {
 			name: t
 				.Transform(t.String())
 				.Decode((v) => v)
-				.Encode((v) => v)
-		})
+				.Encode((v) => v),
+		});
 
-		expect(hasTransform(schema)).toBe(true)
-	})
+		expect(hasTransform(schema)).toBe(true);
+	});
 
-	it('return false on not found', () => {
+	it("return false on not found", () => {
 		const schema = t.Object({
 			name: t.String(),
-			age: t.Number()
-		})
+			age: t.Number(),
+		});
 
-		expect(hasTransform(schema)).toBe(false)
-	})
+		expect(hasTransform(schema)).toBe(false);
+	});
 
-	it('found on Union', () => {
+	it("found on Union", () => {
 		const schema = t.Object({
 			id: t.Number(),
 			liyue: t.Union([
@@ -82,39 +82,39 @@ describe('Has Transform', () => {
 					.Transform(t.String())
 					.Decode((v) => v)
 					.Encode((v) => v),
-				t.Number()
-			])
-		})
+				t.Number(),
+			]),
+		});
 
-		expect(hasTransform(schema)).toBe(true)
-	})
+		expect(hasTransform(schema)).toBe(true);
+	});
 
-	it('Found t.Numeric', () => {
+	it("Found t.Numeric", () => {
 		const schema = t.Object({
 			id: t.Numeric(),
-			liyue: t.String()
-		})
+			liyue: t.String(),
+		});
 
-		expect(hasTransform(schema)).toBe(true)
-	})
+		expect(hasTransform(schema)).toBe(true);
+	});
 
-	it('Found t.NumericEnum', () => {
+	it("Found t.NumericEnum", () => {
 		const schema = t.Object({
 			gender: t.NumericEnum({ UNKNOWN: 0, MALE: 1, FEMALE: 2 }),
-			liyue: t.String()
-		})
+			liyue: t.String(),
+		});
 
-		expect(hasTransform(schema)).toBe(true)
-	})
+		expect(hasTransform(schema)).toBe(true);
+	});
 
-	it('Found t.ObjectString', () => {
+	it("Found t.ObjectString", () => {
 		const schema = t.Object({
 			id: t.String(),
 			liyue: t.ObjectString({
-				name: t.String()
-			})
-		})
+				name: t.String(),
+			}),
+		});
 
-		expect(hasTransform(schema)).toBe(true)
-	})
-})
+		expect(hasTransform(schema)).toBe(true);
+	});
+});

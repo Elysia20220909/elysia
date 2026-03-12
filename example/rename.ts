@@ -1,10 +1,10 @@
-import { Elysia, t } from '../src'
+import { Elysia, t } from "../src";
 
 // ? Elysia#83 | Proposal: Standardized way of renaming third party plugin-scoped stuff
 // this would be a plugin provided by a third party
 const myPlugin = new Elysia()
-	.decorate('myProperty', 42)
-	.model('salt', t.String())
+	.decorate("myProperty", 42)
+	.model("salt", t.String());
 
 new Elysia()
 	.use(
@@ -12,21 +12,18 @@ new Elysia()
 			// map decorator, rename "myProperty" to "renamedProperty"
 			.decorate(({ myProperty, ...decorators }) => ({
 				renamedProperty: myProperty,
-				...decorators
+				...decorators,
 			}))
 			// map model, rename "salt" to "pepper"
 			.model(({ salt, ...models }) => ({
 				...models,
-				pepper: t.String()
+				pepper: t.String(),
 			}))
 			// Add prefix
-			.prefix('decorator', 'unstable')
+			.prefix("decorator", "unstable"),
 	)
-	.get(
-		'/mapped',
-		({ unstableRenamedProperty }) => unstableRenamedProperty
-	)
-	.post('/pepper', ({ body }) => body, {
-		body: 'pepper',
+	.get("/mapped", ({ unstableRenamedProperty }) => unstableRenamedProperty)
+	.post("/pepper", ({ body }) => body, {
+		body: "pepper",
 		// response: t.String()
-	})
+	});

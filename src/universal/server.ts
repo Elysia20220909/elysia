@@ -1,10 +1,10 @@
-import { Serve as BunServe, type Server as BunServer } from 'bun'
-import type { Equal, MaybePromise } from '../types'
+import type { Serve as BunServe, Server as BunServer } from "bun";
+import type { Equal, MaybePromise } from "../types";
 
 export interface ErrorLike extends Error {
-	code?: string
-	errno?: number
-	syscall?: string
+	code?: string;
+	errno?: number;
+	syscall?: string;
 }
 
 export interface GenericServeOptions {
@@ -34,18 +34,18 @@ export interface GenericServeOptions {
 	 * What is the maximum size of a request body? (in bytes)
 	 * @default 1024 * 1024 * 128 // 128MB
 	 */
-	maxRequestBodySize?: number
+	maxRequestBodySize?: number;
 
 	/**
 	 * Render contextual errors? This enables bun's error page
 	 * @default process.env.NODE_ENV !== 'production'
 	 */
-	development?: boolean
+	development?: boolean;
 
 	error?: (
 		this: Server,
-		request: ErrorLike
-	) => Response | Promise<Response> | undefined | Promise<undefined>
+		request: ErrorLike,
+	) => Response | Promise<Response> | undefined | Promise<undefined>;
 
 	/**
 	 * Uniquely identify a server instance with an ID
@@ -60,7 +60,7 @@ export interface GenericServeOptions {
 	 *
 	 * This string will currently do nothing. But in the future it could be useful for logs or metrics.
 	 */
-	id?: string | null
+	id?: string | null;
 }
 
 export interface ServeOptions extends GenericServeOptions {
@@ -68,7 +68,7 @@ export interface ServeOptions extends GenericServeOptions {
 	 * What port should the server listen on?
 	 * @default process.env.PORT || "3000"
 	 */
-	port?: string | number
+	port?: string | number;
 
 	/**
 	 * If the `SO_REUSEPORT` flag should be set.
@@ -77,7 +77,7 @@ export interface ServeOptions extends GenericServeOptions {
 	 *
 	 * @default false
 	 */
-	reusePort?: boolean
+	reusePort?: boolean;
 
 	/**
 	 * What hostname should the server listen on?
@@ -97,13 +97,13 @@ export interface ServeOptions extends GenericServeOptions {
 	 *
 	 * note: hostname should not include a {@link port}
 	 */
-	hostname?: string
+	hostname?: string;
 
 	/**
 	 * If set, the HTTP server will listen on a unix socket instead of a port.
 	 * (Cannot be used with hostname+port)
 	 */
-	unix?: never
+	unix?: never;
 
 	/**
 	 * Handle HTTP requests
@@ -113,39 +113,39 @@ export interface ServeOptions extends GenericServeOptions {
 	fetch(
 		this: Server,
 		request: Request,
-		server: Server
-	): Response | Promise<Response>
+		server: Server,
+	): Response | Promise<Response>;
 
 	routes: Record<
 		string,
 		Function | Response | Record<string, Function | Response>
-	>
+	>;
 }
 
 export type Serve =
 	Equal<BunServe.Options<unknown>, unknown> extends false
 		? BunServe.Options<unknown>
-		: ServeOptions
+		: ServeOptions;
 export type Server =
 	Equal<BunServer<unknown>, unknown> extends false
 		? BunServer<unknown>
-		: ServerOptions
+		: ServerOptions;
 
-export type ServerWebSocketSendStatus = number
+export type ServerWebSocketSendStatus = number;
 
 export interface SocketAddress {
 	/**
 	 * The IP address of the client.
 	 */
-	address: string
+	address: string;
 	/**
 	 * The port of the client.
 	 */
-	port: number
+	port: number;
 	/**
 	 * The IP family ("IPv4" or "IPv6").
 	 */
-	family: 'IPv4' | 'IPv6'
+	family: "IPv4" | "IPv6";
 }
 
 export interface ServerOptions extends Disposable {
@@ -157,7 +157,7 @@ export interface ServerOptions extends Disposable {
 	 * @param closeActiveConnections Immediately terminate in-flight requests, websockets, and stop accepting new connections.
 	 * @default false
 	 */
-	stop(closeActiveConnections?: boolean): void
+	stop(closeActiveConnections?: boolean): void;
 
 	/**
 	 * Update the `fetch` and `error` handlers without restarting the server.
@@ -185,7 +185,7 @@ export interface ServerOptions extends Disposable {
 	 *
 	 * Passing other options such as `port` or `hostname` won't do anything.
 	 */
-	reload(options: Serve): void
+	reload(options: Serve): void;
 
 	/**
 	 * Mock the fetch handler for a running server.
@@ -194,7 +194,7 @@ export interface ServerOptions extends Disposable {
 	 * consistently in all cases and it doesn't yet call the `error` handler
 	 * consistently. This needs to be fixed
 	 */
-	fetch(request: Request | string): Response | Promise<Response>
+	fetch(request: Request | string): Response | Promise<Response>;
 
 	/**
 	 * Upgrade a {@link Request} to a {@link ServerWebSocket}
@@ -239,13 +239,13 @@ export interface ServerOptions extends Disposable {
 			/**
 			 * Send any additional headers while upgrading, like cookies
 			 */
-			headers?: Bun.HeadersInit
+			headers?: Bun.HeadersInit;
 			/**
 			 * This value is passed to the {@link ServerWebSocket.data} property
 			 */
-			data?: T
-		}
-	): boolean
+			data?: T;
+		},
+	): boolean;
 
 	/**
 	 * Send a message to all connected {@link ServerWebSocket} subscribed to a topic
@@ -280,8 +280,8 @@ export interface ServerOptions extends Disposable {
 	publish(
 		topic: string,
 		data: string | ArrayBufferView | ArrayBuffer | SharedArrayBuffer,
-		compress?: boolean
-	): ServerWebSocketSendStatus
+		compress?: boolean,
+	): ServerWebSocketSendStatus;
 
 	/**
 	 * Returns the client IP address and port of the given Request. If the request was closed or is a unix socket, returns null.
@@ -295,7 +295,7 @@ export interface ServerOptions extends Disposable {
 	 * }
 	 * ```
 	 */
-	requestIP(request: Request): SocketAddress | null
+	requestIP(request: Request): SocketAddress | null;
 
 	/**
 	 * Reset the idleTimeout of the given Request to the number in seconds. 0 means no timeout.
@@ -311,7 +311,7 @@ export interface ServerOptions extends Disposable {
 	 * }
 	 * ```
 	 */
-	timeout(request: Request, seconds: number): void
+	timeout(request: Request, seconds: number): void;
 
 	/**
 	 * Undo a call to {@link Server.unref}
@@ -320,7 +320,7 @@ export interface ServerOptions extends Disposable {
 	 *
 	 * If {@link Server.ref} is called multiple times, this does nothing. Think of it as a boolean toggle.
 	 */
-	ref(): void
+	ref(): void;
 
 	/**
 	 * Don't keep the process alive if this server is the only thing left.
@@ -330,21 +330,21 @@ export interface ServerOptions extends Disposable {
 	 *
 	 * To prevent new connections from being accepted, use {@link Server.stop}
 	 */
-	unref(): void
+	unref(): void;
 
 	/**
 	 * How many requests are in-flight right now?
 	 */
-	readonly pendingRequests: number
+	readonly pendingRequests: number;
 
 	/**
 	 * How many {@link ServerWebSocket}s are in-flight right now?
 	 */
-	readonly pendingWebSockets: number
+	readonly pendingWebSockets: number;
 
-	readonly url: URL
+	readonly url: URL;
 
-	readonly port: number
+	readonly port: number;
 	/**
 	 * The hostname the server is listening on. Does not include the port
 	 * @example
@@ -352,7 +352,7 @@ export interface ServerOptions extends Disposable {
 	 * "localhost"
 	 * ```
 	 */
-	readonly hostname: string
+	readonly hostname: string;
 	/**
 	 * Is the server running in development mode?
 	 *
@@ -361,7 +361,7 @@ export interface ServerOptions extends Disposable {
 	 * but development mode shouldn't be used in production or you will risk
 	 * leaking sensitive information.
 	 */
-	readonly development: boolean
+	readonly development: boolean;
 
 	/**
 	 * An identifier of the server instance
@@ -370,7 +370,7 @@ export interface ServerOptions extends Disposable {
 	 *
 	 * When bun is not started with the `--hot` flag, this ID is currently unused.
 	 */
-	readonly id: string
+	readonly id: string;
 }
 
-export type ListenCallback = (server: Server) => MaybePromise<void>
+export type ListenCallback = (server: Server) => MaybePromise<void>;

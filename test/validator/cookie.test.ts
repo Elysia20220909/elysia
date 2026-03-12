@@ -1,675 +1,656 @@
-import { describe, expect, it } from 'bun:test'
-import { Elysia, t } from '../../src'
-import { req } from '../utils'
+import { describe, expect, it } from "bun:test";
+import { Elysia, t } from "../../src";
+import { req } from "../utils";
 
-describe('Cookie Validation', () => {
-	it('validate required cookie', async () => {
+describe("Cookie Validation", () => {
+	it("validate required cookie", async () => {
 		const app = new Elysia().get(
-			'/',
+			"/",
 			({ cookie: { session } }) => session.value,
 			{
 				cookie: t.Cookie({
-					session: t.String()
-				})
-			}
-		)
+					session: t.String(),
+				}),
+			},
+		);
 
 		const [valid, invalid] = await Promise.all([
-			app.handle(req('/', { headers: { Cookie: 'session=value' } })),
-			app.handle(req('/'))
-		])
+			app.handle(req("/", { headers: { Cookie: "session=value" } })),
+			app.handle(req("/")),
+		]);
 
-		expect(valid.status).toBe(200)
-		expect(await valid.text()).toBe('value')
-		expect(invalid.status).toBe(422)
-	})
+		expect(valid.status).toBe(200);
+		expect(await valid.text()).toBe("value");
+		expect(invalid.status).toBe(422);
+	});
 
-	it('validate optional cookie', async () => {
+	it("validate optional cookie", async () => {
 		const app = new Elysia().get(
-			'/',
-			({ cookie: { session } }) => session.value ?? 'empty',
+			"/",
+			({ cookie: { session } }) => session.value ?? "empty",
 			{
 				cookie: t.Cookie({
-					session: t.Optional(t.String())
-				})
-			}
-		)
+					session: t.Optional(t.String()),
+				}),
+			},
+		);
 
 		const [withCookie, withoutCookie] = await Promise.all([
-			app.handle(req('/', { headers: { Cookie: 'session=value' } })),
-			app.handle(req('/'))
-		])
+			app.handle(req("/", { headers: { Cookie: "session=value" } })),
+			app.handle(req("/")),
+		]);
 
-		expect(withCookie.status).toBe(200)
-		expect(await withCookie.text()).toBe('value')
-		expect(withoutCookie.status).toBe(200)
-		expect(await withoutCookie.text()).toBe('empty')
-	})
+		expect(withCookie.status).toBe(200);
+		expect(await withCookie.text()).toBe("value");
+		expect(withoutCookie.status).toBe(200);
+		expect(await withoutCookie.text()).toBe("empty");
+	});
 
-	it('validate cookie type - numeric', async () => {
-		const app = new Elysia().get(
-			'/',
-			({ cookie: { count } }) => count.value,
-			{
-				cookie: t.Cookie({
-					count: t.Numeric()
-				})
-			}
-		)
+	it("validate cookie type - numeric", async () => {
+		const app = new Elysia().get("/", ({ cookie: { count } }) => count.value, {
+			cookie: t.Cookie({
+				count: t.Numeric(),
+			}),
+		});
 
 		const [valid, invalid] = await Promise.all([
-			app.handle(req('/', { headers: { Cookie: 'count=42' } })),
-			app.handle(req('/', { headers: { Cookie: 'count=invalid' } }))
-		])
+			app.handle(req("/", { headers: { Cookie: "count=42" } })),
+			app.handle(req("/", { headers: { Cookie: "count=invalid" } })),
+		]);
 
-		expect(valid.status).toBe(200)
-		expect(await valid.text()).toBe('42')
-		expect(invalid.status).toBe(422)
-	})
+		expect(valid.status).toBe(200);
+		expect(await valid.text()).toBe("42");
+		expect(invalid.status).toBe(422);
+	});
 
-	it('validate cookie type - boolean', async () => {
+	it("validate cookie type - boolean", async () => {
 		const app = new Elysia().get(
-			'/',
+			"/",
 			({ cookie: { active } }) => active.value,
 			{
 				cookie: t.Cookie({
-					active: t.BooleanString()
-				})
-			}
-		)
+					active: t.BooleanString(),
+				}),
+			},
+		);
 
 		const [validTrue, validFalse, invalid] = await Promise.all([
-			app.handle(req('/', { headers: { Cookie: 'active=true' } })),
-			app.handle(req('/', { headers: { Cookie: 'active=false' } })),
-			app.handle(req('/', { headers: { Cookie: 'active=maybe' } }))
-		])
+			app.handle(req("/", { headers: { Cookie: "active=true" } })),
+			app.handle(req("/", { headers: { Cookie: "active=false" } })),
+			app.handle(req("/", { headers: { Cookie: "active=maybe" } })),
+		]);
 
-		expect(validTrue.status).toBe(200)
-		expect(await validTrue.text()).toBe('true')
-		expect(validFalse.status).toBe(200)
-		expect(await validFalse.text()).toBe('false')
-		expect(invalid.status).toBe(422)
-	})
+		expect(validTrue.status).toBe(200);
+		expect(await validTrue.text()).toBe("true");
+		expect(validFalse.status).toBe(200);
+		expect(await validFalse.text()).toBe("false");
+		expect(invalid.status).toBe(422);
+	});
 
-	it('validate cookie with object schema', async () => {
+	it("validate cookie with object schema", async () => {
 		const app = new Elysia().get(
-			'/',
+			"/",
 			({ cookie: { profile } }) => profile.value.name,
 			{
 				cookie: t.Cookie({
 					profile: t.Object({
 						name: t.String(),
-						age: t.Numeric()
-					})
-				})
-			}
-		)
+						age: t.Numeric(),
+					}),
+				}),
+			},
+		);
 
 		const valid = await app.handle(
-			req('/', {
+			req("/", {
 				headers: {
 					Cookie:
-						'profile=' +
-						encodeURIComponent(
-							JSON.stringify({ name: 'Himari', age: 16 })
-						)
-				}
-			})
-		)
+						"profile=" +
+						encodeURIComponent(JSON.stringify({ name: "Himari", age: 16 })),
+				},
+			}),
+		);
 
 		const invalid = await app.handle(
-			req('/', {
+			req("/", {
 				headers: {
 					Cookie:
-						'profile=' +
-						encodeURIComponent(JSON.stringify({ name: 'Himari' }))
-				}
-			})
-		)
+						"profile=" + encodeURIComponent(JSON.stringify({ name: "Himari" })),
+				},
+			}),
+		);
 
-		expect(valid.status).toBe(200)
-		expect(await valid.text()).toBe('Himari')
-		expect(invalid.status).toBe(422)
-	})
+		expect(valid.status).toBe(200);
+		expect(await valid.text()).toBe("Himari");
+		expect(invalid.status).toBe(422);
+	});
 
-	it('validate multiple cookies', async () => {
+	it("validate multiple cookies", async () => {
 		const app = new Elysia().get(
-			'/',
-			({ cookie: { session, userId } }) =>
-				`${session.value}:${userId.value}`,
+			"/",
+			({ cookie: { session, userId } }) => `${session.value}:${userId.value}`,
 			{
 				cookie: t.Cookie({
 					session: t.String(),
-					userId: t.Numeric()
-				})
-			}
-		)
+					userId: t.Numeric(),
+				}),
+			},
+		);
 
 		const [valid, missingSession, missingUserId, invalidUserId] =
 			await Promise.all([
 				app.handle(
-					req('/', {
-						headers: { Cookie: 'session=abc123; userId=42' }
-					})
+					req("/", {
+						headers: { Cookie: "session=abc123; userId=42" },
+					}),
 				),
 				app.handle(
-					req('/', {
-						headers: { Cookie: 'userId=42' }
-					})
+					req("/", {
+						headers: { Cookie: "userId=42" },
+					}),
 				),
 				app.handle(
-					req('/', {
-						headers: { Cookie: 'session=abc123' }
-					})
+					req("/", {
+						headers: { Cookie: "session=abc123" },
+					}),
 				),
 				app.handle(
-					req('/', {
-						headers: { Cookie: 'session=abc123; userId=invalid' }
-					})
-				)
-			])
+					req("/", {
+						headers: { Cookie: "session=abc123; userId=invalid" },
+					}),
+				),
+			]);
 
-		expect(valid.status).toBe(200)
-		expect(await valid.text()).toBe('abc123:42')
-		expect(missingSession.status).toBe(422)
-		expect(missingUserId.status).toBe(422)
-		expect(invalidUserId.status).toBe(422)
-	})
+		expect(valid.status).toBe(200);
+		expect(await valid.text()).toBe("abc123:42");
+		expect(missingSession.status).toBe(422);
+		expect(missingUserId.status).toBe(422);
+		expect(invalidUserId.status).toBe(422);
+	});
 
-	it('validate cookie with string constraints', async () => {
-		const app = new Elysia().get(
-			'/',
-			({ cookie: { token } }) => token.value,
-			{
-				cookie: t.Cookie({
-					token: t.String({ minLength: 10, maxLength: 50 })
-				})
-			}
-		)
+	it("validate cookie with string constraints", async () => {
+		const app = new Elysia().get("/", ({ cookie: { token } }) => token.value, {
+			cookie: t.Cookie({
+				token: t.String({ minLength: 10, maxLength: 50 }),
+			}),
+		});
 
 		const [valid, tooShort, tooLong] = await Promise.all([
 			app.handle(
-				req('/', {
-					headers: { Cookie: 'token=validtoken123' }
-				})
+				req("/", {
+					headers: { Cookie: "token=validtoken123" },
+				}),
 			),
 			app.handle(
-				req('/', {
-					headers: { Cookie: 'token=short' }
-				})
+				req("/", {
+					headers: { Cookie: "token=short" },
+				}),
 			),
 			app.handle(
-				req('/', {
-					headers: { Cookie: 'token=' + 'a'.repeat(51) }
-				})
-			)
-		])
+				req("/", {
+					headers: { Cookie: "token=" + "a".repeat(51) },
+				}),
+			),
+		]);
 
-		expect(valid.status).toBe(200)
-		expect(tooShort.status).toBe(422)
-		expect(tooLong.status).toBe(422)
-	})
+		expect(valid.status).toBe(200);
+		expect(tooShort.status).toBe(422);
+		expect(tooLong.status).toBe(422);
+	});
 
-	it('validate cookie with numeric constraints', async () => {
-		const app = new Elysia().get('/', ({ cookie: { age } }) => age.value, {
+	it("validate cookie with numeric constraints", async () => {
+		const app = new Elysia().get("/", ({ cookie: { age } }) => age.value, {
 			cookie: t.Cookie({
-				age: t.Numeric({ minimum: 0, maximum: 120 })
-			})
-		})
+				age: t.Numeric({ minimum: 0, maximum: 120 }),
+			}),
+		});
 
 		const [valid, tooLow, tooHigh] = await Promise.all([
 			app.handle(
-				req('/', {
-					headers: { Cookie: 'age=25' }
-				})
+				req("/", {
+					headers: { Cookie: "age=25" },
+				}),
 			),
 			app.handle(
-				req('/', {
-					headers: { Cookie: 'age=-1' }
-				})
+				req("/", {
+					headers: { Cookie: "age=-1" },
+				}),
 			),
 			app.handle(
-				req('/', {
-					headers: { Cookie: 'age=150' }
-				})
-			)
-		])
+				req("/", {
+					headers: { Cookie: "age=150" },
+				}),
+			),
+		]);
 
-		expect(valid.status).toBe(200)
-		expect(await valid.text()).toBe('25')
-		expect(tooLow.status).toBe(422)
-		expect(tooHigh.status).toBe(422)
-	})
+		expect(valid.status).toBe(200);
+		expect(await valid.text()).toBe("25");
+		expect(tooLow.status).toBe(422);
+		expect(tooHigh.status).toBe(422);
+	});
 
-	it('validate cookie with pattern', async () => {
-		const app = new Elysia().get(
-			'/',
-			({ cookie: { email } }) => email.value,
-			{
-				cookie: t.Cookie({
-					email: t.String({ format: 'email' })
-				})
-			}
-		)
+	it("validate cookie with pattern", async () => {
+		const app = new Elysia().get("/", ({ cookie: { email } }) => email.value, {
+			cookie: t.Cookie({
+				email: t.String({ format: "email" }),
+			}),
+		});
 
 		const [valid, invalid] = await Promise.all([
 			app.handle(
-				req('/', {
-					headers: { Cookie: 'email=user@example.com' }
-				})
+				req("/", {
+					headers: { Cookie: "email=user@example.com" },
+				}),
 			),
 			app.handle(
-				req('/', {
-					headers: { Cookie: 'email=notanemail' }
-				})
-			)
-		])
+				req("/", {
+					headers: { Cookie: "email=notanemail" },
+				}),
+			),
+		]);
 
-		expect(valid.status).toBe(200)
-		expect(await valid.text()).toBe('user@example.com')
-		expect(invalid.status).toBe(422)
-	})
+		expect(valid.status).toBe(200);
+		expect(await valid.text()).toBe("user@example.com");
+		expect(invalid.status).toBe(422);
+	});
 
-	it('validate cookie with transform', async () => {
+	it("validate cookie with transform", async () => {
 		const app = new Elysia().get(
-			'/',
+			"/",
 			({ cookie: { timestamp } }) => timestamp.value,
 			{
 				cookie: t.Cookie({
 					timestamp: t
 						.Transform(t.String())
 						.Decode((value) => new Date(value))
-						.Encode((value) => value.toISOString())
-				})
-			}
-		)
+						.Encode((value) => value.toISOString()),
+				}),
+			},
+		);
 
-		const date = new Date('2024-01-01T00:00:00.000Z')
+		const date = new Date("2024-01-01T00:00:00.000Z");
 		const response = await app.handle(
-			req('/', {
-				headers: { Cookie: `timestamp=${date.toISOString()}` }
-			})
-		)
+			req("/", {
+				headers: { Cookie: `timestamp=${date.toISOString()}` },
+			}),
+		);
 
-		expect(response.status).toBe(200)
-	})
+		expect(response.status).toBe(200);
+	});
 
-	it('validate optional cookie with isOptional check', async () => {
+	it("validate optional cookie with isOptional check", async () => {
 		const app = new Elysia().get(
-			'/',
+			"/",
 			({ cookie }) => {
-				const keys = Object.keys(cookie)
-				return keys.length > 0 ? 'has cookies' : 'no cookies'
+				const keys = Object.keys(cookie);
+				return keys.length > 0 ? "has cookies" : "no cookies";
 			},
 			{
 				cookie: t.Optional(
 					t.Cookie({
-						session: t.Optional(t.String())
-					})
-				)
-			}
-		)
+						session: t.Optional(t.String()),
+					}),
+				),
+			},
+		);
 
 		const [withCookie, withoutCookie] = await Promise.all([
 			app.handle(
-				req('/', {
-					headers: { Cookie: 'session=value' }
-				})
+				req("/", {
+					headers: { Cookie: "session=value" },
+				}),
 			),
-			app.handle(req('/'))
-		])
+			app.handle(req("/")),
+		]);
 
-		expect(withCookie.status).toBe(200)
-		expect(withoutCookie.status).toBe(200)
-	})
+		expect(withCookie.status).toBe(200);
+		expect(withoutCookie.status).toBe(200);
+	});
 
-	it('validate cookie with array type', async () => {
+	it("validate cookie with array type", async () => {
 		const app = new Elysia().get(
-			'/',
-			({ cookie: { tags } }) => tags.value.join(','),
+			"/",
+			({ cookie: { tags } }) => tags.value.join(","),
 			{
 				cookie: t.Cookie({
-					tags: t.Array(t.String())
-				})
-			}
-		)
+					tags: t.Array(t.String()),
+				}),
+			},
+		);
 
 		const response = await app.handle(
-			req('/', {
+			req("/", {
 				headers: {
 					Cookie:
-						'tags=' +
-						encodeURIComponent(
-							JSON.stringify(['tag1', 'tag2', 'tag3'])
-						)
-				}
-			})
-		)
+						"tags=" +
+						encodeURIComponent(JSON.stringify(["tag1", "tag2", "tag3"])),
+				},
+			}),
+		);
 
-		expect(response.status).toBe(200)
-		expect(await response.text()).toBe('tag1,tag2,tag3')
-	})
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe("tag1,tag2,tag3");
+	});
 
-	it('validate cookie with union type', async () => {
+	it("validate cookie with union type", async () => {
 		const app = new Elysia().get(
-			'/',
+			"/",
 			({ cookie: { value } }) => String(value.value),
 			{
 				cookie: t.Cookie({
-					value: t.Union([t.String(), t.Numeric()])
-				})
-			}
-		)
+					value: t.Union([t.String(), t.Numeric()]),
+				}),
+			},
+		);
 
 		const [stringValue, numericValue, invalid] = await Promise.all([
 			app.handle(
-				req('/', {
-					headers: { Cookie: 'value=text' }
-				})
+				req("/", {
+					headers: { Cookie: "value=text" },
+				}),
 			),
 			app.handle(
-				req('/', {
-					headers: { Cookie: 'value=123' }
-				})
+				req("/", {
+					headers: { Cookie: "value=123" },
+				}),
 			),
 			app.handle(
-				req('/', {
+				req("/", {
 					headers: {
 						Cookie:
-							'value=' +
-							encodeURIComponent(JSON.stringify({ obj: true }))
-					}
-				})
-			)
-		])
+							"value=" + encodeURIComponent(JSON.stringify({ obj: true })),
+					},
+				}),
+			),
+		]);
 
-		expect(stringValue.status).toBe(200)
-		expect(numericValue.status).toBe(200)
-		expect(invalid.status).toBe(422)
-	})
+		expect(stringValue.status).toBe(200);
+		expect(numericValue.status).toBe(200);
+		expect(invalid.status).toBe(422);
+	});
 
-	it('inherits cookie validation on guard', async () => {
+	it("inherits cookie validation on guard", async () => {
 		const app = new Elysia()
 			.guard({
-				cookie: t.Cookie({ session: t.String() })
+				cookie: t.Cookie({ session: t.String() }),
 			})
-			.get('/', ({ cookie: { session } }) => session.value)
+			.get("/", ({ cookie: { session } }) => session.value)
 			.get(
-				'/profile',
-				({ cookie: { session } }) => `Profile: ${session.value}`
-			)
+				"/profile",
+				({ cookie: { session } }) => `Profile: ${session.value}`,
+			);
 
 		const [validRoot, validProfile, invalid] = await Promise.all([
 			app.handle(
-				req('/', {
-					headers: { Cookie: 'session=abc123' }
-				})
+				req("/", {
+					headers: { Cookie: "session=abc123" },
+				}),
 			),
 			app.handle(
-				req('/profile', {
-					headers: { Cookie: 'session=abc123' }
-				})
+				req("/profile", {
+					headers: { Cookie: "session=abc123" },
+				}),
 			),
-			app.handle(req('/'))
-		])
+			app.handle(req("/")),
+		]);
 
-		expect(validRoot.status).toBe(200)
-		expect(await validRoot.text()).toBe('abc123')
-		expect(validProfile.status).toBe(200)
-		expect(await validProfile.text()).toBe('Profile: abc123')
-		expect(invalid.status).toBe(422)
-	})
+		expect(validRoot.status).toBe(200);
+		expect(await validRoot.text()).toBe("abc123");
+		expect(validProfile.status).toBe(200);
+		expect(await validProfile.text()).toBe("Profile: abc123");
+		expect(invalid.status).toBe(422);
+	});
 
-	it('merge cookie config from app', async () => {
+	it("merge cookie config from app", async () => {
 		const app = new Elysia({
 			cookie: {
 				httpOnly: true,
-				secure: true
-			}
-		}).get('/', ({ cookie: { session } }) => session.value ?? 'empty', {
+				secure: true,
+			},
+		}).get("/", ({ cookie: { session } }) => session.value ?? "empty", {
 			cookie: t.Cookie({
-				session: t.Optional(t.String())
-			})
-		})
+				session: t.Optional(t.String()),
+			}),
+		});
 
 		const response = await app.handle(
-			req('/', {
-				headers: { Cookie: 'session=test' }
-			})
-		)
+			req("/", {
+				headers: { Cookie: "session=test" },
+			}),
+		);
 
-		expect(response.status).toBe(200)
-		expect(await response.text()).toBe('test')
-	})
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe("test");
+	});
 
-	it('validate empty cookie object when optional', async () => {
+	it("validate empty cookie object when optional", async () => {
 		const app = new Elysia().get(
-			'/',
+			"/",
 			({ cookie }) =>
-				Object.keys(cookie).length === 0 ? 'empty' : 'not empty',
+				Object.keys(cookie).length === 0 ? "empty" : "not empty",
 			{
 				cookie: t.Optional(
 					t.Cookie({
-						session: t.Optional(t.String())
-					})
-				)
-			}
-		)
+						session: t.Optional(t.String()),
+					}),
+				),
+			},
+		);
 
-		const response = await app.handle(req('/'))
+		const response = await app.handle(req("/"));
 
-		expect(response.status).toBe(200)
-		expect(await response.text()).toBe('empty')
-	})
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe("empty");
+	});
 
-	it('expires setter compares timestamps not Date objects', async () => {
-		const app = new Elysia().get('/', ({ cookie: { session }, set }) => {
+	it("expires setter compares timestamps not Date objects", async () => {
+		const app = new Elysia().get("/", ({ cookie: { session }, set }) => {
 			// Test 1: Setting expires with same timestamp should not update
-			const date1 = new Date('2025-12-31T23:59:59.000Z')
-			const date2 = new Date('2025-12-31T23:59:59.000Z')
+			const date1 = new Date("2025-12-31T23:59:59.000Z");
+			const date2 = new Date("2025-12-31T23:59:59.000Z");
 
-			session.value = 'test'
-			session.expires = date1
+			session.value = "test";
+			session.expires = date1;
 
 			// Get reference to jar before setting with same timestamp
-			const jarBefore = set.cookie
-			session.expires = date2 // Same timestamp, should not update
-			const jarAfter = set.cookie
+			const jarBefore = set.cookie;
+			session.expires = date2; // Same timestamp, should not update
+			const jarAfter = set.cookie;
 
 			// Verify jar wasn't recreated (same reference)
-			expect(jarBefore).toBe(jarAfter)
-			expect(session.expires?.getTime()).toBe(date1.getTime())
+			expect(jarBefore).toBe(jarAfter);
+			expect(session.expires?.getTime()).toBe(date1.getTime());
 
 			// Test 2: Setting expires with different timestamp should update
-			const date3 = new Date('2026-01-01T00:00:00.000Z')
-			session.expires = date3
-			expect(session.expires?.getTime()).toBe(date3.getTime())
+			const date3 = new Date("2026-01-01T00:00:00.000Z");
+			session.expires = date3;
+			expect(session.expires?.getTime()).toBe(date3.getTime());
 
 			// Test 3: Both undefined should not update
-			session.expires = undefined
-			const jarBeforeUndefined = set.cookie
-			session.expires = undefined
-			const jarAfterUndefined = set.cookie
-			expect(jarBeforeUndefined).toBe(jarAfterUndefined)
+			session.expires = undefined;
+			const jarBeforeUndefined = set.cookie;
+			session.expires = undefined;
+			const jarAfterUndefined = set.cookie;
+			expect(jarBeforeUndefined).toBe(jarAfterUndefined);
 
-			return 'ok'
-		})
+			return "ok";
+		});
 
-		const response = await app.handle(req('/'))
-		expect(response.status).toBe(200)
-		expect(await response.text()).toBe('ok')
-	})
+		const response = await app.handle(req("/"));
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe("ok");
+	});
 
-	it('parse cookie with secrets into object when available', async () => {
+	it("parse cookie with secrets into object when available", async () => {
 		const challengeModel = t.Object({
 			nonce: t.String(),
 			issued: t.Number(),
-			bits: t.Number()
-		})
+			bits: t.Number(),
+		});
 
-		const issued = Date.now()
+		const issued = Date.now();
 
 		const app = new Elysia({
 			cookie: {
-				secrets: 'a',
-				sign: ['challenge']
-			}
+				secrets: "a",
+				sign: ["challenge"],
+			},
 		})
 			.get(
-				'/set',
+				"/set",
 				({ cookie: { challenge } }) => {
 					challenge.value = {
-						nonce: 'hello',
+						nonce: "hello",
 						bits: 19,
-						issued
-					}
+						issued,
+					};
 				},
 				{
 					cookie: t.Cookie({
-						challenge: t.Optional(challengeModel)
-					})
-				}
+						challenge: t.Optional(challengeModel),
+					}),
+				},
 			)
 			.get(
-				'/get',
+				"/get",
 				({ cookie: { challenge } }) => {
 					return {
 						type: typeof challenge,
-						value: challenge.value
-					}
+						value: challenge.value,
+					};
 				},
 				{
 					cookie: t.Cookie({
-						challenge: challengeModel
-					})
-				}
-			)
+						challenge: challengeModel,
+					}),
+				},
+			);
 
 		const cookie = await app
-			.handle(req('/set'))
-			.then((x) => x.headers.get('set-cookie'))
+			.handle(req("/set"))
+			.then((x) => x.headers.get("set-cookie"));
 
-		const challenge = cookie!.match(/challenge=([^;]*)/)![1]
+		const challenge = cookie!.match(/challenge=([^;]*)/)![1];
 
 		const response = await app
 			.handle(
-				req('/get', {
+				req("/get", {
 					headers: {
-						cookie: `challenge=${challenge}`
-					}
-				})
+						cookie: `challenge=${challenge}`,
+					},
+				}),
 			)
-			.then((x) => x.json())
+			.then((x) => x.json());
 
 		expect(response).toEqual({
-			type: 'object',
+			type: "object",
 			value: {
-				nonce: 'hello',
+				nonce: "hello",
 				bits: 19,
-				issued
-			}
-		})
-	})
+				issued,
+			},
+		});
+	});
 
-	it('handle graceful cookie transition from non signed to signed', async () => {
+	it("handle graceful cookie transition from non signed to signed", async () => {
 		const challengeModel = t.Object({
 			nonce: t.String(),
 			issued: t.Number(),
-			bits: t.Number()
-		})
+			bits: t.Number(),
+		});
 
-		const issued = Date.now()
+		const issued = Date.now();
 
 		const app = new Elysia({
 			cookie: {
-				secrets: ['a', null],
-				sign: 'challenge'
-			}
+				secrets: ["a", null],
+				sign: "challenge",
+			},
 		}).get(
-			'/',
+			"/",
 			({ cookie: { challenge } }) => {
 				challenge.value = {
-					nonce: 'hello',
+					nonce: "hello",
 					bits: 19,
-					issued
-				}
+					issued,
+				};
 
-				return challenge.value
+				return challenge.value;
 			},
 			{
 				cookie: t.Cookie({
-					challenge: t.Optional(challengeModel)
-				})
-			}
-		)
+					challenge: t.Optional(challengeModel),
+				}),
+			},
+		);
 
 		const first = await app.handle(
-			req('/', {
+			req("/", {
 				headers: {
 					cookie: `challenge=${JSON.stringify({
-						nonce: 'hello',
+						nonce: "hello",
 						bits: 19,
-						issued: 1770750432990
-					})}`
-				}
-			})
-		)
+						issued: 1770750432990,
+					})}`,
+				},
+			}),
+		);
 
-		expect(first.status).toBe(200)
+		expect(first.status).toBe(200);
 		expect(await first.json()).toEqual({
-			nonce: 'hello',
+			nonce: "hello",
 			bits: 19,
-			issued
-		})
+			issued,
+		});
 
-		const cookie = first.headers.get('set-cookie')
-		const challenge = cookie!.match(/challenge=([^;]*)/)![1]
+		const cookie = first.headers.get("set-cookie");
+		const challenge = cookie!.match(/challenge=([^;]*)/)![1];
 
 		// contains signature
-		expect(challenge).toInclude('.')
+		expect(challenge).toInclude(".");
 
 		const second = await app.handle(
-			req('/', {
+			req("/", {
 				headers: {
-					cookie: `challenge=${challenge}`
-				}
-			})
-		)
+					cookie: `challenge=${challenge}`,
+				},
+			}),
+		);
 
-		expect(second.status).toBe(200)
-	})
+		expect(second.status).toBe(200);
+	});
 
-	it('handle prototype pollution', () => {
-		const app = new Elysia().get('/profile', ({ cookie }) => {
-			const proto = Object.getPrototypeOf(cookie)
-			const protoIsClean = proto === Object.prototype || proto === null
+	it("handle prototype pollution", () => {
+		const app = new Elysia().get("/profile", ({ cookie }) => {
+			const proto = Object.getPrototypeOf(cookie);
+			const protoIsClean = proto === Object.prototype || proto === null;
 			return {
-				hasPhantomValue: 'value' in cookie,
+				hasPhantomValue: "value" in cookie,
 				prototypeIsClean: protoIsClean,
 				prototype: proto,
 				enumeratedKeys: (() => {
-					const keys: string[] = []
-					for (const k in cookie) keys.push(k)
-					return keys
-				})()
-			}
-		})
+					const keys: string[] = [];
+					for (const k in cookie) keys.push(k);
+					return keys;
+				})(),
+			};
+		});
 
 		expect(
 			app
 				.handle(
-					new Request('http://localhost/profile', {
+					new Request("http://localhost/profile", {
 						headers: {
-							cookie: 'a=hi;__proto__=%7B%22injected%22%3A%22polluted%22%7D'
-						}
-					})
+							cookie: "a=hi;__proto__=%7B%22injected%22%3A%22polluted%22%7D",
+						},
+					}),
 				)
-				.then((x) => x.json())
+				.then((x) => x.json()),
 		).resolves.toEqual({
 			hasPhantomValue: false,
 			prototypeIsClean: true,
 			prototype: null,
-			enumeratedKeys: ['a']
-		})
-	})
-})
+			enumeratedKeys: ["a"],
+		});
+	});
+});

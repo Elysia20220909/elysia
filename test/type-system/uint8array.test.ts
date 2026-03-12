@@ -1,9 +1,9 @@
-import Elysia, { t } from '../../src'
-import { describe, expect, it } from 'bun:test'
-import { Value } from '@sinclair/typebox/value'
-import { TypeBoxError } from '@sinclair/typebox'
+import { describe, expect, it } from "bun:test";
+import { TypeBoxError } from "@sinclair/typebox";
+import { Value } from "@sinclair/typebox/value";
+import Elysia, { t } from "../../src";
 
-describe('TypeSystem - Uint8Array', () => {
+describe("TypeSystem - Uint8Array", () => {
 	// it('Create', () => {
 	// 	// @ts-expect-error
 	// 	expect(Value.Create(t.Uint8Array())).toEqual([1, 2, 3])
@@ -62,20 +62,20 @@ describe('TypeSystem - Uint8Array', () => {
 	// 	expect(() => Value.Decode(schema, undefined)).toThrow(TypeBoxError)
 	// })
 
-	it('Integrate', async () => {
-		const app = new Elysia().post('/', ({ body }) => body, {
+	it("Integrate", async () => {
+		const app = new Elysia().post("/", ({ body }) => body, {
 			body: t.Uint8Array(),
-			response: t.Uint8Array()
-		})
+			response: t.Uint8Array(),
+		});
 
 		const response = await app.handle(
-			new Request('http://localhost', {
-				method: 'POST',
-				body: new TextEncoder().encode('可愛くてごめん'),
-				headers: { 'content-type': 'application/octet-stream' }
-			})
-		)
+			new Request("http://localhost", {
+				method: "POST",
+				body: new TextEncoder().encode("可愛くてごめん"),
+				headers: { "content-type": "application/octet-stream" },
+			}),
+		);
 
-		expect(await response.text()).toBe('可愛くてごめん')
-	})
-})
+		expect(await response.text()).toBe("可愛くてごめん");
+	});
+});

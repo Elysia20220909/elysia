@@ -1,67 +1,66 @@
-import { Elysia } from '../../src'
+import { describe, expect, it } from "bun:test";
+import { Elysia } from "../../src";
+import { req } from "../utils";
 
-import { describe, expect, it } from 'bun:test'
-import { req } from '../utils'
+describe("Response Redirect", () => {
+	it("handle redirect", async () => {
+		const app = new Elysia().get("/", ({ redirect }) => redirect("/skadi"));
 
-describe('Response Redirect', () => {
-	it('handle redirect', async () => {
-		const app = new Elysia().get('/', ({ redirect }) => redirect('/skadi'))
+		const { headers, status } = await app.handle(req("/"));
 
-		const { headers, status } = await app.handle(req('/'))
-
-		expect(status).toBe(302)
+		expect(status).toBe(302);
 		expect(headers.toJSON()).toEqual({
-			location: '/skadi'
-		})
-	})
+			location: "/skadi",
+		});
+	});
 
-	it('handle redirect status', async () => {
-		const app = new Elysia().get('/', ({ redirect }) =>
-			redirect('/skadi', 301)
-		)
+	it("handle redirect status", async () => {
+		const app = new Elysia().get("/", ({ redirect }) =>
+			redirect("/skadi", 301),
+		);
 
-		const { headers, status } = await app.handle(req('/'))
+		const { headers, status } = await app.handle(req("/"));
 
-		expect(status).toBe(301)
+		expect(status).toBe(301);
 		expect(headers.toJSON()).toEqual({
-			location: '/skadi'
-		})
-	})
+			location: "/skadi",
+		});
+	});
 
-	it('add set.headers to redirect', async () => {
-		const app = new Elysia().get('/', ({ redirect, set }) => {
-			set.headers.alias = 'Abyssal Hunter'
+	it("add set.headers to redirect", async () => {
+		const app = new Elysia().get("/", ({ redirect, set }) => {
+			set.headers.alias = "Abyssal Hunter";
 
-			return redirect('/skadi')
-		})
+			return redirect("/skadi");
+		});
 
-		const { headers, status } = await app.handle(req('/'))
+		const { headers, status } = await app.handle(req("/"));
 
-		expect(status).toBe(302)
+		expect(status).toBe(302);
 		expect(headers.toJSON()).toEqual({
-			location: '/skadi',
-			alias: 'Abyssal Hunter'
-		})
-	})
+			location: "/skadi",
+			alias: "Abyssal Hunter",
+		});
+	});
 
-	it('set multiple cookie on redirect', async () => {
+	it("set multiple cookie on redirect", async () => {
 		const app = new Elysia().get(
-			'/',
+			"/",
 			({ cookie: { name, name2 }, redirect }) => {
-				name.value = 'a'
-				name2.value = 'b'
+				name.value = "a";
+				name2.value = "b";
 
-				return redirect('/skadi')
-			}
-		)
+				return redirect("/skadi");
+			},
+		);
 
-		const { headers, status } = await app.handle(req('/'))
+		const { headers, status } = await app.handle(req("/"));
 
-		expect(status).toBe(302)
+		expect(status).toBe(302);
 		// @ts-expect-error
 		expect(headers.toJSON()).toEqual({
-			location: '/skadi',
-			'set-cookie': ['name=a; Path=/', 'name2=b; Path=/']
-		})
-	})
-})
+			location: "/skadi",
+			"set-cookie": ["name=a; Path=/", "name2=b; Path=/"],
+		});
+	});
+});

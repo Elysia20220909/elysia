@@ -1,20 +1,20 @@
-import { describe, it } from 'bun:test'
-import { Elysia } from '../../src'
-import { newWebsocket, wsOpen, wsClosed } from './utils'
+import { describe, it } from "bun:test";
+import { Elysia } from "../../src";
+import { newWebsocket, wsClosed, wsOpen } from "./utils";
 
-describe('WebSocket with AoT disabled', () => {
-	it('should connect and close', async () => {
+describe("WebSocket with AoT disabled", () => {
+	it("should connect and close", async () => {
 		const app = new Elysia({ aot: false })
-			.ws('/ws', {
-				message() {}
+			.ws("/ws", {
+				message() {},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
-		await wsClosed(ws)
+		await wsOpen(ws);
+		await wsClosed(ws);
 
-		await app.stop(true)
-	})
-})
+		await app.stop(true);
+	});
+});

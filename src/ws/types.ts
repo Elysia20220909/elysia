@@ -1,170 +1,168 @@
-import { TSchema } from '@sinclair/typebox'
-
-import type { ElysiaWS } from './index'
-import { WebSocketHandler } from './bun'
-
-import type { Context } from '../context'
+import { TSchema } from "@sinclair/typebox";
+import type { Context } from "../context";
 import {
-	AfterResponseHandler,
-	BaseMacro,
-	DocumentDecoration,
-	ErrorHandler,
+	type AfterResponseHandler,
+	type BaseMacro,
+	type DocumentDecoration,
+	type ErrorHandler,
 	InputSchema,
 	MacroToContext,
-	MapResponse,
-	MaybeArray,
-	MaybePromise,
+	type MapResponse,
+	type MaybeArray,
+	type MaybePromise,
 	MetadataBase,
-	OptionalHandler,
-	Prettify,
-	RouteSchema,
-	SingletonBase,
-	TransformHandler,
-	UnwrapSchema
-} from '../types'
+	type OptionalHandler,
+	type Prettify,
+	type RouteSchema,
+	type SingletonBase,
+	type TransformHandler,
+	UnwrapSchema,
+} from "../types";
+import type { WebSocketHandler } from "./bun";
+import type { ElysiaWS } from "./index";
 
 type TypedWebSocketMethod =
-	| 'open'
-	| 'message'
-	| 'drain'
-	| 'close'
-	| 'ping'
-	| 'pong'
+	| "open"
+	| "message"
+	| "drain"
+	| "close"
+	| "ping"
+	| "pong";
 
-export type FlattenResponse<Response extends RouteSchema['response']> =
-	{} extends Response ? unknown : Response[keyof Response]
+export type FlattenResponse<Response extends RouteSchema["response"]> =
+	{} extends Response ? unknown : Response[keyof Response];
 
 interface TypedWebSocketHandler<
 	in out Context,
-	in out Route extends RouteSchema = {}
+	in out Route extends RouteSchema = {},
 > extends Omit<WebSocketHandler<Context>, TypedWebSocketMethod> {
 	open?(
-		ws: Prettify<ElysiaWS<Context, Omit<Route, 'body'> & { body: never }>>
-	): MaybePromise<FlattenResponse<Route['response']> | void>
+		ws: Prettify<ElysiaWS<Context, Omit<Route, "body"> & { body: never }>>,
+	): MaybePromise<FlattenResponse<Route["response"]> | void>;
 	message?(
 		ws: Prettify<ElysiaWS<Context, Route>>,
-		message: Route['body']
+		message: Route["body"],
 	): MaybePromise<
-		| FlattenResponse<Route['response']>
+		| FlattenResponse<Route["response"]>
 		| void
 		| Generator<
-				FlattenResponse<Route['response']>,
-				void | FlattenResponse<Route['response']>
+				FlattenResponse<Route["response"]>,
+				void | FlattenResponse<Route["response"]>
 		  >
 		| AsyncGenerator<
-				FlattenResponse<Route['response']>,
-				void | FlattenResponse<Route['response']>
+				FlattenResponse<Route["response"]>,
+				void | FlattenResponse<Route["response"]>
 		  >
-	>
+	>;
 	drain?(
-		ws: Prettify<ElysiaWS<Context, Omit<Route, 'body'> & { body: never }>>
+		ws: Prettify<ElysiaWS<Context, Omit<Route, "body"> & { body: never }>>,
 	): MaybePromise<
-		| FlattenResponse<Route['response']>
+		| FlattenResponse<Route["response"]>
 		| void
 		| Generator<
-				FlattenResponse<Route['response']>,
-				void | FlattenResponse<Route['response']>
+				FlattenResponse<Route["response"]>,
+				void | FlattenResponse<Route["response"]>
 		  >
 		| AsyncGenerator<
-				FlattenResponse<Route['response']>,
-				void | FlattenResponse<Route['response']>
+				FlattenResponse<Route["response"]>,
+				void | FlattenResponse<Route["response"]>
 		  >
-	>
+	>;
 	close?(
-		ws: Prettify<ElysiaWS<Context, Omit<Route, 'body'> & { body: never }>>,
+		ws: Prettify<ElysiaWS<Context, Omit<Route, "body"> & { body: never }>>,
 		code: number,
-		reason: string
+		reason: string,
 	): MaybePromise<
-		| FlattenResponse<Route['response']>
+		| FlattenResponse<Route["response"]>
 		| void
 		| Generator<
-				FlattenResponse<Route['response']>,
-				void | FlattenResponse<Route['response']>
+				FlattenResponse<Route["response"]>,
+				void | FlattenResponse<Route["response"]>
 		  >
 		| AsyncGenerator<
-				FlattenResponse<Route['response']>,
-				void | FlattenResponse<Route['response']>
+				FlattenResponse<Route["response"]>,
+				void | FlattenResponse<Route["response"]>
 		  >
-	>
+	>;
 	ping?(
 		ws: Prettify<ElysiaWS<Context>>,
-		message: Route['body']
+		message: Route["body"],
 	): MaybePromise<
-		| FlattenResponse<Route['response']>
+		| FlattenResponse<Route["response"]>
 		| void
 		| Generator<
-				FlattenResponse<Route['response']>,
-				void | FlattenResponse<Route['response']>
+				FlattenResponse<Route["response"]>,
+				void | FlattenResponse<Route["response"]>
 		  >
 		| AsyncGenerator<
-				FlattenResponse<Route['response']>,
-				void | FlattenResponse<Route['response']>
+				FlattenResponse<Route["response"]>,
+				void | FlattenResponse<Route["response"]>
 		  >
-	>
+	>;
 	pong?(
 		ws: Prettify<ElysiaWS<Context>>,
-		message: Route['body']
+		message: Route["body"],
 	): MaybePromise<
-		| FlattenResponse<Route['response']>
+		| FlattenResponse<Route["response"]>
 		| void
 		| Generator<
-				FlattenResponse<Route['response']>,
-				void | FlattenResponse<Route['response']>
+				FlattenResponse<Route["response"]>,
+				void | FlattenResponse<Route["response"]>
 		  >
 		| AsyncGenerator<
-				FlattenResponse<Route['response']>,
-				void | FlattenResponse<Route['response']>
+				FlattenResponse<Route["response"]>,
+				void | FlattenResponse<Route["response"]>
 		  >
-	>
+	>;
 }
 
 export type WSParseHandler<Route extends RouteSchema, Context = {}> = (
-	ws: Prettify<ElysiaWS<Context, Omit<Route, 'body'> & { body: unknown }>>,
-	message: unknown
-) => MaybePromise<Route['body'] | void | undefined>
+	ws: Prettify<ElysiaWS<Context, Omit<Route, "body"> & { body: unknown }>>,
+	message: unknown,
+) => MaybePromise<Route["body"] | void | undefined>;
 
-export type AnyWSLocalHook = WSLocalHook<any, any, any>
+export type AnyWSLocalHook = WSLocalHook<any, any, any>;
 
 export type WSLocalHook<
 	Input extends BaseMacro,
 	Schema extends RouteSchema,
-	Singleton extends SingletonBase
+	Singleton extends SingletonBase,
 > = Prettify<Input> & {
-	detail?: DocumentDecoration
+	detail?: DocumentDecoration;
 	/**
 	 * Headers to register to websocket before `upgrade`
 	 */
-	upgrade?: Record<string, unknown> | ((context: Context) => unknown)
-	parse?: MaybeArray<WSParseHandler<Schema>>
+	upgrade?: Record<string, unknown> | ((context: Context) => unknown);
+	parse?: MaybeArray<WSParseHandler<Schema>>;
 
 	/**
 	 * Transform context's value
 	 */
-	transform?: MaybeArray<TransformHandler<Schema, Singleton>>
+	transform?: MaybeArray<TransformHandler<Schema, Singleton>>;
 	/**
 	 * Execute before main handler
 	 */
-	beforeHandle?: MaybeArray<OptionalHandler<Schema, Singleton>>
+	beforeHandle?: MaybeArray<OptionalHandler<Schema, Singleton>>;
 	/**
 	 * Execute after main handler
 	 */
-	afterHandle?: MaybeArray<OptionalHandler<Schema, Singleton>>
+	afterHandle?: MaybeArray<OptionalHandler<Schema, Singleton>>;
 	/**
 	 * Execute after main handler
 	 */
-	mapResponse?: MaybeArray<MapResponse<Schema, Singleton>>
+	mapResponse?: MaybeArray<MapResponse<Schema, Singleton>>;
 	/**
 	 * Execute after response is sent
 	 */
-	afterResponse?: MaybeArray<AfterResponseHandler<Schema, Singleton>>
+	afterResponse?: MaybeArray<AfterResponseHandler<Schema, Singleton>>;
 	/**
 	 * Catch error
 	 */
-	error?: MaybeArray<ErrorHandler<{}, Schema, Singleton>>
-	tags?: DocumentDecoration['tags']
+	error?: MaybeArray<ErrorHandler<{}, Schema, Singleton>>;
+	tags?: DocumentDecoration["tags"];
 } & TypedWebSocketHandler<
-		Omit<Context<Schema, Singleton>, 'body'> & {
-			body: never
+		Omit<Context<Schema, Singleton>, "body"> & {
+			body: never;
 		},
 		Schema
-	>
+	>;

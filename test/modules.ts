@@ -1,5 +1,5 @@
-import { Elysia } from '../src'
+import type { Elysia } from "../src";
 
-export const lazy = async (app: Elysia) => app.get('/lazy', () => 'lazy')
+export const lazy = async (app: Elysia) => app.get("/lazy", () => "lazy");
 
-export default lazy
+export default lazy;

@@ -1,229 +1,229 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Elysia, t } from '../../src'
 
-import { describe, expect, it } from 'bun:test'
-import { post, req } from '../utils'
+import { describe, expect, it } from "bun:test";
+import { Elysia, t } from "../../src";
+import { post, req } from "../utils";
 
-describe('Model', () => {
-	it('add single', async () => {
+describe("Model", () => {
+	it("add single", async () => {
 		const app = new Elysia()
-			.model('string', t.String())
-			// @ts-ignore
-			.route('GET', '/', (context) => Object.keys(context.defs), {
+			.model("string", t.String())
+			// @ts-expect-error
+			.route("GET", "/", (context) => Object.keys(context.defs), {
 				config: {
-					allowMeta: true
-				}
-			})
+					allowMeta: true,
+				},
+			});
 
-		const res = await app.handle(req('/')).then((r) => r.json())
-		expect(res).toEqual(['string'])
-	})
+		const res = await app.handle(req("/")).then((r) => r.json());
+		expect(res).toEqual(["string"]);
+	});
 
-	it('add multiple', async () => {
+	it("add multiple", async () => {
 		const app = new Elysia()
-			.model('string', t.String())
-			.model('number', t.Number())
-			// @ts-ignore
-			.route('GET', '/', (context) => Object.keys(context.defs), {
+			.model("string", t.String())
+			.model("number", t.Number())
+			// @ts-expect-error
+			.route("GET", "/", (context) => Object.keys(context.defs), {
 				config: {
-					allowMeta: true
-				}
-			})
+					allowMeta: true,
+				},
+			});
 
-		const res = await app.handle(req('/')).then((r) => r.json())
-		expect(res).toEqual(['string', 'number'])
-	})
+		const res = await app.handle(req("/")).then((r) => r.json());
+		expect(res).toEqual(["string", "number"]);
+	});
 
-	it('add object', async () => {
+	it("add object", async () => {
 		const app = new Elysia()
 			.model({
 				string: t.String(),
-				number: t.Number()
+				number: t.Number(),
 			})
-			// @ts-ignore
-			.route('GET', '/', (context) => Object.keys(context.defs), {
+			// @ts-expect-error
+			.route("GET", "/", (context) => Object.keys(context.defs), {
 				config: {
-					allowMeta: true
-				}
-			})
+					allowMeta: true,
+				},
+			});
 
-		const res = await app.handle(req('/')).then((r) => r.json())
-		expect(res).toEqual(['string', 'number'])
-	})
+		const res = await app.handle(req("/")).then((r) => r.json());
+		expect(res).toEqual(["string", "number"]);
+	});
 
-	it('add object', async () => {
+	it("add object", async () => {
 		const app = new Elysia()
 			.model({
 				string: t.String(),
-				number: t.Number()
+				number: t.Number(),
 			})
 			.model(({ number, ...rest }) => ({
 				...rest,
-				boolean: t.Boolean()
+				boolean: t.Boolean(),
 			}))
-			// @ts-ignore
-			.route('GET', '/', (context) => Object.keys(context.defs), {
+			// @ts-expect-error
+			.route("GET", "/", (context) => Object.keys(context.defs), {
 				config: {
-					allowMeta: true
-				}
-			})
+					allowMeta: true,
+				},
+			});
 
-		const res = await app.handle(req('/')).then((r) => r.json())
-		expect(res).toEqual(['string', 'boolean'])
-	})
+		const res = await app.handle(req("/")).then((r) => r.json());
+		expect(res).toEqual(["string", "boolean"]);
+	});
 
-	it('inherits functional plugin', async () => {
-		const plugin = () => (app: Elysia) => app.model('string', t.String())
+	it("inherits functional plugin", async () => {
+		const plugin = () => (app: Elysia) => app.model("string", t.String());
 
 		const app = new Elysia()
 			.use(plugin())
-			// @ts-ignore
-			.route('GET', '/', (context) => Object.keys(context.defs), {
+			// @ts-expect-error
+			.route("GET", "/", (context) => Object.keys(context.defs), {
 				config: {
-					allowMeta: true
-				}
-			})
+					allowMeta: true,
+				},
+			});
 
-		const res = await app.handle(req('/')).then((r) => r.json())
-		expect(res).toEqual(['string'])
-	})
+		const res = await app.handle(req("/")).then((r) => r.json());
+		expect(res).toEqual(["string"]);
+	});
 
-	it('inherits instance plugin', async () => {
-		const plugin = () => (app: Elysia) => app.model('string', t.String())
+	it("inherits instance plugin", async () => {
+		const plugin = () => (app: Elysia) => app.model("string", t.String());
 
 		const app = new Elysia()
 			.use(plugin())
-			// @ts-ignore
-			.route('GET', '/', (context) => Object.keys(context.defs), {
+			// @ts-expect-error
+			.route("GET", "/", (context) => Object.keys(context.defs), {
 				config: {
-					allowMeta: true
-				}
-			})
+					allowMeta: true,
+				},
+			});
 
-		const res = await app.handle(req('/')).then((r) => r.json())
-		expect(res).toEqual(['string'])
-	})
+		const res = await app.handle(req("/")).then((r) => r.json());
+		expect(res).toEqual(["string"]);
+	});
 
-	it('inherits instance plugin', async () => {
-		const plugin = new Elysia().decorate('hi', () => 'hi')
+	it("inherits instance plugin", async () => {
+		const plugin = new Elysia().decorate("hi", () => "hi");
 
-		const app = new Elysia().use(plugin).get('/', ({ hi }) => hi())
+		const app = new Elysia().use(plugin).get("/", ({ hi }) => hi());
 
-		const res = await app.handle(req('/')).then((r) => r.text())
-		expect(res).toBe('hi')
-	})
+		const res = await app.handle(req("/")).then((r) => r.text());
+		expect(res).toBe("hi");
+	});
 
-	it('validate reference model', async () => {
+	it("validate reference model", async () => {
 		const app = new Elysia()
 			.model({
-				number: t.Number()
+				number: t.Number(),
 			})
-			.post('/', ({ body: { data } }) => data, {
-				response: 'number',
+			.post("/", ({ body: { data } }) => data, {
+				response: "number",
 				body: t.Object({
-					data: t.Number()
-				})
+					data: t.Number(),
+				}),
 			})
-			.post('/arr', ({ body }) => body, {
-				response: 'number',
-				body: 'number'
-			})
+			.post("/arr", ({ body }) => body, {
+				response: "number",
+				body: "number",
+			});
 
 		const correct = await app.handle(
-			new Request('http://localhost/', {
-				method: 'POST',
+			new Request("http://localhost/", {
+				method: "POST",
 				headers: {
-					'content-type': 'application/json'
+					"content-type": "application/json",
 				},
 				body: JSON.stringify({
-					data: 1
-				})
-			})
-		)
+					data: 1,
+				}),
+			}),
+		);
 
-		expect(correct.status).toBe(200)
+		expect(correct.status).toBe(200);
 
 		const correctArr = await app.handle(
-			new Request('http://localhost/arr', {
-				method: 'POST',
+			new Request("http://localhost/arr", {
+				method: "POST",
 				headers: {
-					'content-type': 'application/json'
+					"content-type": "application/json",
 				},
-				body: 1
-			})
-		)
+				body: 1,
+			}),
+		);
 
-		expect(correctArr.status).toBe(200)
+		expect(correctArr.status).toBe(200);
 
 		const wrong = await app.handle(
-			new Request('http://localhost/', {
-				method: 'POST',
+			new Request("http://localhost/", {
+				method: "POST",
 				headers: {
-					'content-type': 'application/json'
+					"content-type": "application/json",
 				},
 				body: JSON.stringify({
-					data: true
-				})
-			})
-		)
+					data: true,
+				}),
+			}),
+		);
 
-		expect(wrong.status).toBe(422)
+		expect(wrong.status).toBe(422);
 
 		const wrongArr = await app.handle(
-			new Request('http://localhost/arr', {
-				method: 'POST',
+			new Request("http://localhost/arr", {
+				method: "POST",
 				headers: {
-					'content-type': 'application/json'
+					"content-type": "application/json",
 				},
 				body: JSON.stringify({
-					data: true
-				})
-			})
-		)
+					data: true,
+				}),
+			}),
+		);
 
-		expect(wrongArr.status).toBe(422)
-	})
+		expect(wrongArr.status).toBe(422);
+	});
 
-	it('remap', async () => {
+	it("remap", async () => {
 		const app = new Elysia()
-			.model('string', t.String())
-			.model('number', t.Number())
+			.model("string", t.String())
+			.model("number", t.Number())
 			.model(({ number, ...rest }) => ({
 				...rest,
-				numba: number
+				numba: number,
 			}))
-			// @ts-ignore
-			.route('GET', '/', (context) => Object.keys(context.defs), {
+			// @ts-expect-error
+			.route("GET", "/", (context) => Object.keys(context.defs), {
 				config: {
-					allowMeta: true
-				}
-			})
+					allowMeta: true,
+				},
+			});
 
-		const res = await app.handle(req('/')).then((r) => r.json())
-		expect(res).toEqual(['string', 'numba'])
-	})
+		const res = await app.handle(req("/")).then((r) => r.json());
+		expect(res).toEqual(["string", "numba"]);
+	});
 
-	it('use reference model', async () => {
+	it("use reference model", async () => {
 		const app = new Elysia()
 			.model({
 				string: t.Object({
-					data: t.String()
-				})
+					data: t.String(),
+				}),
 			})
-			.post('/', ({ body }) => body, {
-				body: 'string'
-			})
+			.post("/", ({ body }) => body, {
+				body: "string",
+			});
 
-		const error = await app.handle(post('/'))
-		expect(error.status).toBe(422)
+		const error = await app.handle(post("/"));
+		expect(error.status).toBe(422);
 
 		const correct = await app.handle(
-			post('/', {
-				data: 'hi'
-			})
-		)
-		expect(correct.status).toBe(200)
-	})
+			post("/", {
+				data: "hi",
+			}),
+		);
+		expect(correct.status).toBe(200);
+	});
 
 	// it('use coerce with reference model', async () => {
 	// 	const app = new Elysia()
@@ -250,149 +250,149 @@ describe('Model', () => {
 	// 	expect(correct.status).toBe(200)
 	// })
 
-	it('create default value with nested reference model', async () => {
+	it("create default value with nested reference model", async () => {
 		const app = new Elysia()
 			.model({
 				number: t.Numeric({ default: 0 }),
-				optionalNumber: t.Optional(t.Ref('number'))
+				optionalNumber: t.Optional(t.Ref("number")),
 			})
-			.post('/', ({ body }) => body, {
-				body: t.Optional(t.Ref('number'))
-			})
+			.post("/", ({ body }) => body, {
+				body: t.Optional(t.Ref("number")),
+			});
 
-		const result = await app.handle(post('/')).then((x) => x.text())
+		const result = await app.handle(post("/")).then((x) => x.text());
 
-		expect(result).toBe('0')
-	})
+		expect(result).toBe("0");
+	});
 
-	it('create default value with reference model', async () => {
+	it("create default value with reference model", async () => {
 		const app = new Elysia()
 			.model({
 				number: t.Number({ default: 0 }),
-				optionalNumber: t.Optional(t.Ref('number'))
+				optionalNumber: t.Optional(t.Ref("number")),
 			})
-			.post('/', ({ body }) => body, { body: 'optionalNumber' })
+			.post("/", ({ body }) => body, { body: "optionalNumber" });
 
-		const result = await app.handle(post('/')).then((x) => x.text())
+		const result = await app.handle(post("/")).then((x) => x.text());
 
-		expect(result).toBe('0')
-	})
+		expect(result).toBe("0");
+	});
 
-	it('use reference model with cookie', async () => {
+	it("use reference model with cookie", async () => {
 		const app = new Elysia()
 			.model({
 				session: t.Cookie({ token: t.Numeric() }),
-				optionalSession: t.Optional(t.Ref('session'))
+				optionalSession: t.Optional(t.Ref("session")),
 			})
-			.get('/', () => 'Hello Elysia', { cookie: 'optionalSession' })
+			.get("/", () => "Hello Elysia", { cookie: "optionalSession" });
 
 		const error = await app.handle(
-			new Request('http://localhost/', {
+			new Request("http://localhost/", {
 				headers: {
-					cookie: 'token=string'
-				}
-			})
-		)
-		expect(error.status).toBe(422)
+					cookie: "token=string",
+				},
+			}),
+		);
+		expect(error.status).toBe(422);
 
 		const correct = await app.handle(
-			new Request('http://localhost/', {
+			new Request("http://localhost/", {
 				headers: {
-					cookie: 'token=1'
-				}
-			})
-		)
-		expect(correct.status).toBe(200)
-	})
+					cookie: "token=1",
+				},
+			}),
+		);
+		expect(correct.status).toBe(200);
+	});
 
-	it('use reference model with response', async () => {
+	it("use reference model with response", async () => {
 		const app = new Elysia()
 			.model({
-				res: t.String()
+				res: t.String(),
 			})
-			.get('/correct', () => 'Hello Elysia', { response: 'res' })
+			.get("/correct", () => "Hello Elysia", { response: "res" })
 			// @ts-expect-error
-			.get('/error', () => 1, { response: 'res' })
+			.get("/error", () => 1, { response: "res" });
 
-		const error = await app.handle(req('/error'))
-		expect(error.status).toBe(422)
+		const error = await app.handle(req("/error"));
+		expect(error.status).toBe(422);
 
-		const correct = await app.handle(req('/correct'))
-		expect(correct.status).toBe(200)
-	})
+		const correct = await app.handle(req("/correct"));
+		expect(correct.status).toBe(200);
+	});
 
-	it('use reference model with response per status', async () => {
+	it("use reference model with response per status", async () => {
 		const app = new Elysia()
 			.model({
-				res: t.String()
+				res: t.String(),
 			})
-			.get('/correct', () => 'Hello Elysia', {
+			.get("/correct", () => "Hello Elysia", {
 				response: {
-					200: 'res',
-					400: 'res'
-				}
+					200: "res",
+					400: "res",
+				},
 			})
-			.get('/400', ({ status }) => status(400, 'ok'), {
+			.get("/400", ({ status }) => status(400, "ok"), {
 				response: {
-					200: 'res',
-					400: 'res'
-				}
+					200: "res",
+					400: "res",
+				},
 			})
 			// @ts-expect-error
-			.get('/error', ({ status }) => status(400, 1), {
+			.get("/error", ({ status }) => status(400, 1), {
 				response: {
-					200: 'res',
-					400: 'res'
-				}
-			})
+					200: "res",
+					400: "res",
+				},
+			});
 
-		const error = await app.handle(req('/error'))
-		expect(error.status).toBe(422)
+		const error = await app.handle(req("/error"));
+		expect(error.status).toBe(422);
 
-		const correct = await app.handle(req('/correct'))
-		expect(correct.status).toBe(200)
+		const correct = await app.handle(req("/correct"));
+		expect(correct.status).toBe(200);
 
-		const correct400 = await app.handle(req('/400'))
-		expect(correct400.status).toBe(400)
-	})
+		const correct400 = await app.handle(req("/400"));
+		expect(correct400.status).toBe(400);
+	});
 
 	it("coerce model when there's no reference", async () => {
 		const app = new Elysia()
 			.model({
 				idParam: t.Object({
 					id: t.Union([
-						t.String({ format: 'uuid' }),
+						t.String({ format: "uuid" }),
 						t.Number({
 							minimum: 1,
-							maximum: Number.MAX_SAFE_INTEGER
-						})
-					])
+							maximum: Number.MAX_SAFE_INTEGER,
+						}),
+					]),
 				}),
 				response200: t.Object({
 					message: t.String(),
 					content: t.Array(
 						t.Object({
-							id: t.Union([t.String(), t.Number()])
-						})
-					)
-				})
+							id: t.Union([t.String(), t.Number()]),
+						}),
+					),
+				}),
 			})
 			.get(
-				'/:id',
+				"/:id",
 				({ params: { id } }) => ({
-					message: 'ok',
-					content: [{ id }]
+					message: "ok",
+					content: [{ id }],
 				}),
 				{
-					params: 'idParam',
-					response: 'response200'
-				}
-			)
+					params: "idParam",
+					response: "response200",
+				},
+			);
 
 		const value = await app
-			.handle(new Request('http://localhost/3'))
-			.then((x) => x.json())
+			.handle(new Request("http://localhost/3"))
+			.then((x) => x.json());
 
-		expect(value).toEqual({ message: 'ok', content: [{ id: 3 }] })
-	})
-})
+		expect(value).toEqual({ message: "ok", content: [{ id: 3 }] });
+	});
+});

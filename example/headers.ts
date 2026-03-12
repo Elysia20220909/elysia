@@ -1,10 +1,10 @@
-import { Elysia } from '../src'
+import { Elysia } from "../src";
 
-import cookie from '../src/index'
+import cookie from "../src/index";
 
 new Elysia()
-	.get('/', ({ set }) => {
-		set.headers['x-powered-by'] = 'Elysia'
-		set.status = 'Bad Request'
+	.get("/", ({ set }) => {
+		set.headers["x-powered-by"] = "Elysia";
+		set.status = "Bad Request";
 	})
-	.listen(3000)
+	.listen(3000);

@@ -1,14 +1,17 @@
-import { Type, Kind } from '@sinclair/typebox'
 import type {
 	ArrayOptions,
 	DateOptions,
 	IntegerOptions,
+	JavaScriptTypeBuilder,
+	NumberOptions,
 	ObjectOptions,
 	SchemaOptions,
+	StringOptions,
 	TAnySchema,
 	TArray,
 	TBoolean,
 	TDate,
+	TEnum,
 	TEnumValue,
 	TInteger,
 	TNumber,
@@ -16,97 +19,92 @@ import type {
 	TProperties,
 	TSchema,
 	TString,
-	NumberOptions,
-	JavaScriptTypeBuilder,
-	StringOptions,
 	TUnsafe,
 	Uint8ArrayOptions,
-	TEnum
-} from '@sinclair/typebox'
-
+} from "@sinclair/typebox";
+import { Kind, Type } from "@sinclair/typebox";
+import { ValidationError } from "../error";
+import { ELYSIA_FORM_DATA, form } from "../utils";
+import { parseDateTimeEmptySpace } from "./format";
+import type {
+	AssertNumericEnum,
+	CookieValidatorOptions,
+	ElysiaTransformDecodeBuilder,
+	FileOptions,
+	FilesOptions,
+	NonEmptyArray,
+	TArrayBuffer,
+	TFile,
+	TFiles,
+	TForm,
+	TUnionEnum,
+} from "./types";
 import {
 	compile,
 	createType,
 	loadFileType,
 	tryParse,
-	validateFile
-} from './utils'
-import {
-	CookieValidatorOptions,
-	TFile,
-	TFiles,
-	FileOptions,
-	FilesOptions,
-	NonEmptyArray,
-	TForm,
-	TUnionEnum,
-	ElysiaTransformDecodeBuilder,
-	TArrayBuffer,
-	AssertNumericEnum
-} from './types'
-
-import { ELYSIA_FORM_DATA, form } from '../utils'
-import { ValidationError } from '../error'
-import { parseDateTimeEmptySpace } from './format'
+	validateFile,
+} from "./utils";
 
 const t = Object.assign({}, Type) as unknown as Omit<
 	JavaScriptTypeBuilder,
-	'String' | 'Transform'
+	"String" | "Transform"
 > &
 	typeof ElysiaType & {
 		Transform<Type extends TSchema>(
-			type: Type
-		): ElysiaTransformDecodeBuilder<Type>
-	}
+			type: Type,
+		): ElysiaTransformDecodeBuilder<Type>;
+	};
 
 createType<TUnionEnum>(
-	'UnionEnum',
+	"UnionEnum",
 	(schema, value) =>
-		(typeof value === 'number' ||
-			typeof value === 'string' ||
+		(typeof value === "number" ||
+			typeof value === "string" ||
 			value === null) &&
-		schema.enum.includes(value as never)
-)
+		schema.enum.includes(value as never),
+);
 
 createType<TArrayBuffer>(
-	'ArrayBuffer',
-	(schema, value) => value instanceof ArrayBuffer
-)
+	"ArrayBuffer",
+	(schema, value) => value instanceof ArrayBuffer,
+);
 
 const internalFiles = createType<FilesOptions, File[]>(
-	'Files',
+	"Files",
 	(options, value) => {
 		if (options.minItems && options.minItems > 1 && !Array.isArray(value))
-			return false
+			return false;
 
-		if (!Array.isArray(value)) return validateFile(options, value)
+		if (!Array.isArray(value)) return validateFile(options, value);
 
-		if (options.minItems && value.length < options.minItems) return false
-		if (options.maxItems && value.length > options.maxItems) return false
+		if (options.minItems && value.length < options.minItems) return false;
+		if (options.maxItems && value.length > options.maxItems) return false;
 
 		for (let i = 0; i < value.length; i++)
-			if (!validateFile(options, value[i])) return false
+			if (!validateFile(options, value[i])) return false;
 
-		return true
-	}
-) as unknown as TFiles
+		return true;
+	},
+) as unknown as TFiles;
 
 const internalFormData = createType<TForm, FormData>(
-	'ElysiaForm',
+	"ElysiaForm",
 	({ compiler, ...schema }, value) => {
-		if (!(value instanceof FormData)) return false
+		if (!(value instanceof FormData)) return false;
 
 		if (compiler) {
 			if (!(ELYSIA_FORM_DATA in value))
-				throw new ValidationError('property', schema, value)
+				throw new ValidationError("property", schema, value);
 
 			if (!compiler.Check(value[ELYSIA_FORM_DATA]))
-				throw compiler.Error(value[ELYSIA_FORM_DATA])
+				throw compiler.Error(value[ELYSIA_FORM_DATA]);
 		}
 
-		return true
-	}
-) as unknown as TForm
+		return true;
+	},
+) as unknown as TForm;
 
 interface ElysiaStringOptions extends StringOptions {
 	/**
@@ -118,95 +116,94 @@ interface ElysiaStringOptions extends StringOptions {
 	 *
 	 * @default false
 	 */
-	trusted?: boolean
+	trusted?: boolean;
 }
 
 export const ElysiaType = {
-	// @ts-ignore
+	// @ts-expect-error
 	String: (property?: ElysiaStringOptions) => Type.String(property),
 	Numeric: (property?: NumberOptions) => {
-		const schema = Type.Number(property)
-		const compiler = compile(schema)
+		const schema = Type.Number(property);
+		const compiler = compile(schema);
 
 		return t
 			.Transform(
 				t.Union(
 					[
 						t.String({
-							format: 'numeric',
-							default: 0
+							format: "numeric",
+							default: 0,
 						}),
-						t.Number(property)
+						t.Number(property),
 					],
-					property
-				)
+					property,
+				),
 			)
 			.Decode((value) => {
-				const number = +value
-				if (isNaN(number)) return value
+				const number = +value;
+				if (isNaN(number)) return value;
 
-				if (property && !compiler.Check(number))
-					throw compiler.Error(number)
+				if (property && !compiler.Check(number)) throw compiler.Error(number);
 
-				return number
+				return number;
 			})
-			.Encode((value) => value) as any as TNumber
+			.Encode((value) => value) as any as TNumber;
 	},
 
 	NumericEnum<T extends AssertNumericEnum<T>>(
 		item: T,
-		property?: SchemaOptions
+		property?: SchemaOptions,
 	) {
-		const schema = Type.Enum(item, property)
-		const compiler = compile(schema)
+		const schema = Type.Enum(item, property);
+		const compiler = compile(schema);
 
 		return t
 			.Transform(
-				t.Union([t.String({ format: 'numeric' }), t.Number()], property)
+				t.Union([t.String({ format: "numeric" }), t.Number()], property),
 			)
 			.Decode((value) => {
-				const number = +value
-				if (isNaN(number)) throw compiler.Error(number)
-				if (!compiler.Check(number)) throw compiler.Error(number)
-				return number
+				const number = +value;
+				if (isNaN(number)) throw compiler.Error(number);
+				if (!compiler.Check(number)) throw compiler.Error(number);
+				return number;
 			})
-			.Encode((value) => value) as any as TEnum<T>
+			.Encode((value) => value) as any as TEnum<T>;
 	},
 
 	Integer: (property?: IntegerOptions): TInteger => {
-		const schema = Type.Integer(property)
-		const compiler = compile(schema)
+		const schema = Type.Integer(property);
+		const compiler = compile(schema);
 
 		return t
 			.Transform(
 				t.Union(
 					[
 						t.String({
-							format: 'integer',
-							default: 0
+							format: "integer",
+							default: 0,
 						}),
-						Type.Integer(property)
+						Type.Integer(property),
 					],
-					property
-				)
+					property,
+				),
 			)
 			.Decode((value) => {
-				const number = +value
+				const number = +value;
 
-				if (!compiler.Check(number)) throw compiler.Error(number)
+				if (!compiler.Check(number)) throw compiler.Error(number);
 
-				return number
+				return number;
 			})
-			.Encode((value) => value) as any as TInteger
+			.Encode((value) => value) as any as TInteger;
 	},
 
 	Date: (property?: DateOptions) => {
-		const schema = Type.Date(property)
-		const compiler = compile(schema)
+		const schema = Type.Date(property);
+		const compiler = compile(schema);
 
 		const _default = property?.default
 			? new Date(property.default) // in case the default is an ISO string or milliseconds from epoch
-			: undefined
+			: undefined;
 
 		return t
 			.Transform(
@@ -214,58 +211,58 @@ export const ElysiaType = {
 					[
 						Type.Date(property),
 						t.String({
-							format: 'date-time',
-							default: _default?.toISOString()
+							format: "date-time",
+							default: _default?.toISOString(),
 						}),
 						t.String({
-							format: 'date',
-							default: _default?.toISOString()
+							format: "date",
+							default: _default?.toISOString(),
 						}),
-						t.Number({ default: _default?.getTime() })
+						t.Number({ default: _default?.getTime() }),
 					],
-					property
-				)
+					property,
+				),
 			)
 			.Decode((value) => {
-				if (typeof value === 'number') {
-					const date = new Date(value)
+				if (typeof value === "number") {
+					const date = new Date(value);
 
-					if (!compiler.Check(date)) throw compiler.Error(date)
+					if (!compiler.Check(date)) throw compiler.Error(date);
 
-					return date
+					return date;
 				}
 
-				if (value instanceof Date) return value
+				if (value instanceof Date) return value;
 
-				const date = new Date(parseDateTimeEmptySpace(value))
+				const date = new Date(parseDateTimeEmptySpace(value));
 
 				if (!date || isNaN(date.getTime()))
-					throw new ValidationError('property', schema, date)
+					throw new ValidationError("property", schema, date);
 
-				if (!compiler.Check(date)) throw compiler.Error(date)
+				if (!compiler.Check(date)) throw compiler.Error(date);
 
-				return date
+				return date;
 			})
 			.Encode((value) => {
-				if (value instanceof Date) return value.toISOString()
-				if (typeof value === 'string') {
-					const parsed = new Date(parseDateTimeEmptySpace(value))
+				if (value instanceof Date) return value.toISOString();
+				if (typeof value === "string") {
+					const parsed = new Date(parseDateTimeEmptySpace(value));
 
 					if (isNaN(parsed.getTime()))
-						throw new ValidationError('property', schema, value)
+						throw new ValidationError("property", schema, value);
 
-					return parsed.toISOString()
+					return parsed.toISOString();
 				}
 
-				if (!compiler.Check(value)) throw compiler.Error(value)
+				if (!compiler.Check(value)) throw compiler.Error(value);
 
-				return value
-			}) as any as TDate
+				return value;
+			}) as any as TDate;
 	},
 
 	BooleanString: (property?: SchemaOptions) => {
-		const schema = Type.Boolean(property)
-		const compiler = compile(schema)
+		const schema = Type.Boolean(property);
+		const compiler = compile(schema);
 
 		return t
 			.Transform(
@@ -273,83 +270,83 @@ export const ElysiaType = {
 					[
 						t.Boolean(property),
 						t.String({
-							format: 'boolean',
-							default: false
-						})
+							format: "boolean",
+							default: false,
+						}),
 					],
-					property
-				)
+					property,
+				),
 			)
 			.Decode((value) => {
-				if (typeof value === 'string') return value === 'true'
+				if (typeof value === "string") return value === "true";
 
 				if (value !== undefined && !compiler.Check(value))
-					throw compiler.Error(value)
+					throw compiler.Error(value);
 
-				return value
+				return value;
 			})
-			.Encode((value) => value) as any as TBoolean
+			.Encode((value) => value) as any as TBoolean;
 	},
 
 	ObjectString: <T extends TProperties>(
 		properties: T,
-		options?: ObjectOptions
+		options?: ObjectOptions,
 	) => {
-		const schema = t.Object(properties, options)
-		const compiler = compile(schema)
+		const schema = t.Object(properties, options);
+		const compiler = compile(schema);
 
 		return t
 			.Transform(
 				t.Union(
 					[
 						t.String({
-							format: 'ObjectString',
-							default: options?.default
+							format: "ObjectString",
+							default: options?.default,
 						}),
-						schema
+						schema,
 					],
 					{
-						elysiaMeta: 'ObjectString'
-					}
-				)
+						elysiaMeta: "ObjectString",
+					},
+				),
 			)
 			.Decode((value) => {
-				if (typeof value === 'string') {
+				if (typeof value === "string") {
 					if (value.charCodeAt(0) !== 123)
-						throw new ValidationError('property', schema, value)
+						throw new ValidationError("property", schema, value);
 
 					if (!compiler.Check((value = tryParse(value, schema))))
-						throw compiler.Error(value)
+						throw compiler.Error(value);
 
-					return compiler.Decode(value)
+					return compiler.Decode(value);
 				}
 
-				return value
+				return value;
 			})
 			.Encode((value) => {
-				let original
-				if (typeof value === 'string')
-					value = tryParse((original = value), schema)
+				let original;
+				if (typeof value === "string")
+					value = tryParse((original = value), schema);
 
-				if (!compiler.Check(value)) throw compiler.Error(value)
+				if (!compiler.Check(value)) throw compiler.Error(value);
 
-				return original ?? JSON.stringify(value)
-			}) as any as TObject<T>
+				return original ?? JSON.stringify(value);
+			}) as any as TObject<T>;
 	},
 
 	ArrayString: <T extends TSchema = TString>(
 		children: T = t.String() as any,
-		options?: ArrayOptions
+		options?: ArrayOptions,
 	) => {
-		const schema = t.Array(children, options)
-		const compiler = compile(schema)
+		const schema = t.Array(children, options);
+		const compiler = compile(schema);
 
 		const decode = (value: string, isProperty = false) => {
 			if (value.charCodeAt(0) === 91) {
 				if (!compiler.Check((value = tryParse(value, schema))))
-					throw compiler.Error(value)
+					throw compiler.Error(value);
 
-				return compiler.Decode(value)
+				return compiler.Decode(value);
 			}
 
 			// has , (as used in nuqs)
@@ -361,147 +358,143 @@ export const ElysiaType = {
 			// 	return compiler.Decode(value)
 			// }
 
-			if (isProperty) return value
+			if (isProperty) return value;
 
-			throw new ValidationError('property', schema, value)
-		}
+			throw new ValidationError("property", schema, value);
+		};
 
 		return t
 			.Transform(
 				t.Union(
 					[
 						t.String({
-							format: 'ArrayString',
-							default: options?.default
+							format: "ArrayString",
+							default: options?.default,
 						}),
-						schema
+						schema,
 					],
 					{
-						elysiaMeta: 'ArrayString'
-					}
-				)
+						elysiaMeta: "ArrayString",
+					},
+				),
 			)
 			.Decode((value) => {
 				if (Array.isArray(value)) {
-					let values = <unknown[]>[]
+					let values = <unknown[]>[];
 
 					for (let i = 0; i < value.length; i++) {
-						const v = value[i]
-						if (typeof v === 'string') {
-							const t = decode(v, true)
-							if (Array.isArray(t)) values = values.concat(t)
-							else values.push(t)
+						const v = value[i];
+						if (typeof v === "string") {
+							const t = decode(v, true);
+							if (Array.isArray(t)) values = values.concat(t);
+							else values.push(t);
 
-							continue
+							continue;
 						}
 
-						values.push(v)
+						values.push(v);
 					}
 
-					return values
+					return values;
 				}
 
-				if (typeof value === 'string') return decode(value)
+				if (typeof value === "string") return decode(value);
 
 				// Is probably transformed, unable to check schema
-				return value
+				return value;
 			})
 			.Encode((value) => {
-				let original
-				if (typeof value === 'string')
-					value = tryParse((original = value), schema)
+				let original;
+				if (typeof value === "string")
+					value = tryParse((original = value), schema);
 
 				if (!compiler.Check(value))
-					throw new ValidationError('property', schema, value)
+					throw new ValidationError("property", schema, value);
 
-				return original ?? JSON.stringify(value)
-			}) as any as TArray<T>
+				return original ?? JSON.stringify(value);
+			}) as any as TArray<T>;
 	},
 
 	ArrayQuery: <T extends TSchema = TString>(
 		children: T = t.String() as any,
-		options?: ArrayOptions
+		options?: ArrayOptions,
 	) => {
-		const schema = t.Array(children, options)
-		const compiler = compile(schema)
+		const schema = t.Array(children, options);
+		const compiler = compile(schema);
 
 		const decode = (value: string) => {
 			// has , (as used in nuqs)
-			if (value.indexOf(',') !== -1)
-				return compiler.Decode(value.split(','))
+			if (value.indexOf(",") !== -1) return compiler.Decode(value.split(","));
 
-			return compiler.Decode([value])
-		}
+			return compiler.Decode([value]);
+		};
 
 		return t
 			.Transform(
 				t.Union(
 					[
 						t.String({
-							default: options?.default
+							default: options?.default,
 						}),
-						schema
+						schema,
 					],
 					{
-						elysiaMeta: 'ArrayQuery'
-					}
-				)
+						elysiaMeta: "ArrayQuery",
+					},
+				),
 			)
 			.Decode((value) => {
 				if (Array.isArray(value)) {
-					let values = <unknown[]>[]
+					let values = <unknown[]>[];
 
 					for (let i = 0; i < value.length; i++) {
-						const v = value[i]
-						if (typeof v === 'string') {
-							const t = decode(v)
-							if (Array.isArray(t)) values = values.concat(t)
-							else values.push(t)
+						const v = value[i];
+						if (typeof v === "string") {
+							const t = decode(v);
+							if (Array.isArray(t)) values = values.concat(t);
+							else values.push(t);
 
-							continue
+							continue;
 						}
 
-						values.push(v)
+						values.push(v);
 					}
 
-					return values
+					return values;
 				}
 
-				if (typeof value === 'string') return decode(value)
+				if (typeof value === "string") return decode(value);
 
 				// Is probably transformed, unable to check schema
-				return value
+				return value;
 			})
 			.Encode((value) => {
-				let original
-				if (typeof value === 'string')
-					value = tryParse((original = value), schema)
+				let original;
+				if (typeof value === "string")
+					value = tryParse((original = value), schema);
 
 				if (!compiler.Check(value))
-					throw new ValidationError('property', schema, value)
+					throw new ValidationError("property", schema, value);
 
-				return original ?? JSON.stringify(value)
-			}) as any as TArray<T>
+				return original ?? JSON.stringify(value);
+			}) as any as TArray<T>;
 	},
 
-	File: createType<FileOptions, File>(
-		'File',
-		validateFile
-	) as unknown as TFile,
+	File: createType<FileOptions, File>("File", validateFile) as unknown as TFile,
 
 	Files: (options: FilesOptions = {}): TUnsafe<File[]> =>
 		t
 			.Transform(internalFiles(options))
 			.Decode((value) => {
-				if (Array.isArray(value)) return value
-				return [value]
+				if (Array.isArray(value)) return value;
+				return [value];
 			})
 			.Encode((value) => value) as unknown as TUnsafe<File[]>,
 
 	Nullable: <T extends TSchema>(schema: T, options?: SchemaOptions) =>
 		t.Union([schema, t.Null()], {
 			...options,
-			nullable: true
+			nullable: true,
 		}),
 
 	/**
@@ -524,9 +517,9 @@ export const ElysiaType = {
 			secrets,
 			sign,
 			...options
-		}: CookieValidatorOptions<T> = {}
+		}: CookieValidatorOptions<T> = {},
 	) => {
-		const v = t.Object(properties, options)
+		const v = t.Object(properties, options);
 
 		v.config = {
 			domain,
@@ -538,64 +531,64 @@ export const ElysiaType = {
 			sameSite,
 			secure,
 			secrets,
-			sign
-		}
+			sign,
+		};
 
-		return v
+		return v;
 	},
 
 	UnionEnum: <
 		const T extends
 			| NonEmptyArray<TEnumValue>
-			| Readonly<NonEmptyArray<TEnumValue>>
+			| Readonly<NonEmptyArray<TEnumValue>>,
 	>(
 		values: T,
-		options: SchemaOptions = {}
+		options: SchemaOptions = {},
 	) => {
-		const type = values.every((value) => typeof value === 'string')
-			? { type: 'string' }
-			: values.every((value) => typeof value === 'number')
-				? { type: 'number' }
+		const type = values.every((value) => typeof value === "string")
+			? { type: "string" }
+			: values.every((value) => typeof value === "number")
+				? { type: "number" }
 				: values.every((value) => value === null)
-					? { type: 'null' }
-					: {}
+					? { type: "null" }
+					: {};
 
-		if (values.some((x) => typeof x === 'object' && x !== null))
-			throw new Error('This type does not support objects or arrays')
+		if (values.some((x) => typeof x === "object" && x !== null))
+			throw new Error("This type does not support objects or arrays");
 
 		return {
 			// default is need for generating error message
 			default: values[0],
 			...options,
-			[Kind]: 'UnionEnum',
+			[Kind]: "UnionEnum",
 			...type,
-			enum: values
-		} as any as TUnionEnum<T>
+			enum: values,
+		} as any as TUnionEnum<T>;
 	},
 
 	NoValidate: <T extends TAnySchema>(v: T, enabled = true) => {
-		v.noValidate = enabled
+		v.noValidate = enabled;
 
-		return v
+		return v;
 	},
 
 	Form: <T extends TProperties>(
 		v: T,
-		options: ObjectOptions = {}
+		options: ObjectOptions = {},
 	): TForm<T> => {
 		const schema = t.Object(v, {
 			default: form({}),
-			...options
-		})
-		const compiler = compile(schema)
+			...options,
+		});
+		const compiler = compile(schema);
 
 		return t.Union([
 			schema,
 			// @ts-expect-error
 			internalFormData({
-				compiler
-			})
-		])
+				compiler,
+			}),
+		]);
 	},
 
 	ArrayBuffer(options: TArrayBuffer = {}) {
@@ -603,86 +596,86 @@ export const ElysiaType = {
 			// default is need for generating error message
 			default: [1, 2, 3],
 			...options,
-			[Kind]: 'ArrayBuffer'
-		} as any as TUnsafe<ArrayBuffer>
+			[Kind]: "ArrayBuffer",
+		} as any as TUnsafe<ArrayBuffer>;
 	},
 
 	Uint8Array: (options: Uint8ArrayOptions) => {
-		const schema = Type.Uint8Array(options)
-		const compiler = compile(schema)
+		const schema = Type.Uint8Array(options);
+		const compiler = compile(schema);
 
 		return t
 			.Transform(t.Union([t.ArrayBuffer(), Type.Uint8Array(options)]))
 			.Decode((value) => {
 				if (value instanceof ArrayBuffer) {
 					if (!compiler.Check((value = new Uint8Array(value))))
-						throw compiler.Error(value)
+						throw compiler.Error(value);
 
-					return value
+					return value;
 				}
 
-				return value
+				return value;
 			})
-			.Encode((value) => value) as any as TUnsafe<Uint8Array>
-	}
-}
+			.Encode((value) => value) as any as TUnsafe<Uint8Array>;
+	},
+};
 
-t.BooleanString = ElysiaType.BooleanString
-t.ObjectString = ElysiaType.ObjectString
-t.ArrayString = ElysiaType.ArrayString
-t.ArrayQuery = ElysiaType.ArrayQuery
-t.Numeric = ElysiaType.Numeric
-t.NumericEnum = ElysiaType.NumericEnum
-t.Integer = ElysiaType.Integer
+t.BooleanString = ElysiaType.BooleanString;
+t.ObjectString = ElysiaType.ObjectString;
+t.ArrayString = ElysiaType.ArrayString;
+t.ArrayQuery = ElysiaType.ArrayQuery;
+t.Numeric = ElysiaType.Numeric;
+t.NumericEnum = ElysiaType.NumericEnum;
+t.Integer = ElysiaType.Integer;
 
 t.File = (arg) => {
-	if (arg?.type) loadFileType()
+	if (arg?.type) loadFileType();
 
 	return ElysiaType.File({
-		default: 'File',
+		default: "File",
 		...arg,
 		extension: arg?.type,
-		type: 'string',
-		format: 'binary'
-	})
-}
+		type: "string",
+		format: "binary",
+	});
+};
 
 t.Files = (arg) => {
-	if (arg?.type) loadFileType()
+	if (arg?.type) loadFileType();
 
 	return ElysiaType.Files({
 		...arg,
-		elysiaMeta: 'Files',
-		default: 'Files',
+		elysiaMeta: "Files",
+		default: "Files",
 		extension: arg?.type,
-		type: 'array',
+		type: "array",
 		items: {
 			...arg,
-			default: 'Files',
-			type: 'string',
-			format: 'binary'
-		}
-	})
-}
+			default: "Files",
+			type: "string",
+			format: "binary",
+		},
+	});
+};
 
-t.Nullable = ElysiaType.Nullable
-t.MaybeEmpty = ElysiaType.MaybeEmpty
-t.Cookie = ElysiaType.Cookie
-t.Date = ElysiaType.Date
-t.UnionEnum = ElysiaType.UnionEnum
-t.NoValidate = ElysiaType.NoValidate
-t.Form = ElysiaType.Form
+t.Nullable = ElysiaType.Nullable;
+t.MaybeEmpty = ElysiaType.MaybeEmpty;
+t.Cookie = ElysiaType.Cookie;
+t.Date = ElysiaType.Date;
+t.UnionEnum = ElysiaType.UnionEnum;
+t.NoValidate = ElysiaType.NoValidate;
+t.Form = ElysiaType.Form;
 
-t.ArrayBuffer = ElysiaType.ArrayBuffer
-t.Uint8Array = ElysiaType.Uint8Array as any
+t.ArrayBuffer = ElysiaType.ArrayBuffer;
+t.Uint8Array = ElysiaType.Uint8Array as any;
 
-export { t }
+export { t };
 
+export { FormatRegistry, TypeRegistry } from "@sinclair/typebox";
+export { TypeCheck, TypeCompiler } from "@sinclair/typebox/compiler";
 export {
-	TypeSystemPolicy,
 	TypeSystem,
 	TypeSystemDuplicateFormat,
-	TypeSystemDuplicateTypeKind
-} from '@sinclair/typebox/system'
-export { TypeRegistry, FormatRegistry } from '@sinclair/typebox'
-export { TypeCompiler, TypeCheck } from '@sinclair/typebox/compiler'
+	TypeSystemDuplicateTypeKind,
+	TypeSystemPolicy,
+} from "@sinclair/typebox/system";

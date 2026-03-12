@@ -1,297 +1,293 @@
-import { Elysia } from '../../src'
+import { describe, expect, it } from "bun:test";
+import { Elysia } from "../../src";
+import { delay, req } from "../utils";
 
-import { describe, expect, it } from 'bun:test'
-import { delay, req } from '../utils'
-
-describe('Before Handle', () => {
-	it('globally skip main handler', async () => {
+describe("Before Handle", () => {
+	it("globally skip main handler", async () => {
 		const app = new Elysia()
 			.onBeforeHandle<{
 				params: {
-					name?: string
-				}
+					name?: string;
+				};
 			}>(({ params: { name } }) => {
-				if (name === 'Fubuki') return 'Cat'
+				if (name === "Fubuki") return "Cat";
 			})
-			.get('/name/:name', ({ params: { name } }) => name)
+			.get("/name/:name", ({ params: { name } }) => name);
 
-		const res = await app.handle(req('/name/Fubuki'))
+		const res = await app.handle(req("/name/Fubuki"));
 
-		expect(await res.text()).toBe('Cat')
-	})
+		expect(await res.text()).toBe("Cat");
+	});
 
-	it('locally skip main handler', async () => {
+	it("locally skip main handler", async () => {
 		const app = new Elysia().get(
-			'/name/:name',
+			"/name/:name",
 			({ params: { name } }) => name,
 			{
 				beforeHandle: ({ params: { name } }) => {
-					if (name === 'Fubuki') return 'Cat'
-				}
-			}
-		)
+					if (name === "Fubuki") return "Cat";
+				},
+			},
+		);
 
-		const res = await app.handle(req('/name/Fubuki'))
+		const res = await app.handle(req("/name/Fubuki"));
 
-		expect(await res.text()).toBe('Cat')
-	})
+		expect(await res.text()).toBe("Cat");
+	});
 
-	it('group before handler', async () => {
+	it("group before handler", async () => {
 		const app = new Elysia()
-			.group('/type', (app) =>
+			.group("/type", (app) =>
 				app
 					.onBeforeHandle<{
 						params: {
-							name?: string
-						}
+							name?: string;
+						};
 					}>(({ params: { name } }) => {
-						if (name === 'fubuki') return 'cat'
+						if (name === "fubuki") return "cat";
 					})
-					.get('/name/:name', ({ params: { name } }) => name)
+					.get("/name/:name", ({ params: { name } }) => name),
 			)
-			.get('/name/:name', ({ params: { name } }) => name)
+			.get("/name/:name", ({ params: { name } }) => name);
 
-		const base = await app.handle(req('/name/fubuki'))
-		const scoped = await app.handle(req('/type/name/fubuki'))
+		const base = await app.handle(req("/name/fubuki"));
+		const scoped = await app.handle(req("/type/name/fubuki"));
 
-		expect(await base.text()).toBe('fubuki')
-		expect(await scoped.text()).toBe('cat')
-	})
+		expect(await base.text()).toBe("fubuki");
+		expect(await scoped.text()).toBe("cat");
+	});
 
-	it('inherits from plugin', async () => {
+	it("inherits from plugin", async () => {
 		const transformId = new Elysia().onBeforeHandle(
-			{ as: 'global' },
+			{ as: "global" },
 			({ params: { name } }) => {
-				if (name === 'Fubuki') return 'Cat'
-			}
-		)
+				if (name === "Fubuki") return "Cat";
+			},
+		);
 
 		const app = new Elysia()
 			.use(transformId)
-			.get('/name/:name', ({ params: { name } }) => name)
+			.get("/name/:name", ({ params: { name } }) => name);
 
-		const res = await app.handle(req('/name/Fubuki'))
+		const res = await app.handle(req("/name/Fubuki"));
 
-		expect(await res.text()).toBe('Cat')
-	})
+		expect(await res.text()).toBe("Cat");
+	});
 
-	it('not inherits plugin on local', async () => {
-		const beforeHandle = new Elysia().onBeforeHandle(
-			({ params: { name } }) => {
-				if (name === 'Fubuki') return 'Cat'
-			}
-		)
+	it("not inherits plugin on local", async () => {
+		const beforeHandle = new Elysia().onBeforeHandle(({ params: { name } }) => {
+			if (name === "Fubuki") return "Cat";
+		});
 
 		const app = new Elysia()
 			.use(beforeHandle)
-			.get('/name/:name', ({ params: { name } }) => name)
+			.get("/name/:name", ({ params: { name } }) => name);
 
-		const res = await app.handle(req('/name/Fubuki'))
+		const res = await app.handle(req("/name/Fubuki"));
 
-		expect(await res.text()).toBe('Fubuki')
-	})
+		expect(await res.text()).toBe("Fubuki");
+	});
 
-	it('before handle in order', async () => {
-		let order = <string[]>[]
+	it("before handle in order", async () => {
+		const order = <string[]>[];
 
 		const app = new Elysia()
 			.onBeforeHandle(() => {
-				order.push('A')
+				order.push("A");
 			})
 			.onBeforeHandle(() => {
-				order.push('B')
+				order.push("B");
 			})
-			.get('/', () => '')
+			.get("/", () => "");
 
-		await app.handle(req('/'))
+		await app.handle(req("/"));
 
-		expect(order).toEqual(['A', 'B'])
-	})
+		expect(order).toEqual(["A", "B"]);
+	});
 
-	it('globally and locally before handle', async () => {
+	it("globally and locally before handle", async () => {
 		const app = new Elysia()
 			.onBeforeHandle<{
 				params: {
-					name?: string
-				}
+					name?: string;
+				};
 			}>(({ params: { name } }) => {
-				if (name === 'fubuki') return 'cat'
+				if (name === "fubuki") return "cat";
 			})
-			.get('/name/:name', ({ params: { name } }) => name, {
+			.get("/name/:name", ({ params: { name } }) => name, {
 				beforeHandle: ({ params: { name } }) => {
-					if (name === 'korone') return 'dog'
-				}
-			})
+					if (name === "korone") return "dog";
+				},
+			});
 
-		const fubuki = await app.handle(req('/name/fubuki'))
-		const korone = await app.handle(req('/name/korone'))
+		const fubuki = await app.handle(req("/name/fubuki"));
+		const korone = await app.handle(req("/name/korone"));
 
-		expect(await fubuki.text()).toBe('cat')
-		expect(await korone.text()).toBe('dog')
-	})
+		expect(await fubuki.text()).toBe("cat");
+		expect(await korone.text()).toBe("dog");
+	});
 
-	it('accept multiple before handler', async () => {
+	it("accept multiple before handler", async () => {
 		const app = new Elysia()
 			.onBeforeHandle<{
 				params: {
-					name?: string
-				}
+					name?: string;
+				};
 			}>(({ params: { name } }) => {
-				if (name === 'fubuki') return 'cat'
+				if (name === "fubuki") return "cat";
 			})
 			.onBeforeHandle<{
 				params: {
-					name?: string
-				}
+					name?: string;
+				};
 			}>(({ params: { name } }) => {
-				if (name === 'korone') return 'dog'
+				if (name === "korone") return "dog";
 			})
-			.get('/name/:name', ({ params: { name } }) => name)
+			.get("/name/:name", ({ params: { name } }) => name);
 
-		const fubuki = await app.handle(req('/name/fubuki'))
-		const korone = await app.handle(req('/name/korone'))
+		const fubuki = await app.handle(req("/name/fubuki"));
+		const korone = await app.handle(req("/name/korone"));
 
-		expect(await fubuki.text()).toBe('cat')
-		expect(await korone.text()).toBe('dog')
-	})
+		expect(await fubuki.text()).toBe("cat");
+		expect(await korone.text()).toBe("dog");
+	});
 
-	it('handle async', async () => {
+	it("handle async", async () => {
 		const app = new Elysia().get(
-			'/name/:name',
+			"/name/:name",
 			({ params: { name } }) => name,
 			{
 				beforeHandle: async ({ params: { name } }) => {
-					await delay(5)
+					await delay(5);
 
-					if (name === 'Watame') return 'Warukunai yo ne'
-				}
-			}
-		)
+					if (name === "Watame") return "Warukunai yo ne";
+				},
+			},
+		);
 
-		const res = await app.handle(req('/name/Watame'))
+		const res = await app.handle(req("/name/Watame"));
 
-		expect(await res.text()).toBe('Warukunai yo ne')
-	})
+		expect(await res.text()).toBe("Warukunai yo ne");
+	});
 
 	it("handle on('beforeHandle')", async () => {
 		const app = new Elysia()
-			.on('beforeHandle', async ({ params: { name } }) => {
+			.on("beforeHandle", async ({ params: { name } }) => {
 				await new Promise<void>((resolve) =>
 					setTimeout(() => {
-						resolve()
-					}, 1)
-				)
+						resolve();
+					}, 1),
+				);
 
-				if (name === 'Watame') return 'Warukunai yo ne'
+				if (name === "Watame") return "Warukunai yo ne";
 			})
-			.get('/name/:name', ({ params: { name } }) => name)
+			.get("/name/:name", ({ params: { name } }) => name);
 
-		const res = await app.handle(req('/name/Watame'))
+		const res = await app.handle(req("/name/Watame"));
 
-		expect(await res.text()).toBe('Warukunai yo ne')
-	})
+		expect(await res.text()).toBe("Warukunai yo ne");
+	});
 
-	it('execute afterHandle', async () => {
+	it("execute afterHandle", async () => {
 		const app = new Elysia()
 			.onBeforeHandle<{
 				params: {
-					name?: string
-				}
+					name?: string;
+				};
 			}>(({ params: { name } }) => {
-				if (name === 'Fubuki') return 'Cat'
+				if (name === "Fubuki") return "Cat";
 			})
 			.onAfterHandle((context) => {
-				if (context.response === 'Cat') return 'Not cat'
+				if (context.response === "Cat") return "Not cat";
 			})
-			.get('/name/:name', ({ params: { name } }) => name)
+			.get("/name/:name", ({ params: { name } }) => name);
 
-		const res = await app.handle(req('/name/Fubuki'))
+		const res = await app.handle(req("/name/Fubuki"));
 
-		expect(await res.text()).toBe('Not cat')
-	})
+		expect(await res.text()).toBe("Not cat");
+	});
 
-	it('as global', async () => {
-		const called = <string[]>[]
+	it("as global", async () => {
+		const called = <string[]>[];
 
 		const plugin = new Elysia()
-			.onBeforeHandle({ as: 'global' }, ({ path }) => {
-				called.push(path)
+			.onBeforeHandle({ as: "global" }, ({ path }) => {
+				called.push(path);
 			})
-			.get('/inner', () => 'NOOP')
+			.get("/inner", () => "NOOP");
 
-		const app = new Elysia().use(plugin).get('/outer', () => 'NOOP')
+		const app = new Elysia().use(plugin).get("/outer", () => "NOOP");
 
 		const res = await Promise.all([
-			app.handle(req('/inner')),
-			app.handle(req('/outer'))
-		])
+			app.handle(req("/inner")),
+			app.handle(req("/outer")),
+		]);
 
-		expect(called).toEqual(['/inner', '/outer'])
-	})
+		expect(called).toEqual(["/inner", "/outer"]);
+	});
 
-	it('as local', async () => {
-		const called = <string[]>[]
+	it("as local", async () => {
+		const called = <string[]>[];
 
 		const plugin = new Elysia()
-			.onBeforeHandle({ as: 'local' }, ({ path }) => {
-				called.push(path)
+			.onBeforeHandle({ as: "local" }, ({ path }) => {
+				called.push(path);
 			})
-			.get('/inner', () => 'NOOP')
+			.get("/inner", () => "NOOP");
 
-		const app = new Elysia().use(plugin).get('/outer', () => 'NOOP')
+		const app = new Elysia().use(plugin).get("/outer", () => "NOOP");
 
 		const res = await Promise.all([
-			app.handle(req('/inner')),
-			app.handle(req('/outer'))
-		])
+			app.handle(req("/inner")),
+			app.handle(req("/outer")),
+		]);
 
-		expect(called).toEqual(['/inner'])
-	})
+		expect(called).toEqual(["/inner"]);
+	});
 
-	it('support array', async () => {
-		let total = 0
+	it("support array", async () => {
+		let total = 0;
 
 		const app = new Elysia()
 			.onAfterHandle([
 				() => {
-					total++
+					total++;
 				},
 				() => {
-					total++
-				}
+					total++;
+				},
 			])
-			.get('/', () => 'NOOP')
+			.get("/", () => "NOOP");
 
-		const res = await app.handle(req('/'))
+		const res = await app.handle(req("/"));
 
-		expect(total).toEqual(2)
-	})
+		expect(total).toEqual(2);
+	});
 
-	it('add responseValue to afterHandle, and afterResponse when beforeHandle returns a value', async () => {
-		let hasAfterHandleResponse = false
-		let hasAfterResponseResponse = false
+	it("add responseValue to afterHandle, and afterResponse when beforeHandle returns a value", async () => {
+		let hasAfterHandleResponse = false;
+		let hasAfterResponseResponse = false;
 
 		const app = new Elysia().get(
-			'/handler',
+			"/handler",
 			({ status }) => {
-				return status(401, 'unauthorized handler')
+				return status(401, "unauthorized handler");
 			},
 			{
 				afterHandle: ({ responseValue }) => {
-					hasAfterHandleResponse = !!responseValue
+					hasAfterHandleResponse = !!responseValue;
 				},
-				beforeHandle: ({ status }) =>
-					status(401, 'unauthorized beforeHandle'),
+				beforeHandle: ({ status }) => status(401, "unauthorized beforeHandle"),
 				afterResponse: ({ responseValue }) => {
-					hasAfterResponseResponse = !!responseValue
-				}
-			}
-		)
+					hasAfterResponseResponse = !!responseValue;
+				},
+			},
+		);
 
-		await app.handle(req('/handler'))
-		await delay(10)
+		await app.handle(req("/handler"));
+		await delay(10);
 
-		expect(hasAfterHandleResponse).toBe(true)
-		expect(hasAfterResponseResponse).toBe(true)
-	})
-})
+		expect(hasAfterHandleResponse).toBe(true);
+		expect(hasAfterResponseResponse).toBe(true);
+	});
+});

@@ -1,18 +1,18 @@
-import { Elysia, t } from '../src'
+import { Elysia, t } from "../src";
 
 new Elysia()
-	.post('/', ({ body }) => body, {
+	.post("/", ({ body }) => body, {
 		body: t.Object({
 			username: t.String(),
 			password: t.String(),
 			nested: t.Optional(
 				t.Object({
-					hi: t.String()
-				})
-			)
+					hi: t.String(),
+				}),
+			),
 		}),
 		error({ error }) {
-			console.log(error)
-		}
+			console.log(error);
+		},
 	})
-	.listen(3000)
+	.listen(3000);

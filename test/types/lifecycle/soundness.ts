@@ -1,231 +1,231 @@
-import { Cookie, Elysia, t } from '../../../src'
-import { expectTypeOf } from 'expect-type'
-import { Prettify } from '../../../src/types'
+import { expectTypeOf } from "expect-type";
+import { type Cookie, Elysia, t } from "../../../src";
+import type { Prettify } from "../../../src/types";
 
 // Handle resolve property correctly
 {
 	const app = new Elysia().resolve(({ status }) => {
-		if (Math.random() > 0.05) return status(401)
+		if (Math.random() > 0.05) return status(401);
 
 		return {
-			name: 'mokou'
-		}
-	})
+			name: "mokou",
+		};
+	});
 
-	type Resolve = (typeof app)['~Volatile']['resolve']
+	type Resolve = (typeof app)["~Volatile"]["resolve"];
 	expectTypeOf<Resolve>().toEqualTypeOf<{
-		name: 'mokou'
-	}>
+		name: "mokou";
+	}>;
 }
 
 // Handle resolve property without any data
 {
 	const app = new Elysia().resolve(({ status }) => {
-		if (Math.random() > 0.05) return status(401)
-	})
+		if (Math.random() > 0.05) return status(401);
+	});
 
-	type Resolve = (typeof app)['~Volatile']['resolve']
-	expectTypeOf<Resolve>().toEqualTypeOf<{}>
+	type Resolve = (typeof app)["~Volatile"]["resolve"];
+	expectTypeOf<Resolve>().toEqualTypeOf<{}>;
 }
 
 // Type soundness of lifecycle event in local
 {
 	const app = new Elysia()
 		.onError(({ status }) => {
-			if (Math.random() > 0.05) return status(400)
+			if (Math.random() > 0.05) return status(400);
 		})
 		.resolve(({ status }) => {
-			if (Math.random() > 0.05) return status(401)
+			if (Math.random() > 0.05) return status(401);
 		})
 		.onBeforeHandle([
 			({ status }) => {
-				if (Math.random() > 0.05) return status(402)
+				if (Math.random() > 0.05) return status(402);
 			},
 			({ status }) => {
-				if (Math.random() > 0.05) return status(403)
-			}
+				if (Math.random() > 0.05) return status(403);
+			},
 		])
 		.guard({
 			beforeHandle: [
 				({ status }) => {
-					if (Math.random() > 0.05) return status(405)
+					if (Math.random() > 0.05) return status(405);
 				},
 				({ status }) => {
-					if (Math.random() > 0.05) return status(406)
-				}
+					if (Math.random() > 0.05) return status(406);
+				},
 			],
 			afterHandle({ status }) {
-				if (Math.random() > 0.05) return status(407)
+				if (Math.random() > 0.05) return status(407);
 			},
 			error({ status }) {
-				if (Math.random() > 0.05) return status(408)
-			}
+				if (Math.random() > 0.05) return status(408);
+			},
 		})
-		.get('/', ({ body, status }) =>
-			Math.random() > 0.05 ? status(409) : ('Hello World' as const)
-		)
+		.get("/", ({ body, status }) =>
+			Math.random() > 0.05 ? status(409) : ("Hello World" as const),
+		);
 
-	type Lifecycle = Prettify<(typeof app)['~Volatile']['response']>
+	type Lifecycle = Prettify<(typeof app)["~Volatile"]["response"]>;
 
 	expectTypeOf<Lifecycle>().toEqualTypeOf<{
-		400: 'Bad Request'
-		401: 'Unauthorized'
-		402: 'Payment Required'
-		403: 'Forbidden'
-		405: 'Method Not Allowed'
-		406: 'Not Acceptable'
-		407: 'Proxy Authentication Required'
-		408: 'Request Timeout'
-	}>()
+		400: "Bad Request";
+		401: "Unauthorized";
+		402: "Payment Required";
+		403: "Forbidden";
+		405: "Method Not Allowed";
+		406: "Not Acceptable";
+		407: "Proxy Authentication Required";
+		408: "Request Timeout";
+	}>();
 
-	type Route = Prettify<(typeof app)['~Routes']['get']['response']>
+	type Route = Prettify<(typeof app)["~Routes"]["get"]["response"]>;
 
 	expectTypeOf<Route>().toEqualTypeOf<{
-		200: 'Hello World'
-		400: 'Bad Request'
-		401: 'Unauthorized'
-		402: 'Payment Required'
-		403: 'Forbidden'
-		405: 'Method Not Allowed'
-		406: 'Not Acceptable'
-		407: 'Proxy Authentication Required'
-		408: 'Request Timeout'
-		409: 'Conflict'
-	}>
+		200: "Hello World";
+		400: "Bad Request";
+		401: "Unauthorized";
+		402: "Payment Required";
+		403: "Forbidden";
+		405: "Method Not Allowed";
+		406: "Not Acceptable";
+		407: "Proxy Authentication Required";
+		408: "Request Timeout";
+		409: "Conflict";
+	}>;
 }
 
 // Type soundness of lifecycle event in scoped
 {
 	const app = new Elysia()
 		.onError(({ status }) => {
-			if (Math.random() > 0.05) return status(400)
+			if (Math.random() > 0.05) return status(400);
 		})
 		.resolve(({ status }) => {
-			if (Math.random() > 0.05) return status(401)
+			if (Math.random() > 0.05) return status(401);
 		})
 		.onBeforeHandle([
 			({ status }) => {
-				if (Math.random() > 0.05) return status(402)
+				if (Math.random() > 0.05) return status(402);
 			},
 			({ status }) => {
-				if (Math.random() > 0.05) return status(403)
-			}
+				if (Math.random() > 0.05) return status(403);
+			},
 		])
 		.guard({
 			beforeHandle: [
 				({ status }) => {
-					if (Math.random() > 0.05) return status(405)
+					if (Math.random() > 0.05) return status(405);
 				},
 				({ status }) => {
-					if (Math.random() > 0.05) return status(406)
-				}
+					if (Math.random() > 0.05) return status(406);
+				},
 			],
 			afterHandle({ status }) {
-				if (Math.random() > 0.05) return status(407)
+				if (Math.random() > 0.05) return status(407);
 			},
 			error({ status }) {
-				if (Math.random() > 0.05) return status(408)
-			}
+				if (Math.random() > 0.05) return status(408);
+			},
 		})
-		.as('scoped')
-		.get('/', ({ body, status }) =>
-			Math.random() > 0.05 ? status(409) : ('Hello World' as const)
-		)
+		.as("scoped")
+		.get("/", ({ body, status }) =>
+			Math.random() > 0.05 ? status(409) : ("Hello World" as const),
+		);
 
-	type Lifecycle = Prettify<(typeof app)['~Ephemeral']['response']>
+	type Lifecycle = Prettify<(typeof app)["~Ephemeral"]["response"]>;
 
 	expectTypeOf<Lifecycle>().toEqualTypeOf<{
-		400: 'Bad Request'
-		401: 'Unauthorized'
-		402: 'Payment Required'
-		403: 'Forbidden'
-		405: 'Method Not Allowed'
-		406: 'Not Acceptable'
-		407: 'Proxy Authentication Required'
-		408: 'Request Timeout'
-	}>()
+		400: "Bad Request";
+		401: "Unauthorized";
+		402: "Payment Required";
+		403: "Forbidden";
+		405: "Method Not Allowed";
+		406: "Not Acceptable";
+		407: "Proxy Authentication Required";
+		408: "Request Timeout";
+	}>();
 
-	type Route = Prettify<(typeof app)['~Routes']['get']['response']>
+	type Route = Prettify<(typeof app)["~Routes"]["get"]["response"]>;
 
 	expectTypeOf<Route>().toEqualTypeOf<{
-		200: 'Hello World'
-		400: 'Bad Request'
-		401: 'Unauthorized'
-		402: 'Payment Required'
-		403: 'Forbidden'
-		405: 'Method Not Allowed'
-		406: 'Not Acceptable'
-		407: 'Proxy Authentication Required'
-		408: 'Request Timeout'
-		409: 'Conflict'
-	}>
+		200: "Hello World";
+		400: "Bad Request";
+		401: "Unauthorized";
+		402: "Payment Required";
+		403: "Forbidden";
+		405: "Method Not Allowed";
+		406: "Not Acceptable";
+		407: "Proxy Authentication Required";
+		408: "Request Timeout";
+		409: "Conflict";
+	}>;
 }
 
 // Type soundness of lifecycle event in global
 {
 	const app = new Elysia()
 		.onError(({ status }) => {
-			if (Math.random() > 0.05) return status(400)
+			if (Math.random() > 0.05) return status(400);
 		})
 		.resolve(({ status }) => {
-			if (Math.random() > 0.05) return status(401)
+			if (Math.random() > 0.05) return status(401);
 		})
 		.onBeforeHandle([
 			({ status }) => {
-				if (Math.random() > 0.05) return status(402)
+				if (Math.random() > 0.05) return status(402);
 			},
 			({ status }) => {
-				if (Math.random() > 0.05) return status(403)
-			}
+				if (Math.random() > 0.05) return status(403);
+			},
 		])
 		.guard({
 			beforeHandle: [
 				({ status }) => {
-					if (Math.random() > 0.05) return status(405)
+					if (Math.random() > 0.05) return status(405);
 				},
 				({ status }) => {
-					if (Math.random() > 0.05) return status(406)
-				}
+					if (Math.random() > 0.05) return status(406);
+				},
 			],
 			afterHandle({ status }) {
-				if (Math.random() > 0.05) return status(407)
+				if (Math.random() > 0.05) return status(407);
 			},
 			error({ status }) {
-				if (Math.random() > 0.05) return status(408)
-			}
+				if (Math.random() > 0.05) return status(408);
+			},
 		})
-		.as('global')
-		.get('/', ({ body, status }) =>
-			Math.random() > 0.05 ? status(409) : ('Hello World' as const)
-		)
+		.as("global")
+		.get("/", ({ body, status }) =>
+			Math.random() > 0.05 ? status(409) : ("Hello World" as const),
+		);
 
-	type Lifecycle = Prettify<(typeof app)['~Metadata']['response']>
+	type Lifecycle = Prettify<(typeof app)["~Metadata"]["response"]>;
 
 	expectTypeOf<Lifecycle>().toEqualTypeOf<{
-		400: 'Bad Request'
-		401: 'Unauthorized'
-		402: 'Payment Required'
-		403: 'Forbidden'
-		405: 'Method Not Allowed'
-		406: 'Not Acceptable'
-		407: 'Proxy Authentication Required'
-		408: 'Request Timeout'
-	}>()
+		400: "Bad Request";
+		401: "Unauthorized";
+		402: "Payment Required";
+		403: "Forbidden";
+		405: "Method Not Allowed";
+		406: "Not Acceptable";
+		407: "Proxy Authentication Required";
+		408: "Request Timeout";
+	}>();
 
-	type Route = Prettify<(typeof app)['~Routes']['get']['response']>
+	type Route = Prettify<(typeof app)["~Routes"]["get"]["response"]>;
 
 	expectTypeOf<Route>().toEqualTypeOf<{
-		200: 'Hello World'
-		400: 'Bad Request'
-		401: 'Unauthorized'
-		402: 'Payment Required'
-		403: 'Forbidden'
-		405: 'Method Not Allowed'
-		406: 'Not Acceptable'
-		407: 'Proxy Authentication Required'
-		408: 'Request Timeout'
-		409: 'Conflict'
-	}>
+		200: "Hello World";
+		400: "Bad Request";
+		401: "Unauthorized";
+		402: "Payment Required";
+		403: "Forbidden";
+		405: "Method Not Allowed";
+		406: "Not Acceptable";
+		407: "Proxy Authentication Required";
+		408: "Request Timeout";
+		409: "Conflict";
+	}>;
 }
 
 // All together now
@@ -234,91 +234,91 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			auth: {
 				response: {
-					409: t.Literal('Conflict')
+					409: t.Literal("Conflict"),
 				},
 				beforeHandle({ status }) {
-					if (Math.random() < 0.05) return status(410)
+					if (Math.random() < 0.05) return status(410);
 				},
-				resolve: () => ({ a: 'a' as const })
-			}
+				resolve: () => ({ a: "a" as const }),
+			},
 		})
 		.onError(({ status }) => {
-			if (Math.random() < 0.05) return status(400)
+			if (Math.random() < 0.05) return status(400);
 		})
 		.resolve(({ status }) => {
-			if (Math.random() < 0.05) return status(401)
+			if (Math.random() < 0.05) return status(401);
 
 			return {
-				b: 'b' as const
-			}
+				b: "b" as const,
+			};
 		})
 		.onBeforeHandle([
 			({ status }) => {
-				if (Math.random() < 0.05) return status(402)
+				if (Math.random() < 0.05) return status(402);
 			},
 			({ status }) => {
-				if (Math.random() < 0.05) return status(403)
-			}
+				if (Math.random() < 0.05) return status(403);
+			},
 		])
 		.guard({
 			beforeHandle: [
 				({ status }) => {
-					if (Math.random() < 0.05) return status(405)
+					if (Math.random() < 0.05) return status(405);
 				},
 				({ status }) => {
-					if (Math.random() < 0.05) return status(406)
-				}
+					if (Math.random() < 0.05) return status(406);
+				},
 			],
 			afterHandle({ status }) {
-				if (Math.random() < 0.05) return status(407)
+				if (Math.random() < 0.05) return status(407);
 			},
 			error({ status }) {
-				if (Math.random() < 0.05) return status(408)
-			}
+				if (Math.random() < 0.05) return status(408);
+			},
 		})
 		.post(
-			'/',
+			"/",
 			({ status, a, b }) => {
-				if (Math.random() < 0.05) return status(409, 'Conflict')
+				if (Math.random() < 0.05) return status(409, "Conflict");
 
-				expectTypeOf<typeof a>().toEqualTypeOf<'a'>()
-				expectTypeOf<typeof b>().toEqualTypeOf<'b'>()
+				expectTypeOf<typeof a>().toEqualTypeOf<"a">();
+				expectTypeOf<typeof b>().toEqualTypeOf<"b">();
 
-				return 'Type Soundness'
+				return "Type Soundness";
 			},
 			{
 				auth: true,
 				response: {
-					411: t.Literal('Length Required')
-				}
-			}
-		)
+					411: t.Literal("Length Required"),
+				},
+			},
+		);
 
-	type Lifecycle = (typeof app)['~Routes']['post']['response']
+	type Lifecycle = (typeof app)["~Routes"]["post"]["response"];
 
 	expectTypeOf<Lifecycle>().toEqualTypeOf<{
-		200: 'Type Soundness'
-		400: 'Bad Request'
-		401: 'Unauthorized'
-		402: 'Payment Required'
-		403: 'Forbidden'
-		405: 'Method Not Allowed'
-		406: 'Not Acceptable'
-		407: 'Proxy Authentication Required'
-		408: 'Request Timeout'
-		409: 'Conflict'
-		410: 'Gone'
-		411: 'Length Required'
+		200: "Type Soundness";
+		400: "Bad Request";
+		401: "Unauthorized";
+		402: "Payment Required";
+		403: "Forbidden";
+		405: "Method Not Allowed";
+		406: "Not Acceptable";
+		407: "Proxy Authentication Required";
+		408: "Request Timeout";
+		409: "Conflict";
+		410: "Gone";
+		411: "Length Required";
 		422: {
-			type: 'validation'
-			on: string
-			summary?: string
-			message?: string
-			found?: unknown
-			property?: string
-			expected?: string
-		}
-	}>()
+			type: "validation";
+			on: string;
+			summary?: string;
+			message?: string;
+			found?: unknown;
+			property?: string;
+			expected?: string;
+		};
+	}>();
 }
 
 // Macro without schema should not have 422
@@ -327,20 +327,20 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			auth: {
 				beforeHandle({ status }) {
-					if (Math.random() < 0.05) return status(410)
-				}
-			}
+					if (Math.random() < 0.05) return status(410);
+				},
+			},
 		})
-		.get('/', () => 'Hello World' as const, {
-			auth: true
-		})
+		.get("/", () => "Hello World" as const, {
+			auth: true,
+		});
 
-	type Route = (typeof app)['~Routes']['get']['response']
+	type Route = (typeof app)["~Routes"]["get"]["response"];
 
 	expectTypeOf<Route>().toEqualTypeOf<{
-		200: 'Hello World'
-		410: 'Gone'
-	}>()
+		200: "Hello World";
+		410: "Gone";
+	}>();
 }
 
 // Macro with schema should have 422
@@ -349,33 +349,33 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			auth: {
 				response: {
-					401: t.Literal('Unauthorized')
+					401: t.Literal("Unauthorized"),
 				},
 				beforeHandle({ status }) {
-					if (Math.random() < 0.05) return status(410)
-				}
-			}
+					if (Math.random() < 0.05) return status(410);
+				},
+			},
 		})
-		.get('/', () => 'Hello World' as const, {
-			auth: true
-		})
+		.get("/", () => "Hello World" as const, {
+			auth: true,
+		});
 
-	type Route = (typeof app)['~Routes']['get']['response']
+	type Route = (typeof app)["~Routes"]["get"]["response"];
 
 	expectTypeOf<Route>().toEqualTypeOf<{
-		200: 'Hello World'
-		401: 'Unauthorized'
-		410: 'Gone'
+		200: "Hello World";
+		401: "Unauthorized";
+		410: "Gone";
 		422: {
-			type: 'validation'
-			on: string
-			summary?: string
-			message?: string
-			found?: unknown
-			property?: string
-			expected?: string
-		}
-	}>()
+			type: "validation";
+			on: string;
+			summary?: string;
+			message?: string;
+			found?: unknown;
+			property?: string;
+			expected?: string;
+		};
+	}>();
 }
 
 // Macro should inject schema
@@ -384,82 +384,82 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			auth: {
 				body: t.Object({
-					name: t.Literal('lilith')
+					name: t.Literal("lilith"),
 				}),
 				query: t.Object({
-					name: t.Literal('lilith')
+					name: t.Literal("lilith"),
 				}),
 				headers: t.Object({
-					name: t.Literal('lilith')
+					name: t.Literal("lilith"),
 				}),
 				params: t.Object({
-					name: t.Literal('lilith')
+					name: t.Literal("lilith"),
 				}),
 				cookie: t.Object({
-					name: t.Literal('lilith')
+					name: t.Literal("lilith"),
 				}),
 				response: {
-					401: t.Literal('Unauthorized')
+					401: t.Literal("Unauthorized"),
 				},
 				beforeHandle({ status }) {
-					if (Math.random() < 0.05) return status(410)
-				}
-			}
+					if (Math.random() < 0.05) return status(410);
+				},
+			},
 		})
 		.get(
-			'/',
+			"/",
 			({ headers, body, cookie, params, query, status }) => {
 				expectTypeOf<typeof headers>().toEqualTypeOf<{
-					name: 'lilith'
-				}>()
+					name: "lilith";
+				}>();
 
 				expectTypeOf<typeof body>().toEqualTypeOf<{
-					name: 'lilith'
-				}>()
+					name: "lilith";
+				}>();
 
 				expectTypeOf<typeof cookie>().toEqualTypeOf<
 					Record<string, Cookie<unknown>> & {
-						name: Cookie<'lilith'>
+						name: Cookie<"lilith">;
 					}
-				>()
+				>();
 
 				expectTypeOf<typeof params>().toEqualTypeOf<{
-					name: 'lilith'
-				}>()
+					name: "lilith";
+				}>();
 
 				expectTypeOf<typeof query>().toEqualTypeOf<{
-					name: 'lilith'
-				}>()
+					name: "lilith";
+				}>();
 
-				if (Math.random() > 0.5) return status(401, 'Unauthorized')
+				if (Math.random() > 0.5) return status(401, "Unauthorized");
 
 				if (Math.random() > 0.5)
 					// @ts-expect-error
-					return status(401, 'Unauthorize')
+					return status(401, "Unauthorize");
 
-				return 'Hello World' as const
+				return "Hello World" as const;
 			},
 			{
-				auth: true
-			}
-		)
+				auth: true,
+			},
+		);
 
-	type Route = (typeof app)['~Routes']['get']['response']
+	type Route = (typeof app)["~Routes"]["get"]["response"];
 
 	expectTypeOf<Route>().toEqualTypeOf<{
-		200: 'Hello World'
-		401: 'Unauthorized'
-		410: 'Gone'
+		200: "Hello World";
+		401: "Unauthorized";
+		410: "Gone";
 		422: {
-			type: 'validation'
-			on: string
-			summary?: string
-			message?: string
-			found?: unknown
-			property?: string
-			expected?: string
-		}
-	}>()
+			type: "validation";
+			on: string;
+			summary?: string;
+			message?: string;
+			found?: unknown;
+			property?: string;
+			expected?: string;
+		};
+	}>();
 }
 
 // Macro should inject schema to guard
@@ -468,106 +468,106 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			auth: {
 				body: t.Object({
-					name: t.Literal('lilith')
+					name: t.Literal("lilith"),
 				}),
 				query: t.Object({
-					name: t.Literal('lilith')
+					name: t.Literal("lilith"),
 				}),
 				headers: t.Object({
-					name: t.Literal('lilith')
+					name: t.Literal("lilith"),
 				}),
 				params: t.Object({
-					name: t.Literal('lilith')
+					name: t.Literal("lilith"),
 				}),
 				cookie: t.Object({
-					name: t.Literal('lilith')
+					name: t.Literal("lilith"),
 				}),
 				response: {
-					401: t.Literal('Unauthorized')
+					401: t.Literal("Unauthorized"),
 				},
 				beforeHandle({ status }) {
-					if (Math.random() < 0.05) return status(410)
-				}
-			}
+					if (Math.random() < 0.05) return status(410);
+				},
+			},
 		})
 		.guard({
-			auth: true
+			auth: true,
 		})
-		.get('/', ({ headers, body, cookie, params, query, status }) => {
+		.get("/", ({ headers, body, cookie, params, query, status }) => {
 			expectTypeOf<typeof headers>().toEqualTypeOf<{
-				name: 'lilith'
-			}>()
+				name: "lilith";
+			}>();
 
 			expectTypeOf<typeof body>().toEqualTypeOf<{
-				name: 'lilith'
-			}>()
+				name: "lilith";
+			}>();
 
 			expectTypeOf<typeof cookie>().toEqualTypeOf<
 				Record<string, Cookie<unknown>> & {
-					name: Cookie<'lilith'>
+					name: Cookie<"lilith">;
 				}
-			>()
+			>();
 
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				name: 'lilith'
-			}>()
+				name: "lilith";
+			}>();
 
 			expectTypeOf<typeof query>().toEqualTypeOf<{
-				name: 'lilith'
-			}>()
+				name: "lilith";
+			}>();
 
-			if (Math.random() > 0.5) return status(401, 'Unauthorized')
+			if (Math.random() > 0.5) return status(401, "Unauthorized");
 
 			if (Math.random() > 0.5)
 				// @ts-expect-error
-				return status(401, 'Unauthorize')
+				return status(401, "Unauthorize");
 
-			return 'Hello World' as const
-		})
+			return "Hello World" as const;
+		});
 
-	app['~Volatile']['standaloneSchema']['response']['401']
-	type Route = (typeof app)['~Routes']['get']['response']
+	app["~Volatile"]["standaloneSchema"]["response"]["401"];
+	type Route = (typeof app)["~Routes"]["get"]["response"];
 
 	expectTypeOf<Route>().toEqualTypeOf<{
-		200: 'Hello World'
-		401: 'Unauthorized'
-		410: 'Gone'
+		200: "Hello World";
+		401: "Unauthorized";
+		410: "Gone";
 		422: {
-			type: 'validation'
-			on: string
-			summary?: string
-			message?: string
-			found?: unknown
-			property?: string
-			expected?: string
-		}
-	}>()
+			type: "validation";
+			on: string;
+			summary?: string;
+			message?: string;
+			found?: unknown;
+			property?: string;
+			expected?: string;
+		};
+	}>();
 }
 
 // Guard should extract possible status 1
 {
 	const app = new Elysia().guard({
 		beforeHandle({ status }) {
-			if (Math.random() < 0.05) return status(410)
-		}
-	})
+			if (Math.random() < 0.05) return status(410);
+		},
+	});
 
-	expectTypeOf<(typeof app)['~Volatile']['response']>().toEqualTypeOf<{
-		410: 'Gone'
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["response"]>().toEqualTypeOf<{
+		410: "Gone";
+	}>();
 }
 
 // Guard should extract possible status 2
 {
 	const app = new Elysia().guard({
 		afterHandle({ status }) {
-			return status(411)
-		}
-	})
+			return status(411);
+		},
+	});
 
-	expectTypeOf<(typeof app)['~Volatile']['response']>().toEqualTypeOf<{
-		411: 'Length Required'
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["response"]>().toEqualTypeOf<{
+		411: "Length Required";
+	}>();
 }
 
 // Guard should extract possible status 3
@@ -575,43 +575,43 @@ import { Prettify } from '../../../src/types'
 	const app = new Elysia().guard({
 		error: [
 			({ status }) => {
-				return status(412)
+				return status(412);
 			},
 			({ status }) => {
-				if (Math.random() > 0.5) return status(413)
-			}
-		]
-	})
+				if (Math.random() > 0.5) return status(413);
+			},
+		],
+	});
 
-	expectTypeOf<(typeof app)['~Volatile']['response']>().toEqualTypeOf<{
-		412: 'Precondition Failed'
-		413: 'Payload Too Large'
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["response"]>().toEqualTypeOf<{
+		412: "Precondition Failed";
+		413: "Payload Too Large";
+	}>();
 }
 
 // Guard should extract possible status 4
 {
 	const app = new Elysia().guard({
 		beforeHandle({ status }) {
-			if (Math.random() < 0.05) return status(410)
+			if (Math.random() < 0.05) return status(410);
 		},
 		error: [
 			({ status }) => {
-				return status(412)
+				return status(412);
 			},
 			({ status }) => {
-				if (Math.random() > 0.5) return status(413)
-			}
-		]
-	})
+				if (Math.random() > 0.5) return status(413);
+			},
+		],
+	});
 
 	expectTypeOf<
-		Prettify<(typeof app)['~Volatile']['response']>
+		Prettify<(typeof app)["~Volatile"]["response"]>
 	>().toEqualTypeOf<{
-		410: 'Gone'
-		412: 'Precondition Failed'
-		413: 'Payload Too Large'
-	}>()
+		410: "Gone";
+		412: "Precondition Failed";
+		413: "Payload Too Large";
+	}>();
 }
 
 // Guard should extract possible status 5
@@ -620,36 +620,36 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			a: {
 				resolve() {
-					return { a: 'a' }
+					return { a: "a" };
 				},
 				beforeHandle({ status }) {
-					return status(409)
-				}
-			}
+					return status(409);
+				},
+			},
 		})
 		.guard({
 			a: true,
 			beforeHandle({ status }) {
-				if (Math.random() < 0.05) return status(410)
+				if (Math.random() < 0.05) return status(410);
 			},
 			error: [
 				({ status }) => {
-					return status(412)
+					return status(412);
 				},
 				({ status }) => {
-					if (Math.random() > 0.5) return status(413)
-				}
-			]
-		})
+					if (Math.random() > 0.5) return status(413);
+				},
+			],
+		});
 
 	expectTypeOf<
-		Prettify<(typeof app)['~Volatile']['response']>
+		Prettify<(typeof app)["~Volatile"]["response"]>
 	>().toEqualTypeOf<{
-		409: 'Conflict'
-		410: 'Gone'
-		412: 'Precondition Failed'
-		413: 'Payload Too Large'
-	}>()
+		409: "Conflict";
+		410: "Gone";
+		412: "Precondition Failed";
+		413: "Payload Too Large";
+	}>();
 }
 
 // Macro should extract possible status 1
@@ -658,17 +658,17 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			a: {
 				beforeHandle({ status }) {
-					if (Math.random() < 0.05) return status(410)
-				}
-			}
+					if (Math.random() < 0.05) return status(410);
+				},
+			},
 		})
 		.guard({
-			a: true
-		})
+			a: true,
+		});
 
-	expectTypeOf<(typeof app)['~Volatile']['response']>().toEqualTypeOf<{
-		410: 'Gone'
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["response"]>().toEqualTypeOf<{
+		410: "Gone";
+	}>();
 }
 
 // Macro should extract possible status 2
@@ -677,17 +677,17 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			a: {
 				afterHandle({ status }) {
-					return status(411)
-				}
-			}
+					return status(411);
+				},
+			},
 		})
 		.guard({
-			a: true
-		})
+			a: true,
+		});
 
-	expectTypeOf<(typeof app)['~Volatile']['response']>().toEqualTypeOf<{
-		411: 'Length Required'
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["response"]>().toEqualTypeOf<{
+		411: "Length Required";
+	}>();
 }
 
 // Macro should extract possible status 3
@@ -696,17 +696,17 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			a: {
 				error({ status }) {
-					if (Math.random() > 0.5) return status(412)
-				}
-			}
+					if (Math.random() > 0.5) return status(412);
+				},
+			},
 		})
 		.guard({
-			a: true
-		})
+			a: true,
+		});
 
-	expectTypeOf<(typeof app)['~Volatile']['response']>().toEqualTypeOf<{
-		412: 'Precondition Failed'
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["response"]>().toEqualTypeOf<{
+		412: "Precondition Failed";
+	}>();
 }
 
 // Macro should extract possible status 4
@@ -715,30 +715,30 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			a: {
 				beforeHandle({ status }) {
-					if (Math.random() > 0.5) return status(410)
+					if (Math.random() > 0.5) return status(410);
 				},
 				afterHandle({ status }) {
-					if (Math.random() > 0.5) return status(411)
-				}
+					if (Math.random() > 0.5) return status(411);
+				},
 			},
 			b: {
 				error({ status }) {
-					if (Math.random() > 0.5) return status(412)
-				}
-			}
+					if (Math.random() > 0.5) return status(412);
+				},
+			},
 		})
 		.guard({
 			a: true,
-			b: true
-		})
+			b: true,
+		});
 
 	expectTypeOf<
-		Prettify<(typeof app)['~Volatile']['response']>
+		Prettify<(typeof app)["~Volatile"]["response"]>
 	>().toEqualTypeOf<{
-		410: 'Gone'
-		411: 'Length Required'
-		412: 'Precondition Failed'
-	}>()
+		410: "Gone";
+		411: "Length Required";
+		412: "Precondition Failed";
+	}>();
 }
 
 // Guard should cast to scoped
@@ -747,31 +747,31 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			a: {
 				beforeHandle({ status }) {
-					if (Math.random() > 0.5) return status(410)
+					if (Math.random() > 0.5) return status(410);
 				},
 				afterHandle({ status }) {
-					if (Math.random() > 0.5) return status(411)
-				}
+					if (Math.random() > 0.5) return status(411);
+				},
 			},
 			b: {
 				error({ status }) {
-					if (Math.random() > 0.5) return status(412)
-				}
-			}
+					if (Math.random() > 0.5) return status(412);
+				},
+			},
 		})
 		.guard({
-			as: 'scoped',
+			as: "scoped",
 			a: true,
-			b: true
-		})
+			b: true,
+		});
 
 	expectTypeOf<
-		Prettify<(typeof app)['~Ephemeral']['response']>
+		Prettify<(typeof app)["~Ephemeral"]["response"]>
 	>().toEqualTypeOf<{
-		410: 'Gone'
-		411: 'Length Required'
-		412: 'Precondition Failed'
-	}>()
+		410: "Gone";
+		411: "Length Required";
+		412: "Precondition Failed";
+	}>();
 }
 
 // Guard should cast to global
@@ -780,31 +780,31 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			a: {
 				beforeHandle({ status }) {
-					if (Math.random() > 0.5) return status(410)
+					if (Math.random() > 0.5) return status(410);
 				},
 				afterHandle({ status }) {
-					if (Math.random() > 0.5) return status(411)
-				}
+					if (Math.random() > 0.5) return status(411);
+				},
 			},
 			b: {
 				error({ status }) {
-					if (Math.random() > 0.5) return status(412)
-				}
-			}
+					if (Math.random() > 0.5) return status(412);
+				},
+			},
 		})
 		.guard({
-			as: 'global',
+			as: "global",
 			a: true,
-			b: true
-		})
+			b: true,
+		});
 
 	expectTypeOf<
-		Prettify<(typeof app)['~Metadata']['response']>
+		Prettify<(typeof app)["~Metadata"]["response"]>
 	>().toEqualTypeOf<{
-		410: 'Gone'
-		411: 'Length Required'
-		412: 'Precondition Failed'
-	}>()
+		410: "Gone";
+		411: "Length Required";
+		412: "Precondition Failed";
+	}>();
 }
 
 // Unwrap ElysiaCustomStatusResponse value in resolve macro automatically
@@ -813,20 +813,20 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			auth: {
 				resolve({ status }) {
-					if (Math.random() > 0.5) return status(401)
+					if (Math.random() > 0.5) return status(401);
 
-					return { user: 'saltyaom' } as const
-				}
-			}
+					return { user: "saltyaom" } as const;
+				},
+			},
 		})
-		.get('/', ({ user }) => user, {
-			auth: true
-		})
+		.get("/", ({ user }) => user, {
+			auth: true,
+		});
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'saltyaom'
-		401: 'Unauthorized'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "saltyaom";
+		401: "Unauthorized";
+	}>();
 }
 
 // Unwrap beforeHandle 200 status
@@ -835,597 +835,555 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			auth: {
 				beforeHandle({ status }) {
-					if (Math.random() > 0.5) return status(401)
+					if (Math.random() > 0.5) return status(401);
 
-					if (Math.random() > 0.5) return 'lilith'
-				}
-			}
+					if (Math.random() > 0.5) return "lilith";
+				},
+			},
 		})
-		.get('/', () => 'fouco' as const, {
-			auth: true
-		})
+		.get("/", () => "fouco" as const, {
+			auth: true,
+		});
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'lilith' | 'fouco'
-		401: 'Unauthorized'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "lilith" | "fouco";
+		401: "Unauthorized";
+	}>();
 }
 
 // Reconcile response
 {
 	const app = new Elysia()
 		.onBeforeHandle(({ status }) =>
-			Math.random() > 0.5 ? status(404, 'lilith') : 'lilith'
+			Math.random() > 0.5 ? status(404, "lilith") : "lilith",
 		)
-		.get('/', ({ status }) =>
-			Math.random() > 0.5 ? status(404, 'fouco') : 'fouco'
-		)
+		.get("/", ({ status }) =>
+			Math.random() > 0.5 ? status(404, "fouco") : "fouco",
+		);
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'lilith' | 'fouco'
-		404: 'lilith' | 'fouco'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "lilith" | "fouco";
+		404: "lilith" | "fouco";
+	}>();
 }
 
 // onBeforeHandle
 {
 	const app = new Elysia()
 		.onBeforeHandle(({ status }) =>
-			Math.random() > 0.5 ? status(404, 'lilith') : 'lilith'
+			Math.random() > 0.5 ? status(404, "lilith") : "lilith",
 		)
 		.onBeforeHandle([
-			({ status }) =>
-				Math.random() > 0.5 ? status(401, 'fouco') : 'fouco',
-			({ status }) =>
-				Math.random() > 0.5 ? status(418, 'sartre') : 'sartre'
-		])
+			({ status }) => (Math.random() > 0.5 ? status(401, "fouco") : "fouco"),
+			({ status }) => (Math.random() > 0.5 ? status(418, "sartre") : "sartre"),
+		]);
 
-	expectTypeOf<(typeof app)['~Volatile']['response']>().toEqualTypeOf<{
-		200: 'fouco' | 'sartre' | 'lilith'
-		401: 'fouco'
-		404: 'lilith'
-		418: 'sartre'
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["response"]>().toEqualTypeOf<{
+		200: "fouco" | "sartre" | "lilith";
+		401: "fouco";
+		404: "lilith";
+		418: "sartre";
+	}>();
 }
 
 // onBeforeHandle scoped
 {
 	const app = new Elysia()
-		.onBeforeHandle({ as: 'scoped' }, ({ status }) =>
-			Math.random() > 0.5 ? status(404, 'lilith') : 'lilith'
+		.onBeforeHandle({ as: "scoped" }, ({ status }) =>
+			Math.random() > 0.5 ? status(404, "lilith") : "lilith",
 		)
-		.onBeforeHandle({ as: 'scoped' }, [
-			({ status }) =>
-				Math.random() > 0.5 ? status(401, 'fouco') : 'fouco',
-			({ status }) =>
-				Math.random() > 0.5 ? status(418, 'sartre') : 'sartre'
-		])
+		.onBeforeHandle({ as: "scoped" }, [
+			({ status }) => (Math.random() > 0.5 ? status(401, "fouco") : "fouco"),
+			({ status }) => (Math.random() > 0.5 ? status(418, "sartre") : "sartre"),
+		]);
 
-	expectTypeOf<(typeof app)['~Ephemeral']['response']>().toEqualTypeOf<{
-		200: 'fouco' | 'sartre' | 'lilith'
-		401: 'fouco'
-		404: 'lilith'
-		418: 'sartre'
-	}>()
+	expectTypeOf<(typeof app)["~Ephemeral"]["response"]>().toEqualTypeOf<{
+		200: "fouco" | "sartre" | "lilith";
+		401: "fouco";
+		404: "lilith";
+		418: "sartre";
+	}>();
 }
 
 // onBeforeHandle global
 {
 	const app = new Elysia()
-		.onBeforeHandle({ as: 'global' }, ({ status }) =>
-			Math.random() > 0.5 ? status(404, 'lilith') : 'lilith'
+		.onBeforeHandle({ as: "global" }, ({ status }) =>
+			Math.random() > 0.5 ? status(404, "lilith") : "lilith",
 		)
-		.onBeforeHandle({ as: 'global' }, [
-			({ status }) =>
-				Math.random() > 0.5 ? status(401, 'fouco') : 'fouco',
-			({ status }) =>
-				Math.random() > 0.5 ? status(418, 'sartre') : 'sartre'
-		])
+		.onBeforeHandle({ as: "global" }, [
+			({ status }) => (Math.random() > 0.5 ? status(401, "fouco") : "fouco"),
+			({ status }) => (Math.random() > 0.5 ? status(418, "sartre") : "sartre"),
+		]);
 
-	expectTypeOf<(typeof app)['~Metadata']['response']>().toEqualTypeOf<{
-		200: 'fouco' | 'sartre' | 'lilith'
-		401: 'fouco'
-		404: 'lilith'
-		418: 'sartre'
-	}>()
+	expectTypeOf<(typeof app)["~Metadata"]["response"]>().toEqualTypeOf<{
+		200: "fouco" | "sartre" | "lilith";
+		401: "fouco";
+		404: "lilith";
+		418: "sartre";
+	}>();
 }
 
 // onAfterHandle local
 {
 	const app = new Elysia()
 		.onAfterHandle(({ status }) =>
-			Math.random() > 0.5 ? status(404, 'lilith') : 'lilith'
+			Math.random() > 0.5 ? status(404, "lilith") : "lilith",
 		)
 		.onAfterHandle([
-			({ status }) =>
-				Math.random() > 0.5 ? status(401, 'fouco') : 'fouco',
-			({ status }) =>
-				Math.random() > 0.5 ? status(418, 'sartre') : 'sartre'
-		])
+			({ status }) => (Math.random() > 0.5 ? status(401, "fouco") : "fouco"),
+			({ status }) => (Math.random() > 0.5 ? status(418, "sartre") : "sartre"),
+		]);
 
-	expectTypeOf<(typeof app)['~Volatile']['response']>().toEqualTypeOf<{
-		200: 'fouco' | 'sartre' | 'lilith'
-		401: 'fouco'
-		404: 'lilith'
-		418: 'sartre'
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["response"]>().toEqualTypeOf<{
+		200: "fouco" | "sartre" | "lilith";
+		401: "fouco";
+		404: "lilith";
+		418: "sartre";
+	}>();
 }
 
 // onAfterHandle scoped
 {
 	const app = new Elysia()
-		.onAfterHandle({ as: 'scoped' }, ({ status }) =>
-			Math.random() > 0.5 ? status(404, 'lilith') : 'lilith'
+		.onAfterHandle({ as: "scoped" }, ({ status }) =>
+			Math.random() > 0.5 ? status(404, "lilith") : "lilith",
 		)
-		.onAfterHandle({ as: 'scoped' }, [
-			({ status }) =>
-				Math.random() > 0.5 ? status(401, 'fouco') : 'fouco',
-			({ status }) =>
-				Math.random() > 0.5 ? status(418, 'sartre') : 'sartre'
-		])
+		.onAfterHandle({ as: "scoped" }, [
+			({ status }) => (Math.random() > 0.5 ? status(401, "fouco") : "fouco"),
+			({ status }) => (Math.random() > 0.5 ? status(418, "sartre") : "sartre"),
+		]);
 
-	expectTypeOf<(typeof app)['~Ephemeral']['response']>().toEqualTypeOf<{
-		200: 'fouco' | 'sartre' | 'lilith'
-		401: 'fouco'
-		404: 'lilith'
-		418: 'sartre'
-	}>()
+	expectTypeOf<(typeof app)["~Ephemeral"]["response"]>().toEqualTypeOf<{
+		200: "fouco" | "sartre" | "lilith";
+		401: "fouco";
+		404: "lilith";
+		418: "sartre";
+	}>();
 }
 
 // onAfterHandle global
 {
 	const app = new Elysia()
-		.onAfterHandle({ as: 'global' }, ({ status }) =>
-			Math.random() > 0.5 ? status(404, 'lilith') : 'lilith'
+		.onAfterHandle({ as: "global" }, ({ status }) =>
+			Math.random() > 0.5 ? status(404, "lilith") : "lilith",
 		)
-		.onAfterHandle({ as: 'global' }, [
-			({ status }) =>
-				Math.random() > 0.5 ? status(401, 'fouco') : 'fouco',
-			({ status }) =>
-				Math.random() > 0.5 ? status(418, 'sartre') : 'sartre'
-		])
+		.onAfterHandle({ as: "global" }, [
+			({ status }) => (Math.random() > 0.5 ? status(401, "fouco") : "fouco"),
+			({ status }) => (Math.random() > 0.5 ? status(418, "sartre") : "sartre"),
+		]);
 
-	expectTypeOf<(typeof app)['~Metadata']['response']>().toEqualTypeOf<{
-		200: 'fouco' | 'sartre' | 'lilith'
-		401: 'fouco'
-		404: 'lilith'
-		418: 'sartre'
-	}>()
+	expectTypeOf<(typeof app)["~Metadata"]["response"]>().toEqualTypeOf<{
+		200: "fouco" | "sartre" | "lilith";
+		401: "fouco";
+		404: "lilith";
+		418: "sartre";
+	}>();
 }
 
 // onError local
 {
 	const app = new Elysia()
 		.onError(({ status }) =>
-			Math.random() > 0.5 ? status(404, 'lilith') : 'lilith'
+			Math.random() > 0.5 ? status(404, "lilith") : "lilith",
 		)
 		.onError([
-			({ status }) =>
-				Math.random() > 0.5 ? status(401, 'fouco') : 'fouco',
-			({ status }) =>
-				Math.random() > 0.5 ? status(418, 'sartre') : 'sartre'
-		])
+			({ status }) => (Math.random() > 0.5 ? status(401, "fouco") : "fouco"),
+			({ status }) => (Math.random() > 0.5 ? status(418, "sartre") : "sartre"),
+		]);
 
-	expectTypeOf<(typeof app)['~Volatile']['response']>().toEqualTypeOf<{
-		200: 'fouco' | 'sartre' | 'lilith'
-		401: 'fouco'
-		404: 'lilith'
-		418: 'sartre'
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["response"]>().toEqualTypeOf<{
+		200: "fouco" | "sartre" | "lilith";
+		401: "fouco";
+		404: "lilith";
+		418: "sartre";
+	}>();
 }
 
 // onError scoped
 {
 	const app = new Elysia()
-		.onError({ as: 'scoped' }, ({ status }) =>
-			Math.random() > 0.5 ? status(404, 'lilith') : 'lilith'
+		.onError({ as: "scoped" }, ({ status }) =>
+			Math.random() > 0.5 ? status(404, "lilith") : "lilith",
 		)
-		.onError({ as: 'scoped' }, [
-			({ status }) =>
-				Math.random() > 0.5 ? status(401, 'fouco') : 'fouco',
-			({ status }) =>
-				Math.random() > 0.5 ? status(418, 'sartre') : 'sartre'
-		])
+		.onError({ as: "scoped" }, [
+			({ status }) => (Math.random() > 0.5 ? status(401, "fouco") : "fouco"),
+			({ status }) => (Math.random() > 0.5 ? status(418, "sartre") : "sartre"),
+		]);
 
-	expectTypeOf<(typeof app)['~Ephemeral']['response']>().toEqualTypeOf<{
-		200: 'fouco' | 'sartre' | 'lilith'
-		401: 'fouco'
-		404: 'lilith'
-		418: 'sartre'
-	}>()
+	expectTypeOf<(typeof app)["~Ephemeral"]["response"]>().toEqualTypeOf<{
+		200: "fouco" | "sartre" | "lilith";
+		401: "fouco";
+		404: "lilith";
+		418: "sartre";
+	}>();
 }
 
 // onError global
 {
 	const app = new Elysia()
-		.onError({ as: 'global' }, ({ status }) =>
-			Math.random() > 0.5 ? status(404, 'lilith') : 'lilith'
+		.onError({ as: "global" }, ({ status }) =>
+			Math.random() > 0.5 ? status(404, "lilith") : "lilith",
 		)
-		.onError({ as: 'global' }, [
-			({ status }) =>
-				Math.random() > 0.5 ? status(401, 'fouco') : 'fouco',
-			({ status }) =>
-				Math.random() > 0.5 ? status(418, 'sartre') : 'sartre'
-		])
+		.onError({ as: "global" }, [
+			({ status }) => (Math.random() > 0.5 ? status(401, "fouco") : "fouco"),
+			({ status }) => (Math.random() > 0.5 ? status(418, "sartre") : "sartre"),
+		]);
 
-	expectTypeOf<(typeof app)['~Metadata']['response']>().toEqualTypeOf<{
-		200: 'fouco' | 'sartre' | 'lilith'
-		401: 'fouco'
-		404: 'lilith'
-		418: 'sartre'
-	}>()
+	expectTypeOf<(typeof app)["~Metadata"]["response"]>().toEqualTypeOf<{
+		200: "fouco" | "sartre" | "lilith";
+		401: "fouco";
+		404: "lilith";
+		418: "sartre";
+	}>();
 }
 
 // resolve local
 {
 	const app = new Elysia()
 		.resolve(({ status }) =>
-			Math.random() > 0.5
-				? status(401, 'sartre')
-				: { friends: ['lilith'] }
+			Math.random() > 0.5 ? status(401, "sartre") : { friends: ["lilith"] },
 		)
 		.resolve(({ status }) =>
-			Math.random() > 0.5 ? status(401, 'fouco') : { friends: ['lilith'] }
+			Math.random() > 0.5 ? status(401, "fouco") : { friends: ["lilith"] },
 		)
-		.get('/', ({ friends, status }) => {
-			if (Math.random() > 0.5) return status(401, friends[0])
+		.get("/", ({ friends, status }) => {
+			if (Math.random() > 0.5) return status(401, friends[0]);
 
-			return 'NOexistenceN'
-		})
+			return "NOexistenceN";
+		});
 
-	expectTypeOf<(typeof app)['~Volatile']['resolve']>().toEqualTypeOf<{
-		readonly friends: readonly ['lilith']
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["resolve"]>().toEqualTypeOf<{
+		readonly friends: readonly ["lilith"];
+	}>();
 
-	expectTypeOf<(typeof app)['~Volatile']['response']>().toEqualTypeOf<{
-		401: 'sartre' | 'fouco'
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["response"]>().toEqualTypeOf<{
+		401: "sartre" | "fouco";
+	}>();
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'sartre' | 'fouco' | 'lilith'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "NOexistenceN";
+		401: "sartre" | "fouco" | "lilith";
+	}>();
 }
 
 // resolve scoped
 {
 	const app = new Elysia()
-		.resolve({ as: 'scoped' }, ({ status }) =>
-			Math.random() > 0.5
-				? status(401, 'sartre')
-				: { friends: ['lilith'] }
+		.resolve({ as: "scoped" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "sartre") : { friends: ["lilith"] },
 		)
-		.resolve({ as: 'scoped' }, ({ status }) =>
-			Math.random() > 0.5 ? status(401, 'fouco') : { friends: ['lilith'] }
+		.resolve({ as: "scoped" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "fouco") : { friends: ["lilith"] },
 		)
-		.get('/', ({ friends, status }) => {
-			if (Math.random() > 0.5) return status(401, friends[0])
+		.get("/", ({ friends, status }) => {
+			if (Math.random() > 0.5) return status(401, friends[0]);
 
-			return 'NOexistenceN'
-		})
+			return "NOexistenceN";
+		});
 
-	expectTypeOf<(typeof app)['~Ephemeral']['resolve']>().toEqualTypeOf<{
-		readonly friends: readonly ['lilith']
-	}>()
+	expectTypeOf<(typeof app)["~Ephemeral"]["resolve"]>().toEqualTypeOf<{
+		readonly friends: readonly ["lilith"];
+	}>();
 
-	expectTypeOf<(typeof app)['~Ephemeral']['response']>().toEqualTypeOf<{
-		401: 'sartre' | 'fouco'
-	}>()
+	expectTypeOf<(typeof app)["~Ephemeral"]["response"]>().toEqualTypeOf<{
+		401: "sartre" | "fouco";
+	}>();
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'sartre' | 'fouco' | 'lilith'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "NOexistenceN";
+		401: "sartre" | "fouco" | "lilith";
+	}>();
 }
 
 // resolve global
 {
 	const app = new Elysia()
-		.resolve({ as: 'global' }, ({ status }) =>
-			Math.random() > 0.5
-				? status(401, 'sartre')
-				: { friends: ['lilith'] }
+		.resolve({ as: "global" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "sartre") : { friends: ["lilith"] },
 		)
-		.resolve({ as: 'global' }, ({ status }) =>
-			Math.random() > 0.5 ? status(401, 'fouco') : { friends: ['lilith'] }
+		.resolve({ as: "global" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "fouco") : { friends: ["lilith"] },
 		)
-		.get('/', ({ friends, status }) => {
-			if (Math.random() > 0.5) return status(401, friends[0])
+		.get("/", ({ friends, status }) => {
+			if (Math.random() > 0.5) return status(401, friends[0]);
 
-			return 'NOexistenceN'
-		})
+			return "NOexistenceN";
+		});
 
-	expectTypeOf<(typeof app)['~Singleton']['resolve']>().toEqualTypeOf<{
-		readonly friends: readonly ['lilith']
-	}>()
+	expectTypeOf<(typeof app)["~Singleton"]["resolve"]>().toEqualTypeOf<{
+		readonly friends: readonly ["lilith"];
+	}>();
 
-	expectTypeOf<(typeof app)['~Metadata']['response']>().toEqualTypeOf<{
-		401: 'sartre' | 'fouco'
-	}>()
+	expectTypeOf<(typeof app)["~Metadata"]["response"]>().toEqualTypeOf<{
+		401: "sartre" | "fouco";
+	}>();
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'sartre' | 'fouco' | 'lilith'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "NOexistenceN";
+		401: "sartre" | "fouco" | "lilith";
+	}>();
 }
 
 // mapResolve local
 {
 	const app = new Elysia()
 		.mapResolve(({ status }) =>
-			Math.random() > 0.5
-				? status(401, 'sartre')
-				: { friends: ['lilith'] }
+			Math.random() > 0.5 ? status(401, "sartre") : { friends: ["lilith"] },
 		)
 		.mapResolve(({ status }) =>
-			Math.random() > 0.5 ? status(401, 'fouco') : { friends: ['lilith'] }
+			Math.random() > 0.5 ? status(401, "fouco") : { friends: ["lilith"] },
 		)
-		.get('/', ({ friends, status }) => {
-			if (Math.random() > 0.5) return status(401, friends[0])
+		.get("/", ({ friends, status }) => {
+			if (Math.random() > 0.5) return status(401, friends[0]);
 
-			return 'NOexistenceN'
-		})
+			return "NOexistenceN";
+		});
 
-	expectTypeOf<(typeof app)['~Volatile']['resolve']>().toEqualTypeOf<{
-		readonly friends: readonly ['lilith']
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["resolve"]>().toEqualTypeOf<{
+		readonly friends: readonly ["lilith"];
+	}>();
 
-	expectTypeOf<(typeof app)['~Volatile']['response']>().toEqualTypeOf<{
-		401: 'sartre' | 'fouco'
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["response"]>().toEqualTypeOf<{
+		401: "sartre" | "fouco";
+	}>();
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'sartre' | 'fouco' | 'lilith'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "NOexistenceN";
+		401: "sartre" | "fouco" | "lilith";
+	}>();
 }
 
 // mapResolve scoped
 {
 	const app = new Elysia()
-		.mapResolve({ as: 'scoped' }, ({ status }) =>
-			Math.random() > 0.5
-				? status(401, 'sartre')
-				: { friends: ['lilith'] }
+		.mapResolve({ as: "scoped" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "sartre") : { friends: ["lilith"] },
 		)
-		.mapResolve({ as: 'scoped' }, ({ status }) =>
-			Math.random() > 0.5 ? status(401, 'fouco') : { friends: ['lilith'] }
+		.mapResolve({ as: "scoped" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "fouco") : { friends: ["lilith"] },
 		)
-		.get('/', ({ friends, status }) => {
-			if (Math.random() > 0.5) return status(401, friends[0])
+		.get("/", ({ friends, status }) => {
+			if (Math.random() > 0.5) return status(401, friends[0]);
 
-			return 'NOexistenceN'
-		})
+			return "NOexistenceN";
+		});
 
-	expectTypeOf<(typeof app)['~Ephemeral']['resolve']>().toEqualTypeOf<{
-		readonly friends: readonly ['lilith']
-	}>()
+	expectTypeOf<(typeof app)["~Ephemeral"]["resolve"]>().toEqualTypeOf<{
+		readonly friends: readonly ["lilith"];
+	}>();
 
-	expectTypeOf<(typeof app)['~Ephemeral']['response']>().toEqualTypeOf<{
-		401: 'sartre' | 'fouco'
-	}>()
+	expectTypeOf<(typeof app)["~Ephemeral"]["response"]>().toEqualTypeOf<{
+		401: "sartre" | "fouco";
+	}>();
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'sartre' | 'fouco' | 'lilith'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "NOexistenceN";
+		401: "sartre" | "fouco" | "lilith";
+	}>();
 }
 
 // mapResolve global
 {
 	const app = new Elysia()
-		.mapResolve({ as: 'global' }, ({ status }) =>
-			Math.random() > 0.5
-				? status(401, 'sartre')
-				: { friends: ['lilith'] }
+		.mapResolve({ as: "global" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "sartre") : { friends: ["lilith"] },
 		)
-		.mapResolve({ as: 'global' }, ({ status }) =>
-			Math.random() > 0.5 ? status(401, 'fouco') : { friends: ['lilith'] }
+		.mapResolve({ as: "global" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "fouco") : { friends: ["lilith"] },
 		)
-		.get('/', ({ friends, status }) => {
-			if (Math.random() > 0.5) return status(401, friends[0])
+		.get("/", ({ friends, status }) => {
+			if (Math.random() > 0.5) return status(401, friends[0]);
 
-			return 'NOexistenceN'
-		})
+			return "NOexistenceN";
+		});
 
-	expectTypeOf<(typeof app)['~Singleton']['resolve']>().toEqualTypeOf<{
-		readonly friends: readonly ['lilith']
-	}>()
+	expectTypeOf<(typeof app)["~Singleton"]["resolve"]>().toEqualTypeOf<{
+		readonly friends: readonly ["lilith"];
+	}>();
 
-	expectTypeOf<(typeof app)['~Metadata']['response']>().toEqualTypeOf<{
-		401: 'sartre' | 'fouco'
-	}>()
+	expectTypeOf<(typeof app)["~Metadata"]["response"]>().toEqualTypeOf<{
+		401: "sartre" | "fouco";
+	}>();
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'sartre' | 'fouco' | 'lilith'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "NOexistenceN";
+		401: "sartre" | "fouco" | "lilith";
+	}>();
 }
 
 // derive local
 {
 	const app = new Elysia()
 		.derive(({ status }) =>
-			Math.random() > 0.5
-				? status(401, 'sartre')
-				: { friends: ['lilith'] }
+			Math.random() > 0.5 ? status(401, "sartre") : { friends: ["lilith"] },
 		)
 		.derive(({ status }) =>
-			Math.random() > 0.5 ? status(401, 'fouco') : { friends: ['lilith'] }
+			Math.random() > 0.5 ? status(401, "fouco") : { friends: ["lilith"] },
 		)
-		.get('/', ({ friends, status }) => {
-			if (Math.random() > 0.5) return status(401, friends[0])
+		.get("/", ({ friends, status }) => {
+			if (Math.random() > 0.5) return status(401, friends[0]);
 
-			return 'NOexistenceN'
-		})
+			return "NOexistenceN";
+		});
 
-	expectTypeOf<(typeof app)['~Volatile']['derive']>().toEqualTypeOf<{
-		readonly friends: readonly ['lilith']
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["derive"]>().toEqualTypeOf<{
+		readonly friends: readonly ["lilith"];
+	}>();
 
-	expectTypeOf<(typeof app)['~Volatile']['response']>().toEqualTypeOf<{
-		401: 'sartre' | 'fouco'
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["response"]>().toEqualTypeOf<{
+		401: "sartre" | "fouco";
+	}>();
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'sartre' | 'fouco' | 'lilith'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "NOexistenceN";
+		401: "sartre" | "fouco" | "lilith";
+	}>();
 }
 
 // derive scoped
 {
 	const app = new Elysia()
-		.derive({ as: 'scoped' }, ({ status }) =>
-			Math.random() > 0.5
-				? status(401, 'sartre')
-				: { friends: ['lilith'] }
+		.derive({ as: "scoped" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "sartre") : { friends: ["lilith"] },
 		)
-		.derive({ as: 'scoped' }, ({ status }) =>
-			Math.random() > 0.5 ? status(401, 'fouco') : { friends: ['lilith'] }
+		.derive({ as: "scoped" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "fouco") : { friends: ["lilith"] },
 		)
-		.get('/', ({ friends, status }) => {
-			if (Math.random() > 0.5) return status(401, friends[0])
+		.get("/", ({ friends, status }) => {
+			if (Math.random() > 0.5) return status(401, friends[0]);
 
-			return 'NOexistenceN'
-		})
+			return "NOexistenceN";
+		});
 
-	expectTypeOf<(typeof app)['~Ephemeral']['derive']>().toEqualTypeOf<{
-		readonly friends: readonly ['lilith']
-	}>()
+	expectTypeOf<(typeof app)["~Ephemeral"]["derive"]>().toEqualTypeOf<{
+		readonly friends: readonly ["lilith"];
+	}>();
 
-	expectTypeOf<(typeof app)['~Ephemeral']['response']>().toEqualTypeOf<{
-		401: 'sartre' | 'fouco'
-	}>()
+	expectTypeOf<(typeof app)["~Ephemeral"]["response"]>().toEqualTypeOf<{
+		401: "sartre" | "fouco";
+	}>();
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'sartre' | 'fouco' | 'lilith'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "NOexistenceN";
+		401: "sartre" | "fouco" | "lilith";
+	}>();
 }
 
 // derive global
 {
 	const app = new Elysia()
-		.derive({ as: 'global' }, ({ status }) =>
-			Math.random() > 0.5
-				? status(401, 'sartre')
-				: { friends: ['lilith'] }
+		.derive({ as: "global" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "sartre") : { friends: ["lilith"] },
 		)
-		.derive({ as: 'global' }, ({ status }) =>
-			Math.random() > 0.5 ? status(401, 'fouco') : { friends: ['lilith'] }
+		.derive({ as: "global" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "fouco") : { friends: ["lilith"] },
 		)
-		.get('/', ({ friends, status }) => {
-			if (Math.random() > 0.5) return status(401, friends[0])
+		.get("/", ({ friends, status }) => {
+			if (Math.random() > 0.5) return status(401, friends[0]);
 
-			return 'NOexistenceN'
-		})
+			return "NOexistenceN";
+		});
 
-	expectTypeOf<(typeof app)['~Singleton']['derive']>().toEqualTypeOf<{
-		readonly friends: readonly ['lilith']
-	}>()
+	expectTypeOf<(typeof app)["~Singleton"]["derive"]>().toEqualTypeOf<{
+		readonly friends: readonly ["lilith"];
+	}>();
 
-	expectTypeOf<(typeof app)['~Metadata']['response']>().toEqualTypeOf<{
-		401: 'sartre' | 'fouco'
-	}>()
+	expectTypeOf<(typeof app)["~Metadata"]["response"]>().toEqualTypeOf<{
+		401: "sartre" | "fouco";
+	}>();
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'sartre' | 'fouco' | 'lilith'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "NOexistenceN";
+		401: "sartre" | "fouco" | "lilith";
+	}>();
 }
 
 // mapDerive local
 {
 	const app = new Elysia()
 		.mapDerive(({ status }) =>
-			Math.random() > 0.5
-				? status(401, 'sartre')
-				: { friends: ['lilith'] }
+			Math.random() > 0.5 ? status(401, "sartre") : { friends: ["lilith"] },
 		)
 		.mapDerive(({ status }) =>
-			Math.random() > 0.5 ? status(401, 'fouco') : { friends: ['lilith'] }
+			Math.random() > 0.5 ? status(401, "fouco") : { friends: ["lilith"] },
 		)
-		.get('/', ({ friends, status }) => {
-			if (Math.random() > 0.5) return status(401, friends[0])
+		.get("/", ({ friends, status }) => {
+			if (Math.random() > 0.5) return status(401, friends[0]);
 
-			return 'NOexistenceN'
-		})
+			return "NOexistenceN";
+		});
 
-	expectTypeOf<(typeof app)['~Volatile']['derive']>().toEqualTypeOf<{
-		readonly friends: readonly ['lilith']
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["derive"]>().toEqualTypeOf<{
+		readonly friends: readonly ["lilith"];
+	}>();
 
-	expectTypeOf<(typeof app)['~Volatile']['response']>().toEqualTypeOf<{
-		401: 'sartre' | 'fouco'
-	}>()
+	expectTypeOf<(typeof app)["~Volatile"]["response"]>().toEqualTypeOf<{
+		401: "sartre" | "fouco";
+	}>();
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'sartre' | 'fouco' | 'lilith'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "NOexistenceN";
+		401: "sartre" | "fouco" | "lilith";
+	}>();
 }
 
 // mapDerive scoped
 {
 	const app = new Elysia()
-		.mapDerive({ as: 'scoped' }, ({ status }) =>
-			Math.random() > 0.5
-				? status(401, 'sartre')
-				: { friends: ['lilith'] }
+		.mapDerive({ as: "scoped" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "sartre") : { friends: ["lilith"] },
 		)
-		.mapDerive({ as: 'scoped' }, ({ status }) =>
-			Math.random() > 0.5 ? status(401, 'fouco') : { friends: ['lilith'] }
+		.mapDerive({ as: "scoped" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "fouco") : { friends: ["lilith"] },
 		)
-		.get('/', ({ friends, status }) => {
-			if (Math.random() > 0.5) return status(401, friends[0])
+		.get("/", ({ friends, status }) => {
+			if (Math.random() > 0.5) return status(401, friends[0]);
 
-			return 'NOexistenceN'
-		})
+			return "NOexistenceN";
+		});
 
-	expectTypeOf<(typeof app)['~Ephemeral']['derive']>().toEqualTypeOf<{
-		readonly friends: readonly ['lilith']
-	}>()
+	expectTypeOf<(typeof app)["~Ephemeral"]["derive"]>().toEqualTypeOf<{
+		readonly friends: readonly ["lilith"];
+	}>();
 
-	expectTypeOf<(typeof app)['~Ephemeral']['response']>().toEqualTypeOf<{
-		401: 'sartre' | 'fouco'
-	}>()
+	expectTypeOf<(typeof app)["~Ephemeral"]["response"]>().toEqualTypeOf<{
+		401: "sartre" | "fouco";
+	}>();
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'sartre' | 'fouco' | 'lilith'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "NOexistenceN";
+		401: "sartre" | "fouco" | "lilith";
+	}>();
 }
 
 // mapDerive global
 {
 	const app = new Elysia()
-		.mapDerive({ as: 'global' }, ({ status }) =>
-			Math.random() > 0.5
-				? status(401, 'sartre')
-				: { friends: ['lilith'] }
+		.mapDerive({ as: "global" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "sartre") : { friends: ["lilith"] },
 		)
-		.mapDerive({ as: 'global' }, ({ status }) =>
-			Math.random() > 0.5 ? status(401, 'fouco') : { friends: ['lilith'] }
+		.mapDerive({ as: "global" }, ({ status }) =>
+			Math.random() > 0.5 ? status(401, "fouco") : { friends: ["lilith"] },
 		)
-		.get('/', ({ friends, status }) => {
-			if (Math.random() > 0.5) return status(401, friends[0])
+		.get("/", ({ friends, status }) => {
+			if (Math.random() > 0.5) return status(401, friends[0]);
 
-			return 'NOexistenceN'
-		})
+			return "NOexistenceN";
+		});
 
-	expectTypeOf<(typeof app)['~Singleton']['derive']>().toEqualTypeOf<{
-		readonly friends: readonly ['lilith']
-	}>()
+	expectTypeOf<(typeof app)["~Singleton"]["derive"]>().toEqualTypeOf<{
+		readonly friends: readonly ["lilith"];
+	}>();
 
-	expectTypeOf<(typeof app)['~Metadata']['response']>().toEqualTypeOf<{
-		401: 'sartre' | 'fouco'
-	}>()
+	expectTypeOf<(typeof app)["~Metadata"]["response"]>().toEqualTypeOf<{
+		401: "sartre" | "fouco";
+	}>();
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'sartre' | 'fouco' | 'lilith'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "NOexistenceN";
+		401: "sartre" | "fouco" | "lilith";
+	}>();
 }
 
 // Guard local
@@ -1435,65 +1393,65 @@ import { Prettify } from '../../../src/types'
 			q: {
 				beforeHandle: [
 					({ status }) => {
-						if (Math.random() > 0.05) return status(401)
+						if (Math.random() > 0.05) return status(401);
 					},
 					({ status }) => {
-						if (Math.random() > 0.05) return status(402)
-					}
+						if (Math.random() > 0.05) return status(402);
+					},
 				],
 				afterHandle({ status }) {
-					if (Math.random() > 0.05) return status(403)
+					if (Math.random() > 0.05) return status(403);
 				},
 				error({ status }) {
-					if (Math.random() > 0.05) return status(404, 'lilith')
-				}
-			}
+					if (Math.random() > 0.05) return status(404, "lilith");
+				},
+			},
 		})
 		.guard({
 			q: true,
 			beforeHandle: [
 				({ status }) => {
-					if (Math.random() > 0.05) return status(405)
+					if (Math.random() > 0.05) return status(405);
 				},
 				({ status }) => {
-					if (Math.random() > 0.05) return status(406)
-				}
+					if (Math.random() > 0.05) return status(406);
+				},
 			],
 			afterHandle({ status }) {
-				if (Math.random() > 0.05) return status(407)
+				if (Math.random() > 0.05) return status(407);
 			},
 			error({ status }) {
-				if (Math.random() > 0.05) return status(408)
-			}
+				if (Math.random() > 0.05) return status(408);
+			},
 		})
-		.get('/', () => 'NOexistenceN' as const)
+		.get("/", () => "NOexistenceN" as const);
 
 	expectTypeOf<
-		Prettify<(typeof app)['~Volatile']['response']>
+		Prettify<(typeof app)["~Volatile"]["response"]>
 	>().toEqualTypeOf<{
-		401: 'Unauthorized'
-		402: 'Payment Required'
-		403: 'Forbidden'
-		404: 'lilith'
-		405: 'Method Not Allowed'
-		406: 'Not Acceptable'
-		407: 'Proxy Authentication Required'
-		408: 'Request Timeout'
-	}>()
+		401: "Unauthorized";
+		402: "Payment Required";
+		403: "Forbidden";
+		404: "lilith";
+		405: "Method Not Allowed";
+		406: "Not Acceptable";
+		407: "Proxy Authentication Required";
+		408: "Request Timeout";
+	}>();
 
 	expectTypeOf<
-		Prettify<(typeof app)['~Routes']['get']['response']>
+		Prettify<(typeof app)["~Routes"]["get"]["response"]>
 	>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'Unauthorized'
-		402: 'Payment Required'
-		403: 'Forbidden'
-		404: 'lilith'
-		405: 'Method Not Allowed'
-		406: 'Not Acceptable'
-		407: 'Proxy Authentication Required'
-		408: 'Request Timeout'
-	}>()
+		200: "NOexistenceN";
+		401: "Unauthorized";
+		402: "Payment Required";
+		403: "Forbidden";
+		404: "lilith";
+		405: "Method Not Allowed";
+		406: "Not Acceptable";
+		407: "Proxy Authentication Required";
+		408: "Request Timeout";
+	}>();
 }
 
 // Guard scoped
@@ -1503,68 +1461,68 @@ import { Prettify } from '../../../src/types'
 			q: {
 				beforeHandle: [
 					({ status }) => {
-						if (Math.random() > 0.05) return status(401)
+						if (Math.random() > 0.05) return status(401);
 					},
 					({ status }) => {
-						if (Math.random() > 0.05) return status(402)
-					}
+						if (Math.random() > 0.05) return status(402);
+					},
 				],
 				afterHandle({ status }) {
-					if (Math.random() > 0.05) return status(403)
+					if (Math.random() > 0.05) return status(403);
 				},
 				error({ status }) {
-					if (Math.random() > 0.05) return status(404, 'lilith')
-				}
-			}
+					if (Math.random() > 0.05) return status(404, "lilith");
+				},
+			},
 		})
 		.guard({
-			as: 'scoped',
+			as: "scoped",
 			q: true,
 			beforeHandle: [
 				({ status }) => {
-					if (Math.random() > 0.05) return status(405)
+					if (Math.random() > 0.05) return status(405);
 				},
 				({ status }) => {
-					if (Math.random() > 0.05) return status(406)
-				}
+					if (Math.random() > 0.05) return status(406);
+				},
 			],
 			afterHandle({ status }) {
-				if (Math.random() > 0.05) return status(407)
+				if (Math.random() > 0.05) return status(407);
 			},
 			error({ status }) {
-				if (Math.random() > 0.05) return status(408)
-			}
+				if (Math.random() > 0.05) return status(408);
+			},
 		})
-		.get('/', () => 'NOexistenceN' as const)
+		.get("/", () => "NOexistenceN" as const);
 
 	expectTypeOf<
-		Prettify<(typeof app)['~Ephemeral']['response']>
+		Prettify<(typeof app)["~Ephemeral"]["response"]>
 	>().toEqualTypeOf<{
-		401: 'Unauthorized'
-		402: 'Payment Required'
-		403: 'Forbidden'
-		404: 'lilith'
-		405: 'Method Not Allowed'
-		406: 'Not Acceptable'
-		407: 'Proxy Authentication Required'
-		408: 'Request Timeout'
-	}>()
+		401: "Unauthorized";
+		402: "Payment Required";
+		403: "Forbidden";
+		404: "lilith";
+		405: "Method Not Allowed";
+		406: "Not Acceptable";
+		407: "Proxy Authentication Required";
+		408: "Request Timeout";
+	}>();
 
-	type A = keyof (typeof app)['~Routes']['get']['response']
+	type A = keyof (typeof app)["~Routes"]["get"]["response"];
 
 	expectTypeOf<
-		Prettify<(typeof app)['~Routes']['get']['response']>
+		Prettify<(typeof app)["~Routes"]["get"]["response"]>
 	>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'Unauthorized'
-		402: 'Payment Required'
-		403: 'Forbidden'
-		404: 'lilith'
-		405: 'Method Not Allowed'
-		406: 'Not Acceptable'
-		407: 'Proxy Authentication Required'
-		408: 'Request Timeout'
-	}>()
+		200: "NOexistenceN";
+		401: "Unauthorized";
+		402: "Payment Required";
+		403: "Forbidden";
+		404: "lilith";
+		405: "Method Not Allowed";
+		406: "Not Acceptable";
+		407: "Proxy Authentication Required";
+		408: "Request Timeout";
+	}>();
 }
 
 // Guard global
@@ -1574,66 +1532,66 @@ import { Prettify } from '../../../src/types'
 			q: {
 				beforeHandle: [
 					({ status }) => {
-						if (Math.random() > 0.05) return status(401)
+						if (Math.random() > 0.05) return status(401);
 					},
 					({ status }) => {
-						if (Math.random() > 0.05) return status(402)
-					}
+						if (Math.random() > 0.05) return status(402);
+					},
 				],
 				afterHandle({ status }) {
-					if (Math.random() > 0.05) return status(403)
+					if (Math.random() > 0.05) return status(403);
 				},
 				error({ status }) {
-					if (Math.random() > 0.05) return status(404, 'lilith')
-				}
-			}
+					if (Math.random() > 0.05) return status(404, "lilith");
+				},
+			},
 		})
 		.guard({
-			as: 'global',
+			as: "global",
 			q: true,
 			beforeHandle: [
 				({ status }) => {
-					if (Math.random() > 0.05) return status(405)
+					if (Math.random() > 0.05) return status(405);
 				},
 				({ status }) => {
-					if (Math.random() > 0.05) return status(406)
-				}
+					if (Math.random() > 0.05) return status(406);
+				},
 			],
 			afterHandle({ status }) {
-				if (Math.random() > 0.05) return status(407)
+				if (Math.random() > 0.05) return status(407);
 			},
 			error({ status }) {
-				if (Math.random() > 0.05) return status(408)
-			}
+				if (Math.random() > 0.05) return status(408);
+			},
 		})
-		.get('/', () => 'NOexistenceN' as const)
+		.get("/", () => "NOexistenceN" as const);
 
 	expectTypeOf<
-		Prettify<(typeof app)['~Metadata']['response']>
+		Prettify<(typeof app)["~Metadata"]["response"]>
 	>().toEqualTypeOf<{
-		401: 'Unauthorized'
-		402: 'Payment Required'
-		403: 'Forbidden'
-		404: 'lilith'
-		405: 'Method Not Allowed'
-		406: 'Not Acceptable'
-		407: 'Proxy Authentication Required'
-		408: 'Request Timeout'
-	}>()
+		401: "Unauthorized";
+		402: "Payment Required";
+		403: "Forbidden";
+		404: "lilith";
+		405: "Method Not Allowed";
+		406: "Not Acceptable";
+		407: "Proxy Authentication Required";
+		408: "Request Timeout";
+	}>();
 
-	type A = keyof (typeof app)['~Routes']['get']['response']
+	type A = keyof (typeof app)["~Routes"]["get"]["response"];
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'Unauthorized'
-		402: 'Payment Required'
-		403: 'Forbidden'
-		404: 'lilith'
-		405: 'Method Not Allowed'
-		406: 'Not Acceptable'
-		407: 'Proxy Authentication Required'
-		408: 'Request Timeout'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "NOexistenceN";
+		401: "Unauthorized";
+		402: "Payment Required";
+		403: "Forbidden";
+		404: "lilith";
+		405: "Method Not Allowed";
+		406: "Not Acceptable";
+		407: "Proxy Authentication Required";
+		408: "Request Timeout";
+	}>();
 }
 
 // Multiple macro
@@ -1643,90 +1601,90 @@ import { Prettify } from '../../../src/types'
 			q: {
 				beforeHandle: [
 					({ status }) => {
-						if (Math.random() > 0.05) return status(401)
+						if (Math.random() > 0.05) return status(401);
 					},
 					({ status }) => {
-						if (Math.random() > 0.05) return status(402)
-					}
+						if (Math.random() > 0.05) return status(402);
+					},
 				],
 				afterHandle({ status }) {
-					if (Math.random() > 0.05) return status(403)
+					if (Math.random() > 0.05) return status(403);
 				},
 				error({ status }) {
-					if (Math.random() > 0.05) return status(404, 'lilith')
-				}
+					if (Math.random() > 0.05) return status(404, "lilith");
+				},
 			},
 			a: {
 				beforeHandle: ({ status }) => {
-					if (Math.random() > 0.05) return status(405)
+					if (Math.random() > 0.05) return status(405);
 				},
 				afterHandle: [
 					({ status }) => {
-						if (Math.random() > 0.05) return status(406)
+						if (Math.random() > 0.05) return status(406);
 					},
 					({ status }) => {
-						if (Math.random() > 0.05) return status(407)
-					}
+						if (Math.random() > 0.05) return status(407);
+					},
 				],
 				error({ status }) {
-					if (Math.random() > 0.05) return status(408)
-				}
-			}
+					if (Math.random() > 0.05) return status(408);
+				},
+			},
 		})
 
 		.guard({
 			q: true,
-			a: true
+			a: true,
 		})
-		.get('/', () => 'NOexistenceN' as const)
+		.get("/", () => "NOexistenceN" as const);
 
 	expectTypeOf<
-		Prettify<(typeof app)['~Volatile']['response']>
+		Prettify<(typeof app)["~Volatile"]["response"]>
 	>().toEqualTypeOf<{
-		401: 'Unauthorized'
-		402: 'Payment Required'
-		403: 'Forbidden'
-		404: 'lilith'
-		405: 'Method Not Allowed'
-		406: 'Not Acceptable'
-		407: 'Proxy Authentication Required'
-		408: 'Request Timeout'
-	}>()
+		401: "Unauthorized";
+		402: "Payment Required";
+		403: "Forbidden";
+		404: "lilith";
+		405: "Method Not Allowed";
+		406: "Not Acceptable";
+		407: "Proxy Authentication Required";
+		408: "Request Timeout";
+	}>();
 
-	type A = keyof (typeof app)['~Routes']['get']['response']
+	type A = keyof (typeof app)["~Routes"]["get"]["response"];
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'NOexistenceN'
-		401: 'Unauthorized'
-		402: 'Payment Required'
-		403: 'Forbidden'
-		404: 'lilith'
-		405: 'Method Not Allowed'
-		406: 'Not Acceptable'
-		407: 'Proxy Authentication Required'
-		408: 'Request Timeout'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "NOexistenceN";
+		401: "Unauthorized";
+		402: "Payment Required";
+		403: "Forbidden";
+		404: "lilith";
+		405: "Method Not Allowed";
+		406: "Not Acceptable";
+		407: "Proxy Authentication Required";
+		408: "Request Timeout";
+	}>();
 }
 
 // merge possible path
 {
 	const app = new Elysia()
 		.onBeforeHandle(({ status }) => {
-			if (Math.random() > 0.05) return 'fouco' as const
-			if (Math.random() > 0.05) return 'sartre' as const
-			if (Math.random() > 0.05) return status(404, 'lilith')
+			if (Math.random() > 0.05) return "fouco" as const;
+			if (Math.random() > 0.05) return "sartre" as const;
+			if (Math.random() > 0.05) return status(404, "lilith");
 		})
-		.get('/', () => 'lilith' as const)
+		.get("/", () => "lilith" as const);
 
-	expectTypeOf<(typeof app)['~Volatile']['response']>().toEqualTypeOf<{
-		200: 'fouco' | 'sartre'
-		404: 'lilith'
-	}>
+	expectTypeOf<(typeof app)["~Volatile"]["response"]>().toEqualTypeOf<{
+		200: "fouco" | "sartre";
+		404: "lilith";
+	}>;
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
-		200: 'fouco' | 'sartre' | 'lilith'
-		404: 'lilith'
-	}>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
+		200: "fouco" | "sartre" | "lilith";
+		404: "lilith";
+	}>();
 }
 
 // Macro Context should add to output declaration
@@ -1735,65 +1693,65 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			a: {
 				query: t.Object({
-					name: t.Literal('lilith')
+					name: t.Literal("lilith"),
 				}),
 				cookie: t.Object({
-					name: t.Literal('lilith')
+					name: t.Literal("lilith"),
 				}),
 				params: t.Object({
-					name: t.Literal('lilith')
+					name: t.Literal("lilith"),
 				}),
 				body: t.Object({
-					name: t.Literal('lilith')
+					name: t.Literal("lilith"),
 				}),
 				headers: t.Object({
-					name: t.Literal('lilith')
+					name: t.Literal("lilith"),
 				}),
 				response: {
 					403: t.Object({
-						name: t.Literal('lilith')
-					})
-				}
-			}
+						name: t.Literal("lilith"),
+					}),
+				},
+			},
 		})
-		.post('/', ({ body }) => 'b' as const, {
+		.post("/", ({ body }) => "b" as const, {
 			a: true,
 			beforeHandle({ body }) {
 				expectTypeOf(body).toEqualTypeOf<{
-					name: 'lilith'
-				}>()
-			}
-		})
+					name: "lilith";
+				}>();
+			},
+		});
 
-	expectTypeOf<(typeof app)['~Routes']['post']>().toEqualTypeOf<{
+	expectTypeOf<(typeof app)["~Routes"]["post"]>().toEqualTypeOf<{
 		body: {
-			name: 'lilith'
-		}
+			name: "lilith";
+		};
 		params: {
-			name: 'lilith'
-		}
+			name: "lilith";
+		};
 		query: {
-			name: 'lilith'
-		}
+			name: "lilith";
+		};
 		headers: {
-			name: 'lilith'
-		}
+			name: "lilith";
+		};
 		response: {
-			200: 'b'
+			200: "b";
 			403: {
-				name: 'lilith'
-			}
+				name: "lilith";
+			};
 			422: {
-				type: 'validation'
-				on: string
-				summary?: string
-				message?: string
-				found?: unknown
-				property?: string
-				expected?: string
-			}
-		}
-	}>()
+				type: "validation";
+				on: string;
+				summary?: string;
+				message?: string;
+				found?: unknown;
+				property?: string;
+				expected?: string;
+			};
+		};
+	}>();
 }
 
 // Macro Context schema and inline schema works together even in inline lifecycle
@@ -1802,125 +1760,123 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			withFriends: {
 				body: t.Object({
-					friends: t.Tuple([t.Literal('Sartre'), t.Literal('Fouco')])
-				})
-			}
+					friends: t.Tuple([t.Literal("Sartre"), t.Literal("Fouco")]),
+				}),
+			},
 		})
 		.post(
-			'/',
+			"/",
 			({ body }) => {
 				expectTypeOf(body).toEqualTypeOf<{
-					name: 'Lilith'
-					friends: ['Sartre', 'Fouco']
-				}>()
+					name: "Lilith";
+					friends: ["Sartre", "Fouco"];
+				}>();
 
-				return body
+				return body;
 			},
 			{
 				body: t.Object({
-					name: t.Literal('Lilith')
+					name: t.Literal("Lilith"),
 				}),
 				withFriends: true,
 				response: {
-					418: t.Literal('Teapot')
+					418: t.Literal("Teapot"),
 				},
 				beforeHandle({ body }) {
 					expectTypeOf(body).toEqualTypeOf<{
-						name: 'Lilith'
-						friends: ['Sartre', 'Fouco']
-					}>()
-				}
-			}
-		)
+						name: "Lilith";
+						friends: ["Sartre", "Fouco"];
+					}>();
+				},
+			},
+		);
 
-	expectTypeOf<(typeof app)['~Routes']['post']>().toEqualTypeOf<{
+	expectTypeOf<(typeof app)["~Routes"]["post"]>().toEqualTypeOf<{
 		body: {
-			name: 'Lilith'
-			friends: ['Sartre', 'Fouco']
-		}
-		params: {}
-		query: {}
-		headers: {}
+			name: "Lilith";
+			friends: ["Sartre", "Fouco"];
+		};
+		params: {};
+		query: {};
+		headers: {};
 		response: {
 			200: {
-				name: 'Lilith'
-				friends: ['Sartre', 'Fouco']
-			}
-			418: 'Teapot'
+				name: "Lilith";
+				friends: ["Sartre", "Fouco"];
+			};
+			418: "Teapot";
 			422: {
-				type: 'validation'
-				on: string
-				summary?: string
-				message?: string
-				found?: unknown
-				property?: string
-				expected?: string
-			}
-		}
-	}>()
+				type: "validation";
+				on: string;
+				summary?: string;
+				message?: string;
+				found?: unknown;
+				property?: string;
+				expected?: string;
+			};
+		};
+	}>();
 }
 
 // resolve for lifecycle event
 {
 	new Elysia()
-		.macro('auth', {
+		.macro("auth", {
 			headers: t.Object({ authorization: t.String() }),
 			resolve: ({ status }) =>
-				Math.random() > 0.5
-					? { role: 'user' }
-					: status(401, 'not authorized')
+				Math.random() > 0.5 ? { role: "user" } : status(401, "not authorized"),
 		})
-		.post('/', ({ role }) => role, {
+		.post("/", ({ role }) => role, {
 			auth: true,
-			beforeHandle: ({ role }) => {}
-		})
+			beforeHandle: ({ role }) => {},
+		});
 }
 
 // handle macro with arguments
 {
 	new Elysia()
 		.macro({
-			role: (role: 'user' | 'admin') => ({
+			role: (role: "user" | "admin") => ({
 				resolve({ status, headers: { authorization } }) {
 					const user = {
-						role: Math.random() > 0.5 ? 'user' : 'admin'
+						role: Math.random() > 0.5 ? "user" : "admin",
 					} as {
-						role: 'user' | 'admin'
-					}
+						role: "user" | "admin";
+					};
 
-					if (user.role !== role) return status(401)
+					if (user.role !== role) return status(401);
 
 					return {
-						user
-					}
-				}
-			})
+						user,
+					};
+				},
+			}),
 		})
 		.get(
-			'/token',
+			"/token",
 			({ user }) => {
-				expectTypeOf(user).toEqualTypeOf<{ role: 'admin' | 'user' }>()
+				expectTypeOf(user).toEqualTypeOf<{ role: "admin" | "user" }>();
 			},
 			{
-				role: 'admin'
-			}
-		)
+				role: "admin",
+			},
+		);
 }
 
 // Get schema in GET
 {
 	new Elysia()
 		.guard({
-			schema: 'standalone',
+			schema: "standalone",
 			body: t.Object({
-				id: t.Number()
-			})
+				id: t.Number(),
+			}),
 		})
-		.get('/user/:id', ({ body }) => body, {
+		.get("/user/:id", ({ body }) => body, {
 			body: t.Object({
-				name: t.Literal('lilith')
-			})
-		})
+				name: t.Literal("lilith"),
+			}),
+		});
 }
 
 // Merge multiple guard schema
@@ -1928,42 +1884,42 @@ import { Prettify } from '../../../src/types'
 	const app = new Elysia().guard(
 		{
 			query: t.Object({
-				name: t.Literal('lilith')
+				name: t.Literal("lilith"),
 			}),
 			beforeHandle({ status }) {
-				if (Math.random() > 0.5) return status(401)
-			}
+				if (Math.random() > 0.5) return status(401);
+			},
 		},
 		(app) =>
 			app.guard(
 				{
 					query: t.Object({
-						limit: t.Number()
+						limit: t.Number(),
 					}),
 					beforeHandle({ status }) {
-						if (Math.random() > 0.5) return status(400)
-					}
+						if (Math.random() > 0.5) return status(400);
+					},
 				},
 				(app) =>
 					app.get(
-						'/',
+						"/",
 						({ query }) => {
 							expectTypeOf(query).toEqualTypeOf<{
-								playing: boolean
-								name: 'lilith'
-								limit: number
-							}>()
+								playing: boolean;
+								name: "lilith";
+								limit: number;
+							}>();
 
-							return query
+							return query;
 						},
 						{
 							query: t.Object({
-								playing: t.Boolean()
-							})
-						}
-					)
-			)
-	)
+								playing: t.Boolean(),
+							}),
+						},
+					),
+			),
+	);
 }
 
 // Merge multiple group schema
@@ -1971,229 +1927,229 @@ import { Prettify } from '../../../src/types'
 	const app = new Elysia().guard(
 		{
 			query: t.Object({
-				name: t.Literal('lilith')
+				name: t.Literal("lilith"),
 			}),
 			beforeHandle({ status }) {
-				if (Math.random() > 0.5) return status(401)
-			}
+				if (Math.random() > 0.5) return status(401);
+			},
 		},
 		(app) =>
 			app.guard(
 				{
 					query: t.Object({
-						limit: t.Number()
+						limit: t.Number(),
 					}),
 					beforeHandle({ status }) {
-						if (Math.random() > 0.5) return status(400)
-					}
+						if (Math.random() > 0.5) return status(400);
+					},
 				},
 				(app) =>
 					app.get(
-						'/',
+						"/",
 						({ query }) => {
 							expectTypeOf(query).toEqualTypeOf<{
-								playing: boolean
-								name: 'lilith'
-								limit: number
-							}>()
+								playing: boolean;
+								name: "lilith";
+								limit: number;
+							}>();
 
-							return query
+							return query;
 						},
 						{
 							query: t.Object({
-								playing: t.Boolean()
-							})
-						}
-					)
-			)
-	)
+								playing: t.Boolean(),
+							}),
+						},
+					),
+			),
+	);
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
 		200: {
-			playing: boolean
-			name: 'lilith'
-			limit: number
-		}
-		400: 'Bad Request'
-		401: 'Unauthorized'
+			playing: boolean;
+			name: "lilith";
+			limit: number;
+		};
+		400: "Bad Request";
+		401: "Unauthorized";
 		422: {
-			type: 'validation'
-			on: string
-			summary?: string
-			message?: string
-			found?: unknown
-			property?: string
-			expected?: string
-		}
-	}>()
+			type: "validation";
+			on: string;
+			summary?: string;
+			message?: string;
+			found?: unknown;
+			property?: string;
+			expected?: string;
+		};
+	}>();
 }
 
 {
 	const app = new Elysia().guard(
 		{
 			query: t.Object({
-				name: t.Literal('lilith')
+				name: t.Literal("lilith"),
 			}),
 			beforeHandle({ status }) {
-				if (Math.random() > 0.5) return status(401)
-			}
+				if (Math.random() > 0.5) return status(401);
+			},
 		},
 		(app) =>
 			app.guard(
 				{
 					query: t.Object({
-						limit: t.Number()
+						limit: t.Number(),
 					}),
 					beforeHandle({ status }) {
-						if (Math.random() > 0.5) return status(400)
-					}
+						if (Math.random() > 0.5) return status(400);
+					},
 				},
 				(app) =>
 					app.get(
-						'/',
+						"/",
 						({ query }) => {
 							expectTypeOf(query).toEqualTypeOf<{
-								playing: boolean
-								name: 'lilith'
-								limit: number
-							}>()
+								playing: boolean;
+								name: "lilith";
+								limit: number;
+							}>();
 
-							return query
+							return query;
 						},
 						{
 							query: t.Object({
-								playing: t.Boolean()
-							})
-						}
-					)
-			)
-	)
+								playing: t.Boolean(),
+							}),
+						},
+					),
+			),
+	);
 
-	expectTypeOf<(typeof app)['~Routes']['get']['response']>().toEqualTypeOf<{
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"]>().toEqualTypeOf<{
 		200: {
-			playing: boolean
-			name: 'lilith'
-			limit: number
-		}
-		400: 'Bad Request'
-		401: 'Unauthorized'
+			playing: boolean;
+			name: "lilith";
+			limit: number;
+		};
+		400: "Bad Request";
+		401: "Unauthorized";
 		422: {
-			type: 'validation'
-			on: string
-			summary?: string
-			message?: string
-			found?: unknown
-			property?: string
-			expected?: string
-		}
-	}>()
+			type: "validation";
+			on: string;
+			summary?: string;
+			message?: string;
+			found?: unknown;
+			property?: string;
+			expected?: string;
+		};
+	}>();
 }
 
 // Inherit macro context
 {
 	new Elysia()
-		.macro('guestOrUser', {
+		.macro("guestOrUser", {
 			resolve: () => {
 				return {
-					user: 'Lilith' as const
-				}
-			}
+					user: "Lilith" as const,
+				};
+			},
 		})
-		.macro('user', {
+		.macro("user", {
 			guestOrUser: true,
 			body: t.String(),
 			resolve: ({ user }) => {
-				expectTypeOf(user).toEqualTypeOf<'Lilith'>()
-			}
-		})
+				expectTypeOf(user).toEqualTypeOf<"Lilith">();
+			},
+		});
 }
 
 // Handle 200 status for inline status
 {
 	new Elysia().get(
-		'/test',
+		"/test",
 		({ status }) => {
 			if (Math.random() > 0.1)
 				return status(200, {
 					key: 1,
-					id: 1
-				})
+					id: 1,
+				});
 
 			if (Math.random() > 0.1)
 				return status(200, {
 					// @ts-expect-error
-					key: 'a',
-					id: 1
-				})
+					key: "a",
+					id: 1,
+				});
 
-			return status(200, { key2: 's', id: 2 })
+			return status(200, { key2: "s", id: 2 });
 		},
 		{
 			response: {
 				200: t.Union([
 					t.Object({
 						key2: t.String(),
-						id: t.Literal(2)
+						id: t.Literal(2),
 					}),
 					t.Object({
 						key: t.Number(),
-						id: t.Literal(1)
-					})
-				])
-			}
-		}
-	)
+						id: t.Literal(1),
+					}),
+				]),
+			},
+		},
+	);
 }
 
 // coerce union status value and return type
 {
 	new Elysia().get(
-		'/test',
+		"/test",
 		({ status }) => {
-			return status(200, { key2: 's', id: 2 })
+			return status(200, { key2: "s", id: 2 });
 		},
 		{
 			response: {
 				200: t.Union([
 					t.Object({
 						key2: t.String(),
-						id: t.Literal(2)
+						id: t.Literal(2),
 					}),
 					t.Object({
 						key: t.Number(),
-						id: t.Literal(1)
-					})
-				])
-			}
-		}
-	)
+						id: t.Literal(1),
+					}),
+				]),
+			},
+		},
+	);
 }
 
 // Macro should inherit schema type
 {
-	new Elysia({ name: 'my-middleware-1' })
+	new Elysia({ name: "my-middleware-1" })
 		.guard({
-			as: 'scoped',
+			as: "scoped",
 			headers: t.Object({
-				role: t.UnionEnum(['admin', 'user'])
+				role: t.UnionEnum(["admin", "user"]),
 			}),
 			body: t.Object({
-				foo: t.String()
-			})
+				foo: t.String(),
+			}),
 		})
 		.macro({
 			auth: {
 				resolve: ({ headers, body }) => {
 					expectTypeOf(headers).toEqualTypeOf<{
-						role: 'admin' | 'user'
-					}>()
+						role: "admin" | "user";
+					}>();
 
 					expectTypeOf(body).toEqualTypeOf<{
-						foo: string
-					}>()
-				}
-			}
-		})
+						foo: string;
+					}>();
+				},
+			},
+		});
 }
 
 // intersect multiple resolve macro response
@@ -2202,69 +2158,69 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			multiple: {
 				resolve({ status }) {
-					if (Math.random() > 0.5) return status(401)
-					return status(403)
-				}
-			}
+					if (Math.random() > 0.5) return status(401);
+					return status(403);
+				},
+			},
 		})
-		.get('/multiple', () => 'Ok', { multiple: true })
+		.get("/multiple", () => "Ok", { multiple: true });
 
 	expectTypeOf<
-		(typeof app)['~Routes']['multiple']['get']['response']
+		(typeof app)["~Routes"]["multiple"]["get"]["response"]
 	>().toEqualTypeOf<{
-		200: string
-		401: 'Unauthorized'
-		403: 'Forbidden'
-	}>()
+		200: string;
+		401: "Unauthorized";
+		403: "Forbidden";
+	}>();
 }
 
 // intersect multiple resolve macro response
 {
 	const app = new Elysia()
-		.macro('multiple', {
+		.macro("multiple", {
 			resolve({ status }) {
-				if (Math.random() > 0.5) return status(401)
-				return status(403)
-			}
+				if (Math.random() > 0.5) return status(401);
+				return status(403);
+			},
 		})
-		.get('/multiple', () => 'Ok', { multiple: true })
+		.get("/multiple", () => "Ok", { multiple: true });
 
 	expectTypeOf<
-		(typeof app)['~Routes']['multiple']['get']['response']
+		(typeof app)["~Routes"]["multiple"]["get"]["response"]
 	>().toEqualTypeOf<{
-		200: string
-		401: 'Unauthorized'
-		403: 'Forbidden'
-	}>()
+		200: string;
+		401: "Unauthorized";
+		403: "Forbidden";
+	}>();
 }
 
 // intersect multiple resolve macro response
 {
 	const app = new Elysia()
-		.macro('multiple', {
+		.macro("multiple", {
 			resolve({ status }) {
-				if (Math.random() > 0.5) return status(401)
+				if (Math.random() > 0.5) return status(401);
 
-				return status(403)
-			}
+				return status(403);
+			},
 		})
-		.get('/multiple', () => 'Ok', { multiple: true })
+		.get("/multiple", () => "Ok", { multiple: true });
 
 	expectTypeOf<
-		(typeof app)['~Routes']['multiple']['get']['response']
+		(typeof app)["~Routes"]["multiple"]["get"]["response"]
 	>().toEqualTypeOf<{
-		200: string
-		401: 'Unauthorized'
-		403: 'Forbidden'
-	}>()
+		200: string;
+		401: "Unauthorized";
+		403: "Forbidden";
+	}>();
 
 	expectTypeOf<
-		(typeof app)['~Routes']['multiple']['get']['response']
+		(typeof app)["~Routes"]["multiple"]["get"]["response"]
 	>().toEqualTypeOf<{
-		200: string
-		401: 'Unauthorized'
-		403: 'Forbidden'
-	}>()
+		200: string;
+		401: "Unauthorized";
+		403: "Forbidden";
+	}>();
 }
 
 // Macro with conflict value per status
@@ -2273,24 +2229,24 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			a: {
 				beforeHandle({ status }) {
-					if (Math.random()) return status(400, 'a')
-					if (Math.random()) return status(401, 'a')
+					if (Math.random()) return status(400, "a");
+					if (Math.random()) return status(401, "a");
 
-					return 'a'
-				}
-			}
+					return "a";
+				},
+			},
 		})
-		.get('/', () => 'ok', {
-			a: true
-		})
+		.get("/", () => "ok", {
+			a: true,
+		});
 
-	type Route = (typeof app)['~Routes']['get']['response']
+	type Route = (typeof app)["~Routes"]["get"]["response"];
 
 	expectTypeOf<Route>().toEqualTypeOf<{
-		200: string
-		400: 'a'
-		401: 'a'
-	}>
+		200: string;
+		400: "a";
+		401: "a";
+	}>;
 }
 
 // Recursive macro with conflict value per status
@@ -2299,30 +2255,30 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			a: {
 				beforeHandle({ status }) {
-					if (Math.random()) return status(400, 'a')
-					if (Math.random()) return status(401, 'a')
+					if (Math.random()) return status(400, "a");
+					if (Math.random()) return status(401, "a");
 
-					return 'before handler' as const
-				}
+					return "before handler" as const;
+				},
 			},
 			b: {
 				beforeHandle({ status }) {
-					if (Math.random()) return status(401, 'b')
+					if (Math.random()) return status(401, "b");
 				},
-				a: true
-			}
+				a: true,
+			},
 		})
-		.get('/', () => 'handler' as const, {
-			b: true
-		})
+		.get("/", () => "handler" as const, {
+			b: true,
+		});
 
-	type Routes = (typeof app)['~Routes']['get']['response']
+	type Routes = (typeof app)["~Routes"]["get"]["response"];
 
 	expectTypeOf<Routes>().toEqualTypeOf<{
-		200: 'before handler' | 'handler'
-		400: 'a'
-		401: 'a' | 'b'
-	}>
+		200: "before handler" | "handler";
+		400: "a";
+		401: "a" | "b";
+	}>;
 }
 
 // Recursive macro with conflict value per status
@@ -2331,35 +2287,35 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			a: {
 				resolve({ status }) {
-					if (Math.random()) return status(400, 'a')
-					if (Math.random()) return status(401, 'b')
-					if (Math.random()) return status(401, 'c')
+					if (Math.random()) return status(400, "a");
+					if (Math.random()) return status(401, "b");
+					if (Math.random()) return status(401, "c");
 
-					return { a: 'a' }
-				}
+					return { a: "a" };
+				},
 			},
 			b: {
 				resolve({ status }) {
-					if (Math.random()) return status(400, 'x')
-					if (Math.random()) return status(401, 'y')
-					if (Math.random()) return status(401, 'z')
+					if (Math.random()) return status(400, "x");
+					if (Math.random()) return status(401, "y");
+					if (Math.random()) return status(401, "z");
 
-					return { b: 'b' }
+					return { b: "b" };
 				},
-				a: true
-			}
+				a: true,
+			},
 		})
-		.get('/', () => 'handler' as const, {
-			b: true
-		})
+		.get("/", () => "handler" as const, {
+			b: true,
+		});
 
-	type Routes = (typeof app)['~Routes']['get']['response']
+	type Routes = (typeof app)["~Routes"]["get"]["response"];
 
 	expectTypeOf<Routes>().toEqualTypeOf<{
-		200: 'handler'
-		400: 'a' | 'x'
-		401: 'b' | 'c' | 'y' | 'z'
-	}>
+		200: "handler";
+		400: "a" | "x";
+		401: "b" | "c" | "y" | "z";
+	}>;
 }
 
 // Separate Box from literal status-like response in macro
@@ -2368,29 +2324,29 @@ import { Prettify } from '../../../src/types'
 		.macro({
 			a: {
 				beforeHandle({ status }) {
-					if (Math.random()) return status(400, 'a')
-					if (Math.random()) return status(401, 'a')
-					if (Math.random()) return status(401, 'b')
-					if (Math.random()) return status(402)
+					if (Math.random()) return status(400, "a");
+					if (Math.random()) return status(401, "a");
+					if (Math.random()) return status(401, "b");
+					if (Math.random()) return status(402);
 
 					if (Math.random())
 						// Test status-like response but literal not box
-						return { status: 401, response: 'c' } as const
+						return { status: 401, response: "c" } as const;
 
-					return 'a'
-				}
-			}
+					return "a";
+				},
+			},
 		})
-		.get('/', () => 'ok', {
-			a: true
-		})
+		.get("/", () => "ok", {
+			a: true,
+		});
 
-	type Route = (typeof app)['~Routes']['get']['response']
+	type Route = (typeof app)["~Routes"]["get"]["response"];
 
 	expectTypeOf<Route>().toEqualTypeOf<{
-		200: string | { readonly status: 401; readonly response: 'c' }
-		400: 'a'
-		401: 'a' | 'b'
-		402: 'Payment Required'
-	}>
+		200: string | { readonly status: 401; readonly response: "c" };
+		400: "a";
+		401: "a" | "b";
+		402: "Payment Required";
+	}>;
 }

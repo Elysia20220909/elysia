@@ -1,24 +1,23 @@
-import { Elysia } from '../../src'
+import { describe, expect, it } from "bun:test";
+import { Elysia } from "../../src";
+import { req } from "../utils";
 
-import { describe, expect, it } from 'bun:test'
-import { req } from '../utils'
-
-describe('Plugin', () => {
-	it('await async nested plugin', async () => {
+describe("Plugin", () => {
+	it("await async nested plugin", async () => {
 		const yay = async () => {
-			await Bun.sleep(2)
+			await Bun.sleep(2);
 
-			return new Elysia({ name: 'yay' }).get('/yay', 'yay')
-		}
+			return new Elysia({ name: "yay" }).get("/yay", "yay");
+		};
 
-		const wrapper = new Elysia({ name: 'wrapper' }).use(yay())
+		const wrapper = new Elysia({ name: "wrapper" }).use(yay());
 
-		const app = new Elysia().use(wrapper)
+		const app = new Elysia().use(wrapper);
 
-		await app.modules
+		await app.modules;
 
-		const response = await app.handle(req('/yay'))
+		const response = await app.handle(req("/yay"));
 
-		expect(response.status).toBe(200)
-	})
-})
+		expect(response.status).toBe(200);
+	});
+});

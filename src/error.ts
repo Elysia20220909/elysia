@@ -1,34 +1,33 @@
-import type { TSchema } from '@sinclair/typebox'
-import { Value } from '@sinclair/typebox/value'
+import type { TSchema } from "@sinclair/typebox";
 import type {
 	TypeCheck,
 	ValueError,
-	ValueErrorIterator
-} from '@sinclair/typebox/compiler'
-
-import { StatusMap, InvertedStatusMap } from './utils'
-import type { ElysiaTypeCheck } from './schema'
-import { StandardSchemaV1Like } from './types'
+	ValueErrorIterator,
+} from "@sinclair/typebox/compiler";
+import { Value } from "@sinclair/typebox/value";
+import type { ElysiaTypeCheck } from "./schema";
+import type { StandardSchemaV1Like } from "./types";
+import { InvertedStatusMap, StatusMap } from "./utils";
 
 // ? Cloudflare worker support
 const env =
-	typeof Bun !== 'undefined'
+	typeof Bun !== "undefined"
 		? Bun.env
-		: typeof process !== 'undefined'
+		: typeof process !== "undefined"
 			? process?.env
-			: undefined
+			: undefined;
 
-export const ERROR_CODE = Symbol('ElysiaErrorCode')
-export type ERROR_CODE = typeof ERROR_CODE
+export const ERROR_CODE = Symbol("ElysiaErrorCode");
+export type ERROR_CODE = typeof ERROR_CODE;
 
-export const isProduction = (env?.NODE_ENV ?? env?.ENV) === 'production'
+export const isProduction = (env?.NODE_ENV ?? env?.ENV) === "production";
 
 export type ElysiaErrors =
 	| InternalServerError
 	| NotFoundError
 	| ParseError
 	| ValidationError
-	| InvalidCookieSignature
+	| InvalidCookieSignature;
 
 const emptyHttpStatus = {
 	101: undefined,
@@ -36,8 +35,8 @@ const emptyHttpStatus = {
 	205: undefined,
 	304: undefined,
 	307: undefined,
-	308: undefined
-} as const
+	308: undefined,
+} as const;
 
 type CheckExcessProps<T, U> = 0 extends 1 & T
 	? T // T is any
@@ -45,9 +44,9 @@ type CheckExcessProps<T, U> = 0 extends 1 & T
 		? Exclude<keyof T, keyof U> extends never
 			? T
 			: { [K in keyof U]: U[K] } & {
-					[K in Exclude<keyof T, keyof U>]: never
+					[K in Exclude<keyof T, keyof U>]: never;
 				}
-		: never
+		: never;
 
 export type SelectiveStatus<in out Res> = <
 	const Code extends
@@ -58,7 +57,7 @@ export type SelectiveStatus<in out Res> = <
 		: Code extends keyof StatusMap
 			? // @ts-ignore StatusMap[Code] always valid because Code generic check
 				Res[StatusMap[Code]]
-			: never
+			: never,
 >(
 	code: Code,
 	response: CheckExcessProps<
@@ -69,12 +68,12 @@ export type SelectiveStatus<in out Res> = <
 				? // @ts-ignore StatusMap[Code] always valid because Code generic check
 					Res[StatusMap[Code]]
 				: never
-	>
+	>,
 ) => ElysiaCustomStatusResponse<
-	// @ts-ignore trust me bro
+	// @ts-expect-error trust me bro
 	Code,
 	T
->
+>;
 
 export class ElysiaCustomStatusResponse<
 	const in out Code extends number | keyof StatusMap,
@@ -82,10 +81,10 @@ export class ElysiaCustomStatusResponse<
 	T = Code extends keyof InvertedStatusMap ? InvertedStatusMap[Code] : Code,
 	const in out Status extends Code extends keyof StatusMap
 		? StatusMap[Code]
-		: Code = Code extends keyof StatusMap ? StatusMap[Code] : Code
+		: Code = Code extends keyof StatusMap ? StatusMap[Code] : Code,
 > {
-	code: Status
-	response: T
+	code: Status;
+	response: T;
 
 	constructor(code: Code, response: T) {
 		const res =
@@ -93,89 +92,86 @@ export class ElysiaCustomStatusResponse<
 			(code in InvertedStatusMap
 				? // @ts-expect-error Always correct
 					InvertedStatusMap[code]
-				: code)
+				: code);
 
-		// @ts-ignore Trust me bro
-		this.code = StatusMap[code] ?? code
+		// @ts-expect-error Trust me bro
+		this.code = StatusMap[code] ?? code;
 
-		if (code in emptyHttpStatus) this.response = undefined as any
-		else
-			// @ts-ignore Trust me bro
-			this.response = res
+		if (code in emptyHttpStatus) this.response = undefined as any;
+		// @ts-expect-error Trust me bro
+		else this.response = res;
 	}
 }
 
-export const ElysiaStatus = ElysiaCustomStatusResponse
+export const ElysiaStatus = ElysiaCustomStatusResponse;
 
 export const status = <
 	const Code extends number | keyof StatusMap,
 	const T = Code extends keyof InvertedStatusMap
 		? InvertedStatusMap[Code]
-		: Code
+		: Code,
 >(
 	code: Code,
-	response?: T
-) => new ElysiaCustomStatusResponse<Code, T>(code, response as T)
+	response?: T,
+) => new ElysiaCustomStatusResponse<Code, T>(code, response as T);
 
 export class InternalServerError extends Error {
-	code = 'INTERNAL_SERVER_ERROR'
-	status = 500
+	code = "INTERNAL_SERVER_ERROR";
+	status = 500;
 
 	constructor(message?: string) {
-		super(message ?? 'INTERNAL_SERVER_ERROR')
+		super(message ?? "INTERNAL_SERVER_ERROR");
 	}
 }
 
 export class NotFoundError extends Error {
-	code = 'NOT_FOUND'
-	status = 404
+	code = "NOT_FOUND";
+	status = 404;
 
 	constructor(message?: string) {
-		super(message ?? 'NOT_FOUND')
+		super(message ?? "NOT_FOUND");
 	}
 }
 
 export class ParseError extends Error {
-	code = 'PARSE'
-	status = 400
+	code = "PARSE";
+	status = 400;
 
 	constructor(cause?: Error) {
-		super('Bad Request', {
-			cause
-		})
+		super("Bad Request", {
+			cause,
+		});
 	}
 }
 
 export class InvalidCookieSignature extends Error {
-	code = 'INVALID_COOKIE_SIGNATURE'
-	status = 400
+	code = "INVALID_COOKIE_SIGNATURE";
+	status = 400;
 
 	constructor(
 		public key: string,
-		message?: string
+		message?: string,
 	) {
-		super(message ?? `"${key}" has invalid cookie signature`)
+		super(message ?? `"${key}" has invalid cookie signature`);
 	}
 }
 
 interface ValueErrorWithSummary extends ValueError {
-	summary?: string
+	summary?: string;
 }
 
 export const mapValueError = (
-	error: ValueError | undefined
+	error: ValueError | undefined,
 ): ValueErrorWithSummary | undefined => {
-	if (!error) return error
+	if (!error) return error;
 
-	let { message, path, value, type } = error
-	if (Array.isArray(path)) path = path[0]
+	let { message, path, value, type } = error;
+	if (Array.isArray(path)) path = path[0];
 
 	const property =
-		typeof path === 'string'
-			? path.slice(1).replaceAll('/', '.')
-			: 'unknown'
+		typeof path === "string" ? path.slice(1).replaceAll("/", ".") : "unknown";
 
-	const isRoot = path === ''
+	const isRoot = path === "";
 
 	switch (type) {
 		case 42:
@@ -183,31 +179,32 @@ export const mapValueError = (
 				...error,
 				summary: isRoot
 					? `Value should not be provided`
-					: `Property '${property}' should not be provided`
-			}
+					: `Property '${property}' should not be provided`,
+			};
 
 		case 45:
 			return {
 				...error,
 				summary: isRoot
 					? `Value is missing`
-					: `Property '${property}' is missing`
-			}
+					: `Property '${property}' is missing`,
+			};
 
-		case 50:
+		case 50: {
 			// Expected string to match 'email' format
-			const quoteIndex = message.indexOf("'")!
+			const quoteIndex = message.indexOf("'")!;
 			const format = message.slice(
 				quoteIndex + 1,
-				message.indexOf("'", quoteIndex + 1)
-			)
+				message.indexOf("'", quoteIndex + 1),
+			);
 
 			return {
 				...error,
 				summary: isRoot
 					? `Value should be an email`
-					: `Property '${property}' should be ${format}`
-			}
+					: `Property '${property}' should be ${format}`,
+			};
+		}
 
 		case 54:
 			return {
@@ -216,79 +213,80 @@ export const mapValueError = (
 					.slice(0, 9)
 					.trim()} property '${property}' to be ${message
 					.slice(8)
-					.trim()} but found: ${value}`
-			}
+					.trim()} but found: ${value}`,
+			};
 
-		case 62:
+		case 62: {
 			const union = error.schema.anyOf
 				.map((x: Record<string, unknown>) => `'${x?.format ?? x.type}'`)
-				.join(', ')
+				.join(", ");
 
 			return {
 				...error,
 				summary: isRoot
 					? `Value should be one of ${union}`
-					: `Property '${property}' should be one of: ${union}`
-			}
+					: `Property '${property}' should be one of: ${union}`,
+			};
+		}
 
 		default:
-			return { summary: message, ...error }
+			return { summary: message, ...error };
 	}
-}
+};
 
 export class InvalidFileType extends Error {
-	code = 'INVALID_FILE_TYPE'
-	status = 422
+	code = "INVALID_FILE_TYPE";
+	status = 422;
 
 	constructor(
 		public property: string,
 		public expected: string | string[],
-		public message = `"${property}" has invalid file type`
+		public message = `"${property}" has invalid file type`,
 	) {
-		super(message)
+		super(message);
 
-		Object.setPrototypeOf(this, InvalidFileType.prototype)
+		Object.setPrototypeOf(this, InvalidFileType.prototype);
 	}
 
 	toResponse(headers?: Record<string, any>) {
 		if (isProduction)
 			return new Response(
 				JSON.stringify({
-					type: 'validation',
-					on: 'body'
+					type: "validation",
+					on: "body",
 				}),
 				{
 					status: 422,
 					headers: {
 						...headers,
-						'content-type': 'application/json'
-					}
-				}
-			)
+						"content-type": "application/json",
+					},
+				},
+			);
 
 		return new Response(
 			JSON.stringify({
-				type: 'validation',
-				on: 'body',
-				summary: 'Invalid file type',
+				type: "validation",
+				on: "body",
+				summary: "Invalid file type",
 				message: this.message,
 				property: this.property,
-				expected: this.expected
+				expected: this.expected,
 			}),
 			{
 				status: 422,
 				headers: {
 					...headers,
-					'content-type': 'application/json'
-				}
-			}
-		)
+					"content-type": "application/json",
+				},
+			},
+		);
 	}
 }
 
 export class ValidationError extends Error {
-	code = 'VALIDATION'
-	status = 422
+	code = "VALIDATION";
+	status = 422;
 
 	/**
 	 * An actual value of `message`
@@ -296,24 +294,24 @@ export class ValidationError extends Error {
 	 * Since `message` is string
 	 * use this instead of message
 	 */
-	valueError?: ValueError
+	valueError?: ValueError;
 
 	/**
 	 * Alias of `valueError`
 	 */
 	get messageValue() {
-		return this.valueError
+		return this.valueError;
 	}
 
 	/**
 	 * Expected value of the schema
 	 */
-	expected?: unknown
+	expected?: unknown;
 
 	/**
 	 * Custom error if provided
 	 */
-	customError?: unknown
+	customError?: unknown;
 
 	constructor(
 		public type: string,
@@ -327,137 +325,127 @@ export class ValidationError extends Error {
 		 */
 		public value: unknown,
 		private allowUnsafeValidationDetails = false,
-		errors?: ValueErrorIterator
+		errors?: ValueErrorIterator,
 	) {
-		let message = ''
-		let error
-		let expected
-		let customError
+		let message = "";
+		let error;
+		let expected;
+		let customError;
 
 		if (
-			// @ts-ignore
-			validator?.provider === 'standard' ||
-			'~standard' in validator ||
-			// @ts-ignore
-			(validator.schema && '~standard' in validator.schema)
+			// @ts-expect-error
+			validator?.provider === "standard" ||
+			"~standard" in validator ||
+			// @ts-expect-error
+			(validator.schema && "~standard" in validator.schema)
 		) {
 			const standard = // @ts-ignore
-				('~standard' in validator ? validator : validator.schema)[
-					'~standard'
-				]
+				("~standard" in validator ? validator : validator.schema)["~standard"];
 
-			const _errors = errors ?? standard.validate(value).issues
+			const _errors = errors ?? standard.validate(value).issues;
 
-			error = _errors?.[0]
+			error = _errors?.[0];
 
 			if (isProduction && !allowUnsafeValidationDetails)
 				message = JSON.stringify({
-					type: 'validation',
+					type: "validation",
 					on: type,
-					found: value
-				})
+					found: value,
+				});
 			else
 				message = JSON.stringify(
 					{
-						type: 'validation',
+						type: "validation",
 						on: type,
-						property: error.path?.[0] || 'root',
+						property: error.path?.[0] || "root",
 						message: error?.message,
 						summary: error?.problem,
 						expected,
 						found: value,
-						errors
+						errors,
 					},
 					null,
-					2
-				)
+					2,
+				);
 
-			customError = error?.message
+			customError = error?.message;
 		} else {
 			if (
 				value &&
-				typeof value === 'object' &&
+				typeof value === "object" &&
 				value instanceof ElysiaCustomStatusResponse
 			)
-				value = value.response
+				value = value.response;
 
 			error =
 				errors?.First() ??
-				('Errors' in validator
+				("Errors" in validator
 					? validator.Errors(value).First()
-					: Value.Errors(validator, value).First())
+					: Value.Errors(validator, value).First());
 
-			const accessor = error?.path || 'root'
+			const accessor = error?.path || "root";
 
-			// @ts-ignore private field
-			const schema = validator?.schema ?? validator
+			// @ts-expect-error private field
+			const schema = validator?.schema ?? validator;
 
 			if (!isProduction && !allowUnsafeValidationDetails)
 				try {
-					expected = Value.Create(schema)
+					expected = Value.Create(schema);
 				} catch (error) {
 					expected = {
-						type: 'Could not create expected value',
+						type: "Could not create expected value",
 						// @ts-expect-error
 						message: error?.message,
-						error
-					}
+						error,
+					};
 				}
 
 			customError =
 				error?.schema?.message || error?.schema?.error !== undefined
-					? typeof error.schema.error === 'function'
+					? typeof error.schema.error === "function"
 						? error.schema.error(
 								isProduction && !allowUnsafeValidationDetails
 									? {
-											type: 'validation',
+											type: "validation",
 											on: type,
-											found: value
+											found: value,
 										}
 									: {
-											type: 'validation',
+											type: "validation",
 											on: type,
 											value,
 											property: accessor,
 											message: error?.message,
-											summary:
-												mapValueError(error)?.summary,
+											summary: mapValueError(error)?.summary,
 											found: value,
 											expected,
 											errors:
-												'Errors' in validator
-													? [
-															...validator.Errors(
-																value
-															)
-														].map(mapValueError)
-													: [
-															...Value.Errors(
-																validator,
-																value
-															)
-														].map(mapValueError)
+												"Errors" in validator
+													? [...validator.Errors(value)].map(mapValueError)
+													: [...Value.Errors(validator, value)].map(
+															mapValueError,
+														),
 										},
-								validator
+								validator,
 							)
 						: error.schema.error
-					: undefined
+					: undefined;
 
 			if (customError !== undefined) {
 				message =
-					typeof customError === 'object'
+					typeof customError === "object"
 						? JSON.stringify(customError)
-						: customError + ''
+						: customError + "";
 			} else if (isProduction && !allowUnsafeValidationDetails) {
 				message = JSON.stringify({
-					type: 'validation',
+					type: "validation",
 					on: type,
-					found: value
-				})
+					found: value,
+				});
 			} else {
 				message = JSON.stringify(
 					{
-						type: 'validation',
+						type: "validation",
 						on: type,
 						property: accessor,
 						message: error?.message,
@@ -465,88 +453,84 @@ export class ValidationError extends Error {
 						expected,
 						found: value,
 						errors:
-							'Errors' in validator
-								? [...validator.Errors(value)].map(
-										mapValueError
-									)
-								: [...Value.Errors(validator, value)].map(
-										mapValueError
-									)
+							"Errors" in validator
+								? [...validator.Errors(value)].map(mapValueError)
+								: [...Value.Errors(validator, value)].map(mapValueError),
 					},
 					null,
-					2
-				)
+					2,
+				);
 			}
 		}
 
-		super(message)
-		this.valueError = error
-		this.expected = expected
-		this.customError = customError
+		super(message);
+		this.valueError = error;
+		this.expected = expected;
+		this.customError = customError;
 
-		Object.setPrototypeOf(this, ValidationError.prototype)
+		Object.setPrototypeOf(this, ValidationError.prototype);
 	}
 
 	get all(): ValueErrorWithSummary[] {
 		// Handle standard schema validators (Zod, Valibot, etc.)
 		if (
-			// @ts-ignore
-			this.validator?.provider === 'standard' ||
-			'~standard' in this.validator ||
-			// @ts-ignore
-			('schema' in this.validator &&
-				// @ts-ignore
+			// @ts-expect-error
+			this.validator?.provider === "standard" ||
+			"~standard" in this.validator ||
+			// @ts-expect-error
+			("schema" in this.validator &&
+				// @ts-expect-error
 				this.validator.schema &&
-				// @ts-ignore
-				'~standard' in this.validator.schema)
+				// @ts-expect-error
+				"~standard" in this.validator.schema)
 		) {
 			const standard = // @ts-ignore
 				(
-					'~standard' in this.validator
+					"~standard" in this.validator
 						? this.validator
 						: // @ts-ignore
 							this.validator.schema
-				)['~standard']
+				)["~standard"];
 
-			const issues = standard.validate(this.value).issues
+			const issues = standard.validate(this.value).issues;
 
 			// Map standard schema issues to the expected format
 			return (
 				issues?.map((issue: any) => ({
 					summary: issue.message,
-					path: issue.path?.join('.') || 'root',
+					path: issue.path?.join(".") || "root",
 					message: issue.message,
-					value: this.value
+					value: this.value,
 				})) || []
-			)
+			);
 		}
 
 		// Handle TypeBox validators
-		return 'Errors' in this.validator
+		return "Errors" in this.validator
 			? [...this.validator.Errors(this.value)]
 					.filter((x) => x)
 					.map((x) => mapValueError(x) as ValueErrorWithSummary)
 			: // @ts-ignore
-				[...Value.Errors(this.validator, this.value)].map(mapValueError)
+				[...Value.Errors(this.validator, this.value)].map(mapValueError);
 	}
 
 	static simplifyModel(
-		validator: TSchema | TypeCheck<any> | ElysiaTypeCheck<any>
+		validator: TSchema | TypeCheck<any> | ElysiaTypeCheck<any>,
 	) {
-		// @ts-ignore
-		const model = 'schema' in validator ? validator.schema : validator
+		// @ts-expect-error
+		const model = "schema" in validator ? validator.schema : validator;
 
 		try {
-			return Value.Create(model)
+			return Value.Create(model);
 		} catch {
-			return model
+			return model;
 		}
 	}
 
 	get model() {
-		if ('~standard' in this.validator) return this.validator
+		if ("~standard" in this.validator) return this.validator;
 
-		return ValidationError.simplifyModel(this.validator)
+		return ValidationError.simplifyModel(this.validator);
 	}
 
 	toResponse(headers?: Record<string, any>) {
@@ -554,9 +538,9 @@ export class ValidationError extends Error {
 			status: 400,
 			headers: {
 				...headers,
-				'content-type': 'application/json'
-			}
-		})
+				"content-type": "application/json",
+			},
+		});
 	}
 
 	/**
@@ -581,30 +565,30 @@ export class ValidationError extends Error {
 	 */
 	detail(
 		message: unknown,
-		allowUnsafeValidatorDetails = this.allowUnsafeValidationDetails
+		allowUnsafeValidatorDetails = this.allowUnsafeValidationDetails,
 	) {
-		if (!this.customError) return this.message
+		if (!this.customError) return this.message;
 
-		const value = this.value
-		const expected = this.expected
-		const errors = this.all
+		const value = this.value;
+		const expected = this.expected;
+		const errors = this.all;
 
 		return isProduction && !allowUnsafeValidatorDetails
 			? {
-					type: 'validation',
+					type: "validation",
 					on: this.type,
 					found: value,
-					message
+					message,
 				}
 			: {
-					type: 'validation',
+					type: "validation",
 					on: this.type,
-					property: this.valueError?.path || 'root',
+					property: this.valueError?.path || "root",
 					message,
 					summary: mapValueError(this.valueError)?.summary,
 					found: value,
 					expected,
-					errors
-				}
+					errors,
+				};
 	}
 }

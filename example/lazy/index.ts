@@ -1,6 +1,6 @@
-import Elysia from '../../src'
+import type Elysia from "../../src";
 
 export const lazy = (app: Elysia) =>
-	app.state('a', 'b').get('/lazy', 'Hi from lazy loaded module')
+	app.state("a", "b").get("/lazy", "Hi from lazy loaded module");
 
-export default lazy
+export default lazy;

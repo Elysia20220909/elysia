@@ -1,5 +1,5 @@
-export { env } from './env'
-export { file } from './file'
+export { env } from "./env";
+export { file } from "./file";
 export type {
 	ErrorLike,
 	GenericServeOptions,
@@ -7,5 +7,5 @@ export type {
 	ServeOptions,
 	Server,
 	ServerWebSocketSendStatus,
-	SocketAddress
-} from './server'
+	SocketAddress,
+} from "./server";

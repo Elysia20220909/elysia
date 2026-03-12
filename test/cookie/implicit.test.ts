@@ -1,168 +1,172 @@
-import { describe, expect, it } from 'bun:test'
-import { createCookieJar } from '../../src/cookies'
-import type { Context } from '../../src'
+import { describe, expect, it } from "bun:test";
+import type { Context } from "../../src";
+import { createCookieJar } from "../../src/cookies";
 
 const create = () => {
-	const set: Context['set'] = {
+	const set: Context["set"] = {
 		cookie: {},
-		headers: {}
-	}
+		headers: {},
+	};
 
-	const cookie = createCookieJar(set, {})
+	const cookie = createCookieJar(set, {});
 
 	return {
 		cookie,
-		set
-	}
-}
+		set,
+	};
+};
 
-describe('Implicit Cookie', () => {
-	it('create cookie using setter', () => {
+describe("Implicit Cookie", () => {
+	it("create cookie using setter", () => {
 		const {
 			cookie: { name },
-			set
-		} = create()
+			set,
+		} = create();
 
-		name.value = 'himari'
+		name.value = "himari";
 
 		expect(set.cookie?.name).toEqual({
-			value: 'himari'
-		})
-	})
+			value: "himari",
+		});
+	});
 
-	it('create cookie set function', () => {
+	it("create cookie set function", () => {
 		const {
 			cookie: { name },
-			set
-		} = create()
+			set,
+		} = create();
 
 		name.set({
-			value: 'himari'
-		})
+			value: "himari",
+		});
 
 		expect(set.cookie?.name).toEqual({
-			value: 'himari'
-		})
-	})
+			value: "himari",
+		});
+	});
 
-	it('add cookie attribute using setter', () => {
+	it("add cookie attribute using setter", () => {
 		const {
 			cookie: { name },
-			set
-		} = create()
+			set,
+		} = create();
 
-		name.value = 'himari'
-		name.domain = 'millennium.sh'
+		name.value = "himari";
+		name.domain = "millennium.sh";
 
 		expect(set.cookie?.name).toEqual({
-			value: 'himari',
-			domain: 'millennium.sh'
-		})
-	})
+			value: "himari",
+			domain: "millennium.sh",
+		});
+	});
 
-	it('add cookie attribute using setter', () => {
+	it("add cookie attribute using setter", () => {
 		const {
 			cookie: { name },
-			set
-		} = create()
+			set,
+		} = create();
 
-		name.value = 'himari'
+		name.value = "himari";
 		name.update({
-			domain: 'millennium.sh'
-		})
+			domain: "millennium.sh",
+		});
 
 		expect(set.cookie?.name).toEqual({
-			value: 'himari',
-			domain: 'millennium.sh'
-		})
-	})
+			value: "himari",
+			domain: "millennium.sh",
+		});
+	});
 
-	it('add cookie attribute without overwrite entire property', () => {
+	it("add cookie attribute without overwrite entire property", () => {
 		const {
 			cookie: { name },
-			set
-		} = create()
+			set,
+		} = create();
 
-		name.set({
-			value: 'himari',
-			domain: 'millennium.sh'
-		}).update({
-			httpOnly: true,
-			path: '/'
-		})
+		name
+			.set({
+				value: "himari",
+				domain: "millennium.sh",
+			})
+			.update({
+				httpOnly: true,
+				path: "/",
+			});
 
 		expect(set.cookie?.name).toEqual({
-			value: 'himari',
-			domain: 'millennium.sh',
+			value: "himari",
+			domain: "millennium.sh",
 			httpOnly: true,
-			path: '/'
-		})
-	})
+			path: "/",
+		});
+	});
 
-	it('set cookie attribute', () => {
+	it("set cookie attribute", () => {
 		const {
 			cookie: { name },
-			set
-		} = create()
+			set,
+		} = create();
 
-		name.set({
-			value: 'himari',
-			domain: 'millennium.sh'
-		}).set({
-			httpOnly: true,
-			path: '/'
-		})
+		name
+			.set({
+				value: "himari",
+				domain: "millennium.sh",
+			})
+			.set({
+				httpOnly: true,
+				path: "/",
+			});
 
 		expect(set.cookie?.name).toEqual({
 			httpOnly: true,
-			path: '/',
-			value: 'himari',
-		})
-	})
+			path: "/",
+			value: "himari",
+		});
+	});
 
-	it('add cookie overwrite attribute if duplicated', () => {
+	it("add cookie overwrite attribute if duplicated", () => {
 		const {
 			cookie: { name },
-			set
-		} = create()
+			set,
+		} = create();
 
-		name.set({
-			value: 'aru',
-			domain: 'millennium.sh',
-			httpOnly: true
-		}).update({
-			domain: 'gehenna.sh'
-		})
+		name
+			.set({
+				value: "aru",
+				domain: "millennium.sh",
+				httpOnly: true,
+			})
+			.update({
+				domain: "gehenna.sh",
+			});
 
 		expect(set.cookie?.name).toEqual({
-			value: 'aru',
-			domain: 'gehenna.sh',
-			httpOnly: true
-		})
-	})
+			value: "aru",
+			domain: "gehenna.sh",
+			httpOnly: true,
+		});
+	});
 
-	it('create cookie with empty string', () => {
+	it("create cookie with empty string", () => {
 		const {
 			cookie: { name },
-			set
-		} = create()
+			set,
+		} = create();
 
-		name.value = ''
+		name.value = "";
 
-		expect(set.cookie?.name).toEqual({ value: '' })
-	})
+		expect(set.cookie?.name).toEqual({ value: "" });
+	});
 
-	it('Remove cookie', () => {
+	it("Remove cookie", () => {
 		const {
 			cookie: { name },
-			set
-		} = create()
+			set,
+		} = create();
 
-		name.value = 'himari'
-		name.remove()
+		name.value = "himari";
+		name.remove();
 
-		expect(set.cookie?.name.expires?.getTime()).toBeLessThanOrEqual(
-			Date.now()
-		)
-	})
-})
+		expect(set.cookie?.name.expires?.getTime()).toBeLessThanOrEqual(Date.now());
+	});
+});

@@ -1,59 +1,44 @@
-import { AnyElysia, Cookie } from './index'
-
-import { Value, TransformDecodeError } from '@sinclair/typebox/value'
 import {
 	Kind,
-	TypeBoxError,
 	type TAnySchema,
-	type TSchema
-} from '@sinclair/typebox'
+	type TSchema,
+	TypeBoxError,
+} from "@sinclair/typebox";
 
-import decode from 'fast-decode-uri-component'
+import { TransformDecodeError, Value } from "@sinclair/typebox/value";
+import decode from "fast-decode-uri-component";
+import { tee } from "./adapter/utils";
+import { type CookieOptions, parseCookie } from "./cookies";
+import {
+	ElysiaCustomStatusResponse,
+	ERROR_CODE,
+	NotFoundError,
+	ParseError,
+	status,
+	ValidationError,
+} from "./error";
+import { type AnyElysia, Cookie } from "./index";
 import {
 	parseQuery,
 	parseQueryFromURL,
-	parseQueryStandardSchema
-} from './parse-query'
+	parseQueryStandardSchema,
+} from "./parse-query";
+import { coercePrimitiveRoot } from "./replace-schema";
 
 import {
-	ELYSIA_REQUEST_ID,
-	getLoosePath,
-	hasSetImmediate,
-	lifeCycleToFn,
-	randomId,
-	redirect,
-	signCookie,
-	isNotEmpty,
-	encodePath,
-	mergeCookie,
-	getResponseLength
-} from './utils'
-import { isBun } from './universal/utils'
-import { ParseError, status } from './error'
-
-import {
-	NotFoundError,
-	ValidationError,
-	ERROR_CODE,
-	ElysiaCustomStatusResponse
-} from './error'
-import { ELYSIA_TRACE, type TraceHandler } from './trace'
-
-import {
-	ElysiaTypeCheck,
+	type ElysiaTypeCheck,
 	getCookieValidator,
 	getSchemaProperties,
 	getSchemaValidator,
 	hasElysiaMeta,
 	hasType,
 	isUnion,
-	unwrapImportSchema
-} from './schema'
-import { Sucrose, sucrose } from './sucrose'
-import { parseCookie, type CookieOptions } from './cookies'
-import { fileType } from './type-system/utils'
-
-import type { TraceEvent } from './trace'
+	unwrapImportSchema,
+} from "./schema";
+import { type Sucrose, sucrose } from "./sucrose";
+import type { TraceEvent } from "./trace";
+import { ELYSIA_TRACE, type TraceHandler } from "./trace";
+import { fileType } from "./type-system/utils";
 import type {
 	ComposedHandler,
 	ElysiaConfig,
@@ -61,55 +46,67 @@ import type {
 	HookContainer,
 	LifeCycleStore,
 	MaybePromise,
-	SchemaValidator
-} from './types'
-import { tee } from './adapter/utils'
-import { coercePrimitiveRoot } from './replace-schema'
+	SchemaValidator,
+} from "./types";
+import { isBun } from "./universal/utils";
+import {
+	ELYSIA_REQUEST_ID,
+	encodePath,
+	getLoosePath,
+	getResponseLength,
+	hasSetImmediate,
+	isNotEmpty,
+	lifeCycleToFn,
+	mergeCookie,
+	randomId,
+	redirect,
+	signCookie,
+} from "./utils";
 
 const allocateIf = (value: string, condition: unknown) =>
-	condition ? value : ''
+	condition ? value : "";
 
 const defaultParsers = [
-	'json',
-	'text',
-	'urlencoded',
-	'arrayBuffer',
-	'formdata',
-	'application/json',
+	"json",
+	"text",
+	"urlencoded",
+	"arrayBuffer",
+	"formdata",
+	"application/json",
 	// eslint-disable-next-line sonarjs/no-duplicate-string
-	'text/plain',
+	"text/plain",
 	// eslint-disable-next-line sonarjs/no-duplicate-string
-	'application/x-www-form-urlencoded',
+	"application/x-www-form-urlencoded",
 	// eslint-disable-next-line sonarjs/no-duplicate-string
-	'application/octet-stream',
+	"application/octet-stream",
 	// eslint-disable-next-line sonarjs/no-duplicate-string
-	'multipart/form-data'
-]
+	"multipart/form-data",
+];
 
 const createReport = ({
-	context = 'c',
+	context = "c",
 	trace = [],
-	addFn
+	addFn,
 }: {
-	context?: string
-	trace?: (TraceHandler | HookContainer<TraceHandler>)[]
-	addFn(string: string): void
+	context?: string;
+	trace?: (TraceHandler | HookContainer<TraceHandler>)[];
+	addFn(string: string): void;
 }) => {
 	if (!trace.length)
 		return () => {
 			return {
 				resolveChild() {
-					return () => {}
+					return () => {};
 				},
-				resolve() {}
-			}
-		}
+				resolve() {},
+			};
+		};
 
 	for (let i = 0; i < trace.length; i++)
 		addFn(
 			`let report${i},reportChild${i},reportErr${i},reportErrChild${i};` +
-				`let trace${i}=${context}[ELYSIA_TRACE]?.[${i}]??trace[${i}](${context});\n`
-		)
+				`let trace${i}=${context}[ELYSIA_TRACE]?.[${i}]??trace[${i}](${context});\n`,
+		);
 
 	// const aliases: string[] = []
 
@@ -118,13 +115,13 @@ const createReport = ({
 		{
 			name,
 			total = 0,
-			alias
+			alias,
 		}: {
-			name?: string
-			attribute?: string
-			total?: number
-			alias?: string
-		} = {}
+			name?: string;
+			attribute?: string;
+			total?: number;
+			alias?: string;
+		} = {},
 	) => {
 		// ? For debug specific event
 		// if (event !== 'mapResponse')
@@ -135,22 +132,22 @@ const createReport = ({
 		// 		resolve() {}
 		// 	}
 
-		if (!name) name = 'anonymous'
+		if (!name) name = "anonymous";
 
-		const reporter = event === 'error' ? 'reportErr' : 'report'
+		const reporter = event === "error" ? "reportErr" : "report";
 
 		for (let i = 0; i < trace.length; i++) {
 			addFn(
-				`${alias ? 'const ' : ''}${alias ?? reporter}${i}=trace${i}.${event}({` +
+				`${alias ? "const " : ""}${alias ?? reporter}${i}=trace${i}.${event}({` +
 					`id,` +
 					`event:'${event}',` +
 					`name:'${name}',` +
 					`begin:performance.now(),` +
 					`total:${total}` +
-					`})\n`
-			)
+					`})\n`,
+			);
 
-			if (alias) addFn(`${reporter}${i}=${alias}${i}\n`)
+			if (alias) addFn(`${reporter}${i}=${alias}${i}\n`);
 		}
 
 		// if (event === 'error')
@@ -169,7 +166,7 @@ const createReport = ({
 		return {
 			resolve() {
 				for (let i = 0; i < trace.length; i++)
-					addFn(`${alias ?? reporter}${i}.resolve()\n`)
+					addFn(`${alias ?? reporter}${i}.resolve()\n`);
 			},
 			resolveChild(name: string) {
 				for (let i = 0; i < trace.length; i++) {
@@ -179,8 +176,8 @@ const createReport = ({
 							`event:'${event}',` +
 							`name:'${name}',` +
 							`begin:performance.now()` +
-							`})\n`
-					)
+							`})\n`,
+					);
 				}
 
 				return (binding?: string) => {
@@ -196,15 +193,15 @@ const createReport = ({
 									`${reporter}Child${i}?.(${binding}) ` +
 									`}else{` +
 									`${reporter}Child${i}?.()` +
-									'}'
-							)
-						else addFn(`${reporter}Child${i}?.()\n`)
+									"}",
+							);
+						else addFn(`${reporter}Child${i}?.()\n`);
 					}
-				}
-			}
-		}
-	}
-}
+				};
+			},
+		};
+	};
+};
 
 const composeCleaner = ({
 	schema,
@@ -212,57 +209,55 @@ const composeCleaner = ({
 	type,
 	typeAlias = type,
 	normalize,
-	ignoreTryCatch = false
+	ignoreTryCatch = false,
 }: {
-	schema: ElysiaTypeCheck<any>
-	name: string
-	type: keyof SchemaValidator
-	typeAlias?: string
-	normalize: ElysiaConfig<''>['normalize']
-	ignoreTryCatch?: boolean
+	schema: ElysiaTypeCheck<any>;
+	name: string;
+	type: keyof SchemaValidator;
+	typeAlias?: string;
+	normalize: ElysiaConfig<"">["normalize"];
+	ignoreTryCatch?: boolean;
 }) => {
-	if (!normalize || !schema.Clean) return ''
+	if (!normalize || !schema.Clean) return "";
 
-	if (normalize === true || normalize === 'exactMirror') {
+	if (normalize === true || normalize === "exactMirror") {
 		if (ignoreTryCatch)
-			return `${name}=validator.${typeAlias}.Clean(${name})\n`
+			return `${name}=validator.${typeAlias}.Clean(${name})\n`;
 
 		return (
-			`try{` +
-			`${name}=validator.${typeAlias}.Clean(${name})\n` +
-			`}catch{}`
-		)
+			`try{` + `${name}=validator.${typeAlias}.Clean(${name})\n` + `}catch{}`
+		);
 	}
 
-	if (normalize === 'typebox')
-		return `${name}=validator.${typeAlias}.Clean(${name})\n`
+	if (normalize === "typebox")
+		return `${name}=validator.${typeAlias}.Clean(${name})\n`;
 
-	return ''
-}
+	return "";
+};
 
 const composeValidationFactory = ({
-	injectResponse = '',
+	injectResponse = "",
 	normalize = false,
 	validator,
 	encodeSchema = false,
 	isStaticResponse = false,
 	hasSanitize = false,
-	allowUnsafeValidationDetails = false
+	allowUnsafeValidationDetails = false,
 }: {
-	injectResponse?: string
-	normalize?: ElysiaConfig<''>['normalize']
-	validator: SchemaValidator
-	encodeSchema?: boolean
-	isStaticResponse?: boolean
-	hasSanitize?: boolean
-	allowUnsafeValidationDetails?: boolean
+	injectResponse?: string;
+	normalize?: ElysiaConfig<"">["normalize"];
+	validator: SchemaValidator;
+	encodeSchema?: boolean;
+	isStaticResponse?: boolean;
+	hasSanitize?: boolean;
+	allowUnsafeValidationDetails?: boolean;
 }) => ({
 	validate: (type: string, value = `c.${type}`, error?: string) =>
-		`c.set.status=422;throw new ValidationError('${type}',validator.${type},${value},${allowUnsafeValidationDetails}${error ? ',' + error : ''})`,
-	response: (name = 'r') => {
-		if (isStaticResponse || !validator.response) return ''
+		`c.set.status=422;throw new ValidationError('${type}',validator.${type},${value},${allowUnsafeValidationDetails}${error ? "," + error : ""})`,
+	response: (name = "r") => {
+		if (isStaticResponse || !validator.response) return "";
 
-		let code = injectResponse + '\n'
+		let code = injectResponse + "\n";
 
 		code +=
 			`if(${name} instanceof ElysiaCustomStatusResponse){` +
@@ -270,12 +265,12 @@ const composeValidationFactory = ({
 			`${name}=${name}.response` +
 			`}` +
 			`if(${name} instanceof Response === false && typeof ${name}?.next !== 'function' && !(${name} instanceof ReadableStream))` +
-			`switch(c.set.status){`
+			`switch(c.set.status){`;
 
 		for (const [status, value] of Object.entries(validator.response!)) {
-			code += `\ncase ${status}:\n`
+			code += `\ncase ${status}:\n`;
 
-			if (value.provider === 'standard') {
+			if (value.provider === "standard") {
 				code +=
 					`let vare${status}=validator.response[${status}].Check(${name})\n` +
 					`if(vare${status} instanceof Promise)vare${status}=await vare${status}\n` +
@@ -283,53 +278,49 @@ const composeValidationFactory = ({
 					`throw new ValidationError('response',validator.response[${status}],${name},${allowUnsafeValidationDetails},vare${status}.issues)\n` +
 					`${name}=vare${status}.value\n` +
 					`c.set.status=${status}\n` +
-					'break\n'
+					"break\n";
 
-				continue
+				continue;
 			}
 
-			let noValidate = value.schema?.noValidate === true
+			let noValidate = value.schema?.noValidate === true;
 
 			if (!noValidate && value.schema?.$ref && value.schema?.$defs) {
-				const refKey = value.schema.$ref
+				const refKey = value.schema.$ref;
 				const defKey =
-					typeof refKey === 'string' && refKey.includes('/')
-						? refKey.split('/').pop()!
-						: refKey
+					typeof refKey === "string" && refKey.includes("/")
+						? refKey.split("/").pop()!
+						: refKey;
 				const referencedDef =
-					value.schema.$defs[
-						defKey as keyof typeof value.schema.$defs
-					]
+					value.schema.$defs[defKey as keyof typeof value.schema.$defs];
 
 				if (referencedDef?.noValidate === true) {
-					noValidate = true
+					noValidate = true;
 				}
 			}
 
-			const appliedCleaner = noValidate || hasSanitize
+			const appliedCleaner = noValidate || hasSanitize;
 
 			const clean = ({ ignoreTryCatch = false } = {}) =>
 				composeCleaner({
 					name,
 					schema: value,
-					type: 'response',
+					type: "response",
 					typeAlias: `response[${status}]`,
 					normalize,
-					ignoreTryCatch
-				})
+					ignoreTryCatch,
+				});
 
-			if (appliedCleaner) code += clean()
+			if (appliedCleaner) code += clean();
 
-			const applyErrorCleaner =
-				!appliedCleaner && normalize && !noValidate
+			const applyErrorCleaner = !appliedCleaner && normalize && !noValidate;
 
 			// Encode call TypeCheck.Check internally
 			if (encodeSchema && value.hasTransform && !noValidate) {
 				code +=
-					`try{` +
-					`${name}=validator.response[${status}].Encode(${name})\n`
+					`try{` + `${name}=validator.response[${status}].Encode(${name})\n`;
 
-				if (!appliedCleaner) code += clean({ ignoreTryCatch: true })
+				if (!appliedCleaner) code += clean({ ignoreTryCatch: true });
 
 				code +=
 					`c.set.status=${status}` +
@@ -342,83 +333,83 @@ const composeValidationFactory = ({
 							`throw new ValidationError('response',validator.response[${status}],${name},${allowUnsafeValidationDetails})` +
 							`}`
 						: `throw new ValidationError('response',validator.response[${status}],${name}),${allowUnsafeValidationDetails}`) +
-					`}`
+					`}`;
 			} else {
-				if (!appliedCleaner) code += clean()
+				if (!appliedCleaner) code += clean();
 
 				if (!noValidate)
 					code +=
 						`if(validator.response[${status}].Check(${name})===false)` +
 						`throw new ValidationError('response',validator.response[${status}],${name},${allowUnsafeValidationDetails})\n` +
-						`c.set.status=${status}\n`
+						`c.set.status=${status}\n`;
 			}
 
-			code += 'break\n'
+			code += "break\n";
 		}
 
-		return code + '}'
-	}
-})
+		return code + "}";
+	},
+});
 
 const isAsyncName = (v: Function | HookContainer) => {
-	// @ts-ignore
-	const fn = v?.fn ?? v
+	// @ts-expect-error
+	const fn = v?.fn ?? v;
 
-	return fn.constructor.name === 'AsyncFunction'
-}
+	return fn.constructor.name === "AsyncFunction";
+};
 
-const matchResponseClone = /=>\s?response\.clone\(/
-const matchFnReturn = /(?:return|=>)\s?\S+\(|a(?:sync|wait)/
+const matchResponseClone = /=>\s?response\.clone\(/;
+const matchFnReturn = /(?:return|=>)\s?\S+\(|a(?:sync|wait)/;
 
 export const isAsync = (v: Function | HookContainer) => {
-	const isObject = typeof v === 'object'
-	if (isObject && v.isAsync !== undefined) return v.isAsync
+	const isObject = typeof v === "object";
+	if (isObject && v.isAsync !== undefined) return v.isAsync;
 
-	const fn = isObject ? v.fn : v
+	const fn = isObject ? v.fn : v;
 	// Check for both AsyncFunction and AsyncGeneratorFunction
 	// AsyncGeneratorFunction needs to be treated as async because generator.next()
 	// returns a Promise that may reject (e.g., when throwing from the generator)
 	if (
-		fn.constructor.name === 'AsyncFunction' ||
-		fn.constructor.name === 'AsyncGeneratorFunction'
+		fn.constructor.name === "AsyncFunction" ||
+		fn.constructor.name === "AsyncGeneratorFunction"
 	)
-		return true
+		return true;
 
-	const literal: string = fn.toString()
+	const literal: string = fn.toString();
 
 	if (matchResponseClone.test(literal)) {
-		if (isObject) v.isAsync = false
+		if (isObject) v.isAsync = false;
 
-		return false
+		return false;
 	}
 
-	const result = matchFnReturn.test(literal)
-	if (isObject) v.isAsync = result
+	const result = matchFnReturn.test(literal);
+	if (isObject) v.isAsync = result;
 
-	return result
-}
+	return result;
+};
 
 const hasReturn = (v: string | HookContainer<any> | Function) => {
-	const isObject = typeof v === 'object'
+	const isObject = typeof v === "object";
 
-	if (isObject && v.hasReturn !== undefined) return v.hasReturn
+	if (isObject && v.hasReturn !== undefined) return v.hasReturn;
 
 	const fnLiteral = isObject
 		? v.fn.toString()
-		: typeof v === 'string'
+		: typeof v === "string"
 			? v.toString()
-			: v.toString()
+			: v.toString();
 
-	const parenthesisEnd = fnLiteral.indexOf(')')
+	const parenthesisEnd = fnLiteral.indexOf(")");
 
 	// Check for arrow function expression (direct return without braces)
 	// Handle both `) => x` and `)=>x` formats (with or without spaces)
-	const arrowIndex = fnLiteral.indexOf('=>', parenthesisEnd)
+	const arrowIndex = fnLiteral.indexOf("=>", parenthesisEnd);
 
 	if (arrowIndex !== -1) {
 		// Skip any whitespace after `=>` (space, tab, newline, carriage return)
-		let afterArrow = arrowIndex + 2
-		let charCode: number
+		let afterArrow = arrowIndex + 2;
+		let charCode: number;
 		while (
 			afterArrow < fnLiteral.length &&
 			((charCode = fnLiteral.charCodeAt(afterArrow)) === 32 || // space
@@ -426,7 +417,7 @@ const hasReturn = (v: string | HookContainer<any> | Function) => {
 				charCode === 10 || // newline
 				charCode === 13) // carriage return
 		) {
-			afterArrow++
+			afterArrow++;
 		}
 
 		// If the first non-whitespace char after `=>` is not `{`, it's a direct return
@@ -434,44 +425,44 @@ const hasReturn = (v: string | HookContainer<any> | Function) => {
 			afterArrow < fnLiteral.length &&
 			fnLiteral.charCodeAt(afterArrow) !== 123
 		) {
-			if (isObject) v.hasReturn = true
+			if (isObject) v.hasReturn = true;
 
-			return true
+			return true;
 		}
 	}
 
-	const result = fnLiteral.includes('return')
+	const result = fnLiteral.includes("return");
 
-	if (isObject) v.hasReturn = result
+	if (isObject) v.hasReturn = result;
 
-	return result
-}
+	return result;
+};
 
 const isGenerator = (v: Function | HookContainer) => {
-	// @ts-ignore
-	const fn = v?.fn ?? v
+	// @ts-expect-error
+	const fn = v?.fn ?? v;
 
 	return (
-		fn.constructor.name === 'AsyncGeneratorFunction' ||
-		fn.constructor.name === 'GeneratorFunction'
-	)
-}
+		fn.constructor.name === "AsyncGeneratorFunction" ||
+		fn.constructor.name === "GeneratorFunction"
+	);
+};
 
 const coerceTransformDecodeError = (
 	fnLiteral: string,
 	type: string,
 	allowUnsafeValidationDetails = false,
-	value = `c.${type}`
+	value = `c.${type}`,
 ) =>
 	`try{${fnLiteral}}catch(error){` +
 	`if(error.constructor.name === 'TransformDecodeError'){` +
 	`c.set.status=422\n` +
 	`throw error.error ?? new ValidationError('${type}',validator.${type},${value},${allowUnsafeValidationDetails})}` +
-	`}`
+	`}`;
 
 const setImmediateFn = hasSetImmediate
-	? 'setImmediate'
-	: 'Promise.resolve().then'
+	? "setImmediate"
+	: "Promise.resolve().then";
 
 export const composeHandler = ({
 	app,
@@ -481,32 +472,32 @@ export const composeHandler = ({
 	validator,
 	handler,
 	allowMeta = false,
-	inference
+	inference,
 }: {
-	app: AnyElysia
-	path: string
-	method: string
-	hooks: Partial<LifeCycleStore>
-	validator: SchemaValidator
-	handler: unknown | Handler<any, any>
-	allowMeta?: boolean
-	inference: Sucrose.Inference
+	app: AnyElysia;
+	path: string;
+	method: string;
+	hooks: Partial<LifeCycleStore>;
+	validator: SchemaValidator;
+	handler: unknown | Handler<any, any>;
+	allowMeta?: boolean;
+	inference: Sucrose.Inference;
 }): ComposedHandler => {
-	const adapter = app['~adapter'].composeHandler
-	const adapterHandler = app['~adapter'].handler
-	const isHandleFn = typeof handler === 'function'
+	const adapter = app["~adapter"].composeHandler;
+	const adapterHandler = app["~adapter"].handler;
+	const isHandleFn = typeof handler === "function";
 
 	if (!isHandleFn) {
 		handler = adapterHandler.mapResponse(handler, {
 			// @ts-expect-error private property
-			headers: app.setHeaders ?? {}
-		})
+			headers: app.setHeaders ?? {},
+		});
 
 		const isResponse =
 			handler instanceof Response ||
-			// @ts-ignore If it's not instanceof Response, it might be a polyfill (only on Node)
-			(handler?.constructor?.name === 'Response' &&
-				typeof (handler as Response)?.clone === 'function')
+			// @ts-expect-error If it's not instanceof Response, it might be a polyfill (only on Node)
+			(handler?.constructor?.name === "Response" &&
+				typeof (handler as Response)?.clone === "function");
 
 		if (
 			hooks.parse?.length &&
@@ -516,52 +507,52 @@ export const composeHandler = ({
 		) {
 			if (isResponse)
 				return Function(
-					'a',
-					'"use strict";\n' + `return function(){return a.clone()}`
-				)(handler)
+					"a",
+					'"use strict";\n' + `return function(){return a.clone()}`,
+				)(handler);
 
 			return Function(
-				'a',
-				'"use strict";\n' + 'return function(){return a}'
-			)(handler)
+				"a",
+				'"use strict";\n' + "return function(){return a}",
+			)(handler);
 		}
 
 		if (isResponse) {
-			const response = handler as Response
+			const response = handler as Response;
 
-			handler = () => response.clone()
+			handler = () => response.clone();
 		}
 	}
 
-	const handle = isHandleFn ? `handler(c)` : `handler`
+	const handle = isHandleFn ? `handler(c)` : `handler`;
 
-	const hasTrace = !!hooks.trace?.length
-	let fnLiteral = ''
+	const hasTrace = !!hooks.trace?.length;
+	let fnLiteral = "";
 
 	inference = sucrose(
 		Object.assign({ handler: handler as any }, hooks),
 		inference,
-		app.config.sucrose
-	)
+		app.config.sucrose,
+	);
 
 	if (adapter.declare) {
-		const literal = adapter.declare(inference)
+		const literal = adapter.declare(inference);
 
-		if (literal) fnLiteral += literal
+		if (literal) fnLiteral += literal;
 	}
 
 	if (inference.server)
 		fnLiteral +=
 			"Object.defineProperty(c,'server',{" +
-			'get:function(){return getServer()}' +
-			'})\n'
+			"get:function(){return getServer()}" +
+			"})\n";
 
-	validator.createBody?.()
-	validator.createQuery?.()
-	validator.createHeaders?.()
-	validator.createParams?.()
-	validator.createCookie?.()
-	validator.createResponse?.()
+	validator.createBody?.();
+	validator.createQuery?.();
+	validator.createHeaders?.();
+	validator.createParams?.();
+	validator.createCookie?.();
+	validator.createResponse?.();
 
 	const hasValidation =
 		!!validator.body ||
@@ -569,97 +560,93 @@ export const composeHandler = ({
 		!!validator.params ||
 		!!validator.query ||
 		!!validator.cookie ||
-		!!validator.response
+		!!validator.response;
 
-	const hasQuery = inference.query || !!validator.query
+	const hasQuery = inference.query || !!validator.query;
 
 	const requestNoBody =
 		hooks.parse?.length === 1 &&
 		// @ts-expect-error
-		hooks.parse[0].fn === 'none'
+		hooks.parse[0].fn === "none";
 
 	const hasBody =
-		method !== '' &&
-		method !== 'GET' &&
-		method !== 'HEAD' &&
+		method !== "" &&
+		method !== "GET" &&
+		method !== "HEAD" &&
 		(inference.body || !!validator.body || !!hooks.parse?.length) &&
-		!requestNoBody
+		!requestNoBody;
 
 	// @ts-expect-error private
-	const defaultHeaders = app.setHeaders
+	const defaultHeaders = app.setHeaders;
 	const hasDefaultHeaders =
-		defaultHeaders && !!Object.keys(defaultHeaders).length
+		defaultHeaders && !!Object.keys(defaultHeaders).length;
 
 	// ? defaultHeaders doesn't imply that user will use headers in handler
 	const hasHeaders =
 		inference.headers ||
 		!!validator.headers ||
-		(adapter.preferWebstandardHeaders !== true && inference.body)
+		(adapter.preferWebstandardHeaders !== true && inference.body);
 
-	const hasCookie = inference.cookie || !!validator.cookie
+	const hasCookie = inference.cookie || !!validator.cookie;
 
 	const cookieMeta: {
-		secrets?: string | string[]
-		sign: string[] | true
-		properties: { [x: string]: Object }
+		secrets?: string | string[];
+		sign: string[] | true;
+		properties: { [x: string]: Object };
 	} = validator.cookie?.config
 		? mergeCookie(validator?.cookie?.config, app.config.cookie as any)
-		: app.config.cookie
+		: app.config.cookie;
 
-	let _encodeCookie = ''
+	let _encodeCookie = "";
 	const encodeCookie = () => {
-		if (_encodeCookie) return _encodeCookie
+		if (_encodeCookie) return _encodeCookie;
 
 		if (cookieMeta?.sign) {
-			if (cookieMeta.secrets === '')
+			if (cookieMeta.secrets === "")
 				throw new Error(
 					`cookie secret can't be an empty string at (${method}) ${path}`,
 					{
-						cause: `(${method}) ${path}`
-					}
-				)
+						cause: `(${method}) ${path}`,
+					},
+				);
 
 			if (!cookieMeta.secrets)
-				throw new Error(
-					`cookie secret must be defined (${method}) ${path}`,
-					{
-						cause: `(${method}) ${path}`
-					}
-				)
+				throw new Error(`cookie secret must be defined (${method}) ${path}`, {
+					cause: `(${method}) ${path}`,
+				});
 
 			const secret = !cookieMeta.secrets
 				? undefined
-				: typeof cookieMeta.secrets === 'string'
+				: typeof cookieMeta.secrets === "string"
 					? cookieMeta.secrets
-					: cookieMeta.secrets[0]
+					: cookieMeta.secrets[0];
 
-			_encodeCookie +=
-				'const _setCookie = c.set.cookie\n' + 'if(_setCookie){'
+			_encodeCookie += "const _setCookie = c.set.cookie\n" + "if(_setCookie){";
 
 			if (cookieMeta.sign === true)
 				_encodeCookie +=
-					'for(const [key, cookie] of Object.entries(_setCookie)){' +
-					`c.set.cookie[key].value=await signCookie(cookie.value,${!secret ? 'undefined' : JSON.stringify(secret)})` +
-					'}'
+					"for(const [key, cookie] of Object.entries(_setCookie)){" +
+					`c.set.cookie[key].value=await signCookie(cookie.value,${!secret ? "undefined" : JSON.stringify(secret)})` +
+					"}";
 			else {
-				if (typeof cookieMeta.sign === 'string')
-					cookieMeta.sign = [cookieMeta.sign]
+				if (typeof cookieMeta.sign === "string")
+					cookieMeta.sign = [cookieMeta.sign];
 
 				for (const name of cookieMeta.sign)
 					_encodeCookie +=
 						`if(_setCookie[${JSON.stringify(name)}]?.value)` +
-						`c.set.cookie[${JSON.stringify(name)}].value=await signCookie(_setCookie[${JSON.stringify(name)}].value,${!secret ? 'undefined' : JSON.stringify(secret)})\n`
+						`c.set.cookie[${JSON.stringify(name)}].value=await signCookie(_setCookie[${JSON.stringify(name)}].value,${!secret ? "undefined" : JSON.stringify(secret)})\n`;
 			}
 
-			_encodeCookie += '}\n'
+			_encodeCookie += "}\n";
 		}
 
-		return _encodeCookie
-	}
+		return _encodeCookie;
+	};
 
-	const normalize = app.config.normalize
-	const encodeSchema = app.config.encodeSchema
-	const allowUnsafeValidationDetails = app.config.allowUnsafeValidationDetails
+	const normalize = app.config.normalize;
+	const encodeSchema = app.config.encodeSchema;
+	const allowUnsafeValidationDetails = app.config.allowUnsafeValidationDetails;
 
 	const validation = composeValidationFactory({
 		normalize,
@@ -667,139 +654,134 @@ export const composeHandler = ({
 		encodeSchema,
 		isStaticResponse: handler instanceof Response,
 		hasSanitize: !!app.config.sanitize,
-		allowUnsafeValidationDetails
-	})
+		allowUnsafeValidationDetails,
+	});
 
-	if (hasHeaders) fnLiteral += adapter.headers
+	if (hasHeaders) fnLiteral += adapter.headers;
 
-	if (hasTrace) fnLiteral += 'const id=c[ELYSIA_REQUEST_ID]\n'
+	if (hasTrace) fnLiteral += "const id=c[ELYSIA_REQUEST_ID]\n";
 
 	const report = createReport({
 		trace: hooks.trace,
 		addFn: (word) => {
-			fnLiteral += word
-		}
-	})
+			fnLiteral += word;
+		},
+	});
 
-	fnLiteral += 'try{'
+	fnLiteral += "try{";
 
 	if (hasCookie) {
 		const get = (name: keyof CookieOptions, defaultValue?: unknown) => {
-			// @ts-ignore
-			const value = cookieMeta?.[name] ?? defaultValue
+			// @ts-expect-error
+			const value = cookieMeta?.[name] ?? defaultValue;
 
-			if (value === undefined) return ''
+			if (value === undefined) return "";
 
 			if (!value)
-				return typeof defaultValue === 'string'
+				return typeof defaultValue === "string"
 					? `${name}:"${defaultValue}",`
-					: `${name}:${defaultValue},`
+					: `${name}:${defaultValue},`;
 
-			if (typeof value === 'string')
-				return `${name}:${JSON.stringify(value)},`
+			if (typeof value === "string") return `${name}:${JSON.stringify(value)},`;
 			if (value instanceof Date)
-				return `${name}: new Date(${value.getTime()}),`
+				return `${name}: new Date(${value.getTime()}),`;
 
-			return `${name}:${value},`
-		}
+			return `${name}:${value},`;
+		};
 
 		const options = cookieMeta
 			? `{secrets:${
 					cookieMeta.secrets !== undefined && cookieMeta.secrets !== null
-						? typeof cookieMeta.secrets === 'string'
+						? typeof cookieMeta.secrets === "string"
 							? JSON.stringify(cookieMeta.secrets)
-							: '[' +
-								cookieMeta.secrets
-									.map((x) => JSON.stringify(x))
-									.join(',') +
-								']'
-						: 'undefined'
+							: "[" +
+								cookieMeta.secrets.map((x) => JSON.stringify(x)).join(",") +
+								"]"
+						: "undefined"
 				},` +
 				`sign:${
 					cookieMeta.sign === true
 						? true
 						: cookieMeta.sign !== undefined
-							? typeof cookieMeta.sign === 'string'
+							? typeof cookieMeta.sign === "string"
 								? JSON.stringify(cookieMeta.sign)
-								: '[' +
-									cookieMeta.sign
-										.map((x) => JSON.stringify(x))
-										.join(',') +
-									']'
-							: 'undefined'
+								: "[" +
+									cookieMeta.sign.map((x) => JSON.stringify(x)).join(",") +
+									"]"
+							: "undefined"
 				},` +
-				get('domain') +
-				get('expires') +
-				get('httpOnly') +
-				get('maxAge') +
-				get('path', '/') +
-				get('priority') +
-				get('sameSite') +
-				get('secure') +
-				'}'
-			: 'undefined'
+				get("domain") +
+				get("expires") +
+				get("httpOnly") +
+				get("maxAge") +
+				get("path", "/") +
+				get("priority") +
+				get("sameSite") +
+				get("secure") +
+				"}"
+			: "undefined";
 
 		if (hasHeaders)
-			fnLiteral += `\nc.cookie=await parseCookie(c.set,c.headers.cookie,${options})\n`
+			fnLiteral += `\nc.cookie=await parseCookie(c.set,c.headers.cookie,${options})\n`;
 		else
-			fnLiteral += `\nc.cookie=await parseCookie(c.set,c.request.headers.get('cookie'),${options})\n`
+			fnLiteral += `\nc.cookie=await parseCookie(c.set,c.request.headers.get('cookie'),${options})\n`;
 	}
 
 	if (hasQuery) {
-		let arrayProperties: Record<string, true> = {}
-		let objectProperties: Record<string, true> = {}
-		let hasArrayProperty = false
-		let hasObjectProperty = false
+		const arrayProperties: Record<string, true> = {};
+		const objectProperties: Record<string, true> = {};
+		let hasArrayProperty = false;
+		let hasObjectProperty = false;
 
 		if (validator.query?.schema) {
-			const schema = unwrapImportSchema(validator.query?.schema)
-			const properties = getSchemaProperties(schema)
+			const schema = unwrapImportSchema(validator.query?.schema);
+			const properties = getSchemaProperties(schema);
 
 			if (properties) {
 				for (const [key, value] of Object.entries(properties)) {
-					if (hasElysiaMeta('ArrayQuery', value as TSchema)) {
-						arrayProperties[key] = true
-						hasArrayProperty = true
+					if (hasElysiaMeta("ArrayQuery", value as TSchema)) {
+						arrayProperties[key] = true;
+						hasArrayProperty = true;
 					}
 
-					if (hasElysiaMeta('ObjectString', value as TSchema)) {
-						objectProperties[key] = true
-						hasObjectProperty = true
+					if (hasElysiaMeta("ObjectString", value as TSchema)) {
+						objectProperties[key] = true;
+						hasObjectProperty = true;
 					}
 				}
 			}
 		}
 
 		fnLiteral +=
-			'if(c.qi===-1){' +
-			'c.query=Object.create(null)' +
-			'}else{' +
+			"if(c.qi===-1){" +
+			"c.query=Object.create(null)" +
+			"}else{" +
 			`c.query=parseQueryFromURL(c.url,c.qi+1${
 				//
 				hasArrayProperty
-					? ',' + JSON.stringify(arrayProperties)
+					? "," + JSON.stringify(arrayProperties)
 					: hasObjectProperty
-						? ',undefined'
-						: ''
+						? ",undefined"
+						: ""
 			}${
 				//
-				hasObjectProperty ? ',' + JSON.stringify(objectProperties) : ''
+				hasObjectProperty ? "," + JSON.stringify(objectProperties) : ""
 			})` +
-			'}'
+			"}";
 	}
 
-	const isAsyncHandler = typeof handler === 'function' && isAsync(handler)
+	const isAsyncHandler = typeof handler === "function" && isAsync(handler);
 
 	const saveResponse =
 		hasTrace || hooks.afterResponse?.length
-			? 'c.response=c.responseValue= '
-			: ''
+			? "c.response=c.responseValue= "
+			: "";
 
-	const responseKeys = Object.keys(validator.response ?? {})
-	const hasMultipleResponses = responseKeys.length > 1
+	const responseKeys = Object.keys(validator.response ?? {});
+	const hasMultipleResponses = responseKeys.length > 1;
 	const hasSingle200 =
 		responseKeys.length === 0 ||
-		(responseKeys.length === 1 && responseKeys[0] === '200')
+		(responseKeys.length === 1 && responseKeys[0] === "200");
 
 	const maybeAsync =
 		hasCookie ||
@@ -810,20 +792,20 @@ export const composeHandler = ({
 		!!hooks.beforeHandle?.some(isAsync) ||
 		!!hooks.transform?.some(isAsync) ||
 		!!hooks.mapResponse?.some(isAsync) ||
-		validator.body?.provider === 'standard' ||
-		validator.headers?.provider === 'standard' ||
-		validator.query?.provider === 'standard' ||
-		validator.params?.provider === 'standard' ||
-		validator.cookie?.provider === 'standard' ||
+		validator.body?.provider === "standard" ||
+		validator.headers?.provider === "standard" ||
+		validator.query?.provider === "standard" ||
+		validator.params?.provider === "standard" ||
+		validator.cookie?.provider === "standard" ||
 		Object.values(validator.response ?? {}).find(
-			(x) => x.provider === 'standard'
-		)
+			(x) => x.provider === "standard",
+		);
 
 	const maybeStream =
-		(typeof handler === 'function' ? isGenerator(handler as any) : false) ||
+		(typeof handler === "function" ? isGenerator(handler as any) : false) ||
 		!!hooks.beforeHandle?.some(isGenerator) ||
 		!!hooks.afterHandle?.some(isGenerator) ||
-		!!hooks.transform?.some(isGenerator)
+		!!hooks.transform?.some(isGenerator);
 
 	const hasSet =
 		inference.cookie ||
@@ -833,16 +815,16 @@ export const composeHandler = ({
 		hasMultipleResponses ||
 		!hasSingle200 ||
 		(isHandleFn && hasDefaultHeaders) ||
-		maybeStream
+		maybeStream;
 
-	let _afterResponse: string | undefined
+	let _afterResponse: string | undefined;
 
 	const afterResponse = (hasStream = true) => {
-		if (_afterResponse !== undefined) return _afterResponse
+		if (_afterResponse !== undefined) return _afterResponse;
 
-		if (!hooks.afterResponse?.length && !hasTrace) return ''
+		if (!hooks.afterResponse?.length && !hasTrace) return "";
 
-		let afterResponse = ''
+		let afterResponse = "";
 
 		afterResponse +=
 			`\n${setImmediateFn}(async()=>{` +
@@ -850,135 +832,133 @@ export const composeHandler = ({
 			`if(c.responseValue instanceof ElysiaCustomStatusResponse) c.set.status=c.responseValue.code\n` +
 			(hasStream
 				? `if(typeof afterHandlerStreamListener!=='undefined')for await(const v of afterHandlerStreamListener){}\n`
-				: '') +
-			`}\n`
+				: "") +
+			`}\n`;
 
 		const reporter = createReport({
 			trace: hooks.trace,
 			addFn: (word) => {
-				afterResponse += word
-			}
-		})('afterResponse', {
-			total: hooks.afterResponse?.length
-		})
+				afterResponse += word;
+			},
+		})("afterResponse", {
+			total: hooks.afterResponse?.length,
+		});
 
 		if (hooks.afterResponse?.length && hooks.afterResponse) {
 			for (let i = 0; i < hooks.afterResponse.length; i++) {
-				const endUnit = reporter.resolveChild(
-					hooks.afterResponse[i].fn.name
-				)
-				const prefix = isAsync(hooks.afterResponse[i]) ? 'await ' : ''
-				afterResponse += `\n${prefix}e.afterResponse[${i}](c)\n`
-				endUnit()
+				const endUnit = reporter.resolveChild(hooks.afterResponse[i].fn.name);
+				const prefix = isAsync(hooks.afterResponse[i]) ? "await " : "";
+				afterResponse += `\n${prefix}e.afterResponse[${i}](c)\n`;
+				endUnit();
 			}
 		}
 
-		reporter.resolve()
+		reporter.resolve();
 
-		afterResponse += '})\n'
+		afterResponse += "})\n";
 
-		return (_afterResponse = afterResponse)
-	}
+		return (_afterResponse = afterResponse);
+	};
 
-	const mapResponse = (r = 'r') => {
-		const after = afterResponse()
+	const mapResponse = (r = "r") => {
+		const after = afterResponse();
 		// When maybeStream is true, mapResponse may return a Promise (from handleStream)
 		// that can reject if the generator throws. We need to await it so the try-catch
 		// can properly catch the rejection and route it to error handling.
 		// Only add await if the function is async (maybeAsync), otherwise it would be a syntax error.
-		const awaitStream = maybeStream && maybeAsync ? 'await ' : ''
-		const response = `${awaitStream}${hasSet ? 'mapResponse' : 'mapCompactResponse'}(${saveResponse}${r}${hasSet ? ',c.set' : ''}${mapResponseContext})\n`
+		const awaitStream = maybeStream && maybeAsync ? "await " : "";
+		const response = `${awaitStream}${hasSet ? "mapResponse" : "mapCompactResponse"}(${saveResponse}${r}${hasSet ? ",c.set" : ""}${mapResponseContext})\n`;
 
-		if (!after) return `return ${response}`
+		if (!after) return `return ${response}`;
 
-		return `const _res=${response}` + after + `return _res`
-	}
+		return `const _res=${response}` + after + `return _res`;
+	};
 
 	const mapResponseContext =
 		maybeStream && adapter.mapResponseContext
 			? `,${adapter.mapResponseContext}`
-			: ''
+			: "";
 
-	if (hasTrace || inference.route) fnLiteral += `c.route=\`${path}\`\n`
+	if (hasTrace || inference.route) fnLiteral += `c.route=\`${path}\`\n`;
 	if (hasTrace || hooks.afterResponse?.length)
-		fnLiteral += 'let afterHandlerStreamListener\n'
+		fnLiteral += "let afterHandlerStreamListener\n";
 
-	const parseReporter = report('parse', {
-		total: hooks.parse?.length
-	})
+	const parseReporter = report("parse", {
+		total: hooks.parse?.length,
+	});
 
 	if (hasBody) {
 		const hasBodyInference =
-			!!hooks.parse?.length || inference.body || validator.body
+			!!hooks.parse?.length || inference.body || validator.body;
 
-		if (adapter.parser.declare) fnLiteral += adapter.parser.declare
+		if (adapter.parser.declare) fnLiteral += adapter.parser.declare;
 
-		fnLiteral += '\ntry{'
+		fnLiteral += "\ntry{";
 
 		let parser: string | undefined =
-			typeof hooks.parse === 'string'
+			typeof hooks.parse === "string"
 				? hooks.parse
 				: Array.isArray(hooks.parse) && hooks.parse.length === 1
-					? typeof hooks.parse[0] === 'string'
+					? typeof hooks.parse[0] === "string"
 						? hooks.parse[0]
-						: typeof hooks.parse[0].fn === 'string'
+						: typeof hooks.parse[0].fn === "string"
 							? hooks.parse[0].fn
 							: undefined
-					: undefined
+					: undefined;
 
 		if (!parser && validator.body && !hooks.parse?.length) {
-			const schema = validator.body.schema
+			const schema = validator.body.schema;
 			if (
 				schema &&
 				schema.anyOf &&
-				schema[Kind] === 'Union' &&
+				schema[Kind] === "Union" &&
 				schema.anyOf?.length === 2 &&
-				schema.anyOf?.find((x: TAnySchema) => x[Kind] === 'ElysiaForm')
+				schema.anyOf?.find((x: TAnySchema) => x[Kind] === "ElysiaForm")
 			)
-				parser = 'formdata'
+				parser = "formdata";
 		}
 
 		if (parser && defaultParsers.includes(parser)) {
-			const reporter = report('parse', {
-				total: hooks.parse?.length
-			})
+			const reporter = report("parse", {
+				total: hooks.parse?.length,
+			});
 
-			const isOptionalBody = !!validator.body?.isOptional
+			const isOptionalBody = !!validator.body?.isOptional;
 
 			switch (parser) {
-				case 'json':
-				case 'application/json':
-					fnLiteral += adapter.parser.json(isOptionalBody)
-					break
+				case "json":
+				case "application/json":
+					fnLiteral += adapter.parser.json(isOptionalBody);
+					break;
 
-				case 'text':
-				case 'text/plain':
-					fnLiteral += adapter.parser.text(isOptionalBody)
+				case "text":
+				case "text/plain":
+					fnLiteral += adapter.parser.text(isOptionalBody);
 
-					break
+					break;
 
-				case 'urlencoded':
-				case 'application/x-www-form-urlencoded':
-					fnLiteral += adapter.parser.urlencoded(isOptionalBody)
+				case "urlencoded":
+				case "application/x-www-form-urlencoded":
+					fnLiteral += adapter.parser.urlencoded(isOptionalBody);
 
-					break
+					break;
 
-				case 'arrayBuffer':
-				case 'application/octet-stream':
-					fnLiteral += adapter.parser.arrayBuffer(isOptionalBody)
+				case "arrayBuffer":
+				case "application/octet-stream":
+					fnLiteral += adapter.parser.arrayBuffer(isOptionalBody);
 
-					break
+					break;
 
-				case 'formdata':
-				case 'multipart/form-data':
-					fnLiteral += adapter.parser.formData(isOptionalBody)
-					break
+				case "formdata":
+				case "multipart/form-data":
+					fnLiteral += adapter.parser.formData(isOptionalBody);
+					break;
 
 				default:
-					if ((parser[0] as string) in app['~parser']) {
+					if ((parser[0] as string) in app["~parser"]) {
 						fnLiteral += hasHeaders
 							? `let contentType = c.headers['content-type']`
-							: `let contentType = c.request.headers.get('content-type')`
+							: `let contentType = c.request.headers.get('content-type')`;
 
 						fnLiteral +=
 							`\nif(contentType){` +
@@ -990,22 +970,22 @@ export const composeHandler = ({
 							`if(result instanceof Promise)result=await result\n` +
 							`if(result instanceof ElysiaCustomStatusResponse)throw result\n` +
 							`if(result!==undefined)c.body=result\n` +
-							'delete c.contentType\n'
+							"delete c.contentType\n";
 					}
 
-					break
+					break;
 			}
 
-			reporter.resolve()
+			reporter.resolve();
 		} else if (hasBodyInference) {
-			fnLiteral += '\n'
+			fnLiteral += "\n";
 
-			fnLiteral += 'let contentType\n' + 'if(c.request.body)'
+			fnLiteral += "let contentType\n" + "if(c.request.body)";
 			fnLiteral += hasHeaders
 				? `contentType=c.headers['content-type']\n`
-				: `contentType=c.request.headers.get('content-type')\n`
+				: `contentType=c.request.headers.get('content-type')\n`;
 
-			let hasDefaultParser = false
+			let hasDefaultParser = false;
 			if (hooks.parse?.length)
 				fnLiteral +=
 					`if(contentType){\n` +
@@ -1013,17 +993,17 @@ export const composeHandler = ({
 					`\nif(index!==-1)contentType=contentType.substring(0,index)` +
 					`}else{contentType=''}` +
 					`let used=false\n` +
-					`c.contentType=contentType\n`
+					`c.contentType=contentType\n`;
 			else {
-				hasDefaultParser = true
-				const isOptionalBody = !!validator.body?.isOptional
+				hasDefaultParser = true;
+				const isOptionalBody = !!validator.body?.isOptional;
 
 				fnLiteral +=
 					`if(contentType)` +
 					`switch(contentType.charCodeAt(12)){` +
 					`\ncase 106:` +
 					adapter.parser.json(isOptionalBody) +
-					'break' +
+					"break" +
 					`\n` +
 					`case 120:` +
 					adapter.parser.urlencoded(isOptionalBody) +
@@ -1042,97 +1022,92 @@ export const composeHandler = ({
 					adapter.parser.text(isOptionalBody) +
 					`}` +
 					`break\n` +
-					`}`
+					`}`;
 			}
 
-			const reporter = report('parse', {
-				total: hooks.parse?.length
-			})
+			const reporter = report("parse", {
+				total: hooks.parse?.length,
+			});
 
 			if (hooks.parse)
 				for (let i = 0; i < hooks.parse.length; i++) {
-					const name = `bo${i}`
-					if (i !== 0) fnLiteral += `\nif(!used){`
+					const name = `bo${i}`;
+					if (i !== 0) fnLiteral += `\nif(!used){`;
 
-					if (typeof hooks.parse[i].fn === 'string') {
+					if (typeof hooks.parse[i].fn === "string") {
 						const endUnit = reporter.resolveChild(
-							hooks.parse[i].fn as unknown as string
-						)
+							hooks.parse[i].fn as unknown as string,
+						);
 
-						const isOptionalBody = !!validator.body?.isOptional
+						const isOptionalBody = !!validator.body?.isOptional;
 
 						switch (hooks.parse[i].fn as unknown as string) {
-							case 'json':
-							case 'application/json':
-								hasDefaultParser = true
-								fnLiteral += adapter.parser.json(isOptionalBody)
+							case "json":
+							case "application/json":
+								hasDefaultParser = true;
+								fnLiteral += adapter.parser.json(isOptionalBody);
 
-								break
+								break;
 
-							case 'text':
-							case 'text/plain':
-								hasDefaultParser = true
-								fnLiteral += adapter.parser.text(isOptionalBody)
+							case "text":
+							case "text/plain":
+								hasDefaultParser = true;
+								fnLiteral += adapter.parser.text(isOptionalBody);
 
-								break
+								break;
 
-							case 'urlencoded':
-							case 'application/x-www-form-urlencoded':
-								hasDefaultParser = true
-								fnLiteral +=
-									adapter.parser.urlencoded(isOptionalBody)
+							case "urlencoded":
+							case "application/x-www-form-urlencoded":
+								hasDefaultParser = true;
+								fnLiteral += adapter.parser.urlencoded(isOptionalBody);
 
-								break
+								break;
 
-							case 'arrayBuffer':
-							case 'application/octet-stream':
-								hasDefaultParser = true
-								fnLiteral +=
-									adapter.parser.arrayBuffer(isOptionalBody)
+							case "arrayBuffer":
+							case "application/octet-stream":
+								hasDefaultParser = true;
+								fnLiteral += adapter.parser.arrayBuffer(isOptionalBody);
 
-								break
+								break;
 
-							case 'formdata':
-							case 'multipart/form-data':
-								hasDefaultParser = true
-								fnLiteral +=
-									adapter.parser.formData(isOptionalBody)
+							case "formdata":
+							case "multipart/form-data":
+								hasDefaultParser = true;
+								fnLiteral += adapter.parser.formData(isOptionalBody);
 
-								break
+								break;
 
 							default:
 								fnLiteral +=
 									`let ${name}=parser['${hooks.parse[i].fn}'](c,contentType)\n` +
 									`if(${name} instanceof Promise)${name}=await ${name}\n` +
-									`if(${name}!==undefined){c.body=${name};used=true;}\n`
+									`if(${name}!==undefined){c.body=${name};used=true;}\n`;
 						}
 
-						endUnit()
+						endUnit();
 					} else {
-						const endUnit = reporter.resolveChild(
-							hooks.parse[i].fn.name
-						)
+						const endUnit = reporter.resolveChild(hooks.parse[i].fn.name);
 
 						fnLiteral +=
 							`let ${name}=e.parse[${i}]\n` +
 							`${name}=${name}(c,contentType)\n` +
 							`if(${name} instanceof Promise)${name}=await ${name}\n` +
-							`if(${name}!==undefined){c.body=${name};used=true}`
+							`if(${name}!==undefined){c.body=${name};used=true}`;
 
-						endUnit()
+						endUnit();
 					}
 
-					if (i !== 0) fnLiteral += `}`
+					if (i !== 0) fnLiteral += `}`;
 
-					if (hasDefaultParser) break
+					if (hasDefaultParser) break;
 				}
 
-			reporter.resolve()
+			reporter.resolve();
 
 			if (!hasDefaultParser) {
-				const isOptionalBody = !!validator.body?.isOptional
+				const isOptionalBody = !!validator.body?.isOptional;
 
-				if (hooks.parse?.length) fnLiteral += `\nif(!used){\n`
+				if (hooks.parse?.length) fnLiteral += `\nif(!used){\n`;
 
 				fnLiteral +=
 					`switch(contentType){` +
@@ -1142,21 +1117,21 @@ export const composeHandler = ({
 					`case 'text/plain':` +
 					adapter.parser.text(isOptionalBody) +
 					`break` +
-					'\n' +
+					"\n" +
 					`case 'application/x-www-form-urlencoded':` +
 					adapter.parser.urlencoded(isOptionalBody) +
 					`break` +
-					'\n' +
+					"\n" +
 					`case 'application/octet-stream':` +
 					adapter.parser.arrayBuffer(isOptionalBody) +
 					`break` +
-					'\n' +
+					"\n" +
 					`case 'multipart/form-data':` +
 					adapter.parser.formData(isOptionalBody) +
 					`break` +
-					'\n'
+					"\n";
 
-				for (const key of Object.keys(app['~parser']))
+				for (const key of Object.keys(app["~parser"]))
 					fnLiteral +=
 						`case '${key}':` +
 						`let bo${key}=parser['${key}'](c,contentType)\n` +
@@ -1166,42 +1141,42 @@ export const composeHandler = ({
 						`}` +
 						`if(bo${key}!==undefined)c.body=bo${key}\n` +
 						`break` +
-						'\n'
+						"\n";
 
-				if (hooks.parse?.length) fnLiteral += '}'
+				if (hooks.parse?.length) fnLiteral += "}";
 
-				fnLiteral += '}'
+				fnLiteral += "}";
 			}
 
-			if (hooks.parse?.length) fnLiteral += '\ndelete c.contentType'
+			if (hooks.parse?.length) fnLiteral += "\ndelete c.contentType";
 		}
 
-		fnLiteral += '}catch(error){throw new ParseError(error)}'
+		fnLiteral += "}catch(error){throw new ParseError(error)}";
 	}
 
-	parseReporter.resolve()
+	parseReporter.resolve();
 
 	if (hooks?.transform || hasTrace) {
-		const reporter = report('transform', {
-			total: hooks.transform?.length
-		})
+		const reporter = report("transform", {
+			total: hooks.transform?.length,
+		});
 
 		if (hooks.transform?.length) {
-			fnLiteral += 'let transformed\n'
+			fnLiteral += "let transformed\n";
 
 			for (let i = 0; i < hooks.transform.length; i++) {
-				const transform = hooks.transform[i]
+				const transform = hooks.transform[i];
 
-				const endUnit = reporter.resolveChild(transform.fn.name)
+				const endUnit = reporter.resolveChild(transform.fn.name);
 
 				fnLiteral += isAsync(transform)
 					? `transformed=await e.transform[${i}](c)\n`
-					: `transformed=e.transform[${i}](c)\n`
+					: `transformed=e.transform[${i}](c)\n`;
 
-				if (transform.subType === 'mapDerive')
+				if (transform.subType === "mapDerive")
 					fnLiteral +=
 						`if(transformed instanceof ElysiaCustomStatusResponse){` +
-						mapResponse('transformed') +
+						mapResponse("transformed") +
 						`}else{` +
 						`transformed.request=c.request\n` +
 						`transformed.store=c.store\n` +
@@ -1212,159 +1187,158 @@ export const composeHandler = ({
 						`transformed.set=c.set\n` +
 						`transformed.error=c.error\n` +
 						`c=transformed` +
-						'}'
+						"}";
 				else
 					fnLiteral +=
 						`if(transformed instanceof ElysiaCustomStatusResponse){` +
-						mapResponse('transformed') +
-						`}else Object.assign(c,transformed)\n`
+						mapResponse("transformed") +
+						`}else Object.assign(c,transformed)\n`;
 
-				endUnit()
+				endUnit();
 			}
 		}
 
-		reporter.resolve()
+		reporter.resolve();
 	}
 
-	const fileUnions = <ElysiaTypeCheck<any>[]>[]
+	const fileUnions = <ElysiaTypeCheck<any>[]>[];
 
 	if (validator) {
 		if (validator.headers) {
 			if (validator.headers.hasDefault)
 				for (const [key, value] of Object.entries(
 					Value.Default(
-						// @ts-ignore
+						// @ts-expect-error
 						validator.headers.schema,
-						{}
-					) as Object
+						{},
+					) as Object,
 				)) {
 					const parsed =
-						typeof value === 'object'
+						typeof value === "object"
 							? JSON.stringify(value)
-							: typeof value === 'string'
+							: typeof value === "string"
 								? `'${value}'`
-								: value
+								: value;
 
 					if (parsed !== undefined)
-						fnLiteral += `c.headers['${key}']??=${parsed}\n`
+						fnLiteral += `c.headers['${key}']??=${parsed}\n`;
 				}
 
 			fnLiteral += composeCleaner({
-				name: 'c.headers',
+				name: "c.headers",
 				schema: validator.headers,
-				type: 'headers',
-				normalize
-			})
+				type: "headers",
+				normalize,
+			});
 
 			if (validator.headers.isOptional)
-				fnLiteral += `if(isNotEmpty(c.headers)){`
+				fnLiteral += `if(isNotEmpty(c.headers)){`;
 
-			if (validator.headers?.provider === 'standard') {
+			if (validator.headers?.provider === "standard") {
 				fnLiteral +=
 					`let vah=validator.headers.Check(c.headers)\n` +
 					`if(vah instanceof Promise)vah=await vah\n` +
 					`if(vah.issues){` +
-					validation.validate('headers', undefined, 'vah.issues') +
-					'}else{c.headers=vah.value}\n'
+					validation.validate("headers", undefined, "vah.issues") +
+					"}else{c.headers=vah.value}\n";
 			} else if (validator.headers?.schema?.noValidate !== true)
 				fnLiteral +=
 					`if(validator.headers.Check(c.headers) === false){` +
-					validation.validate('headers') +
-					'}'
+					validation.validate("headers") +
+					"}";
 
 			if (validator.headers.hasTransform)
 				fnLiteral += coerceTransformDecodeError(
 					`c.headers=validator.headers.Decode(c.headers)\n`,
-					'headers',
-					allowUnsafeValidationDetails
-				)
+					"headers",
+					allowUnsafeValidationDetails,
+				);
 
-			if (validator.headers.isOptional) fnLiteral += '}'
+			if (validator.headers.isOptional) fnLiteral += "}";
 		}
 
 		if (validator.params) {
 			if (validator.params.hasDefault)
 				for (const [key, value] of Object.entries(
 					Value.Default(
-						// @ts-ignore
+						// @ts-expect-error
 						validator.params.schema,
-						{}
-					) as Object
+						{},
+					) as Object,
 				)) {
 					const parsed =
-						typeof value === 'object'
+						typeof value === "object"
 							? JSON.stringify(value)
-							: typeof value === 'string'
+							: typeof value === "string"
 								? `'${value}'`
-								: value
+								: value;
 
 					if (parsed !== undefined)
-						fnLiteral += `c.params['${key}']??=${parsed}\n`
+						fnLiteral += `c.params['${key}']??=${parsed}\n`;
 				}
 
-			if (validator.params.provider === 'standard') {
+			if (validator.params.provider === "standard") {
 				fnLiteral +=
 					`let vap=validator.params.Check(c.params)\n` +
 					`if(vap instanceof Promise)vap=await vap\n` +
 					`if(vap.issues){` +
-					validation.validate('params', undefined, 'vap.issues') +
-					'}else{c.params=vap.value}\n'
+					validation.validate("params", undefined, "vap.issues") +
+					"}else{c.params=vap.value}\n";
 			} else if (validator.params?.schema?.noValidate !== true)
 				fnLiteral +=
 					`if(validator.params.Check(c.params)===false){` +
-					validation.validate('params') +
-					'}'
+					validation.validate("params") +
+					"}";
 
 			if (validator.params.hasTransform)
 				fnLiteral += coerceTransformDecodeError(
 					`c.params=validator.params.Decode(c.params)\n`,
-					'params',
-					allowUnsafeValidationDetails
-				)
+					"params",
+					allowUnsafeValidationDetails,
+				);
 		}
 
 		if (validator.query) {
 			if (Kind in validator.query?.schema && validator.query.hasDefault)
 				for (const [key, value] of Object.entries(
 					Value.Default(
-						// @ts-ignore
+						// @ts-expect-error
 						validator.query.schema,
-						{}
-					) as Object
+						{},
+					) as Object,
 				)) {
 					const parsed =
-						typeof value === 'object'
+						typeof value === "object"
 							? JSON.stringify(value)
-							: typeof value === 'string'
+							: typeof value === "string"
 								? `'${value}'`
-								: value
+								: value;
 
 					if (parsed !== undefined)
-						fnLiteral += `if(c.query['${key}']===undefined)c.query['${key}']=${parsed}\n`
+						fnLiteral += `if(c.query['${key}']===undefined)c.query['${key}']=${parsed}\n`;
 				}
 
 			fnLiteral += composeCleaner({
-				name: 'c.query',
+				name: "c.query",
 				schema: validator.query,
-				type: 'query',
-				normalize
-			})
+				type: "query",
+				normalize,
+			});
 
-			if (validator.query.isOptional)
-				fnLiteral += `if(isNotEmpty(c.query)){`
+			if (validator.query.isOptional) fnLiteral += `if(isNotEmpty(c.query)){`;
 
-			if (validator.query.provider === 'standard') {
+			if (validator.query.provider === "standard") {
 				fnLiteral +=
 					`let vaq=validator.query.Check(c.query)\n` +
 					`if(vaq instanceof Promise)vaq=await vaq\n` +
 					`if(vaq.issues){` +
-					validation.validate('query', undefined, 'vaq.issues') +
-					'}else{c.query=vaq.value}\n'
+					validation.validate("query", undefined, "vaq.issues") +
+					"}else{c.query=vaq.value}\n";
 			} else if (validator.query?.schema?.noValidate !== true)
 				fnLiteral +=
 					`if(validator.query.Check(c.query)===false){` +
-					validation.validate('query') +
-					`}`
+					validation.validate("query") +
+					`}`;
 
 			if (validator.query.hasTransform) {
 				// TypeBox Decode only work with single Decode at the time
@@ -1372,140 +1346,139 @@ export const composeHandler = ({
 				// For query, we decode it twice to ensure that it works
 				fnLiteral += coerceTransformDecodeError(
 					`c.query=validator.query.Decode(c.query)\n`,
-					'query',
-					allowUnsafeValidationDetails
-				)
+					"query",
+					allowUnsafeValidationDetails,
+				);
 				fnLiteral += coerceTransformDecodeError(
 					`c.query=validator.query.Decode(c.query)\n`,
-					'query',
-					allowUnsafeValidationDetails
-				)
+					"query",
+					allowUnsafeValidationDetails,
+				);
 			}
 
-			if (validator.query.isOptional) fnLiteral += `}`
+			if (validator.query.isOptional) fnLiteral += `}`;
 		}
 
 		if (hasBody && validator.body) {
 			if (validator.body.hasTransform || validator.body.isOptional)
-				fnLiteral += `const isNotEmptyObject=c.body&&(typeof c.body==="object"&&(isNotEmpty(c.body)||c.body instanceof ArrayBuffer))\n`
+				fnLiteral += `const isNotEmptyObject=c.body&&(typeof c.body==="object"&&(isNotEmpty(c.body)||c.body instanceof ArrayBuffer))\n`;
 
-			const hasUnion = isUnion(validator.body.schema)
-			let hasNonUnionFileWithDefault = false
+			const hasUnion = isUnion(validator.body.schema);
+			let hasNonUnionFileWithDefault = false;
 
 			if (validator.body.hasDefault) {
 				let value = Value.Default(
 					validator.body.schema,
-					validator.body.schema.type === 'object' ||
-						unwrapImportSchema(validator.body.schema)[Kind] ===
-							'Object'
+					validator.body.schema.type === "object" ||
+						unwrapImportSchema(validator.body.schema)[Kind] === "Object"
 						? {}
-						: undefined
-				)
+						: undefined,
+				);
 
-				const schema = unwrapImportSchema(validator.body.schema)
+				const schema = unwrapImportSchema(validator.body.schema);
 
 				if (
 					!hasUnion &&
 					value &&
-					typeof value === 'object' &&
-					(hasType('File', schema) || hasType('Files', schema))
+					typeof value === "object" &&
+					(hasType("File", schema) || hasType("Files", schema))
 				) {
-					hasNonUnionFileWithDefault = true
+					hasNonUnionFileWithDefault = true;
 
 					for (const [k, v] of Object.entries(value))
-						if (v === 'File' || v === 'Files')
-							// @ts-ignore
-							delete value[k]
+						if (v === "File" || v === "Files")
+							// @ts-expect-error
+							delete value[k];
 
-					if (!isNotEmpty(value)) value = undefined
+					if (!isNotEmpty(value)) value = undefined;
 				}
 
 				const parsed =
-					typeof value === 'object'
+					typeof value === "object"
 						? JSON.stringify(value)
-						: typeof value === 'string'
+						: typeof value === "string"
 							? `'${value}'`
-							: value
+							: value;
 
 				if (value !== undefined && value !== null) {
 					if (Array.isArray(value))
-						fnLiteral += `if(!c.body)c.body=${parsed}\n`
-					else if (typeof value === 'object')
-						fnLiteral += `c.body=Object.assign(${parsed},c.body)\n`
-					else fnLiteral += `c.body=${parsed}\n`
+						fnLiteral += `if(!c.body)c.body=${parsed}\n`;
+					else if (typeof value === "object")
+						fnLiteral += `c.body=Object.assign(${parsed},c.body)\n`;
+					else fnLiteral += `c.body=${parsed}\n`;
 				}
 
 				fnLiteral += composeCleaner({
-					name: 'c.body',
+					name: "c.body",
 					schema: validator.body,
-					type: 'body',
-					normalize
-				})
+					type: "body",
+					normalize,
+				});
 
-				if (validator.body.provider === 'standard') {
+				if (validator.body.provider === "standard") {
 					fnLiteral +=
 						`let vab=validator.body.Check(c.body)\n` +
 						`if(vab instanceof Promise)vab=await vab\n` +
 						`if(vab.issues){` +
-						validation.validate('body', undefined, 'vab.issues') +
-						'}else{c.body=vab.value}\n'
+						validation.validate("body", undefined, "vab.issues") +
+						"}else{c.body=vab.value}\n";
 				} else if (validator.body?.schema?.noValidate !== true) {
 					if (validator.body.isOptional)
 						fnLiteral +=
 							`if(isNotEmptyObject&&validator.body.Check(c.body)===false){` +
-							validation.validate('body') +
-							'}'
+							validation.validate("body") +
+							"}";
 					else
 						fnLiteral +=
 							`if(validator.body.Check(c.body)===false){` +
-							validation.validate('body') +
-							`}`
+							validation.validate("body") +
+							`}`;
 				}
 			} else {
 				fnLiteral += composeCleaner({
-					name: 'c.body',
+					name: "c.body",
 					schema: validator.body,
-					type: 'body',
-					normalize
-				})
+					type: "body",
+					normalize,
+				});
 
-				if (validator.body.provider === 'standard') {
+				if (validator.body.provider === "standard") {
 					fnLiteral +=
 						`let vab=validator.body.Check(c.body)\n` +
 						`if(vab instanceof Promise)vab=await vab\n` +
 						`if(vab.issues){` +
-						validation.validate('body', undefined, 'vab.issues') +
-						'}else{c.body=vab.value}\n'
+						validation.validate("body", undefined, "vab.issues") +
+						"}else{c.body=vab.value}\n";
 				} else if (validator.body?.schema?.noValidate !== true) {
 					if (validator.body.isOptional)
 						fnLiteral +=
 							`if(isNotEmptyObject&&validator.body.Check(c.body)===false){` +
-							validation.validate('body') +
-							'}'
+							validation.validate("body") +
+							"}";
 					else
 						fnLiteral +=
 							`if(validator.body.Check(c.body)===false){` +
-							validation.validate('body') +
-							'}'
+							validation.validate("body") +
+							"}";
 				}
 			}
 
 			if (validator.body.hasTransform)
 				fnLiteral += coerceTransformDecodeError(
 					`if(isNotEmptyObject)c.body=validator.body.Decode(c.body)\n`,
-					'body',
-					allowUnsafeValidationDetails
-				)
+					"body",
+					allowUnsafeValidationDetails,
+				);
 
 			if (hasUnion && validator.body.schema.anyOf?.length) {
 				const iterator = Object.values(
-					validator.body.schema.anyOf
-				) as TAnySchema[]
+					validator.body.schema.anyOf,
+				) as TAnySchema[];
 
 				for (let i = 0; i < iterator.length; i++) {
-					const type = iterator[i]
+					const type = iterator[i];
 
-					if (hasType('File', type) || hasType('Files', type)) {
+					if (hasType("File", type) || hasType("Files", type)) {
 						const candidate = getSchemaValidator(type, {
 							// @ts-expect-error private property
 							modules: app.definitions.typebox,
@@ -1514,53 +1487,50 @@ export const composeHandler = ({
 							models: app.definitions.type,
 							normalize: app.config.normalize,
 							additionalCoerce: coercePrimitiveRoot(),
-							sanitize: () => app.config.sanitize
-						})
+							sanitize: () => app.config.sanitize,
+						});
 
 						if (candidate) {
-							const isFirst = fileUnions.length === 0
+							const isFirst = fileUnions.length === 0;
 							// Handle case where schema is wrapped in a Union/Intersect (e.g., ObjectString coercion)
 							const properties =
 								getSchemaProperties(candidate.schema) ??
-								getSchemaProperties(type)
+								getSchemaProperties(type);
 
-							if (!properties) continue
+							if (!properties) continue;
 
 							const iterator = Object.entries(properties) as [
 								string,
-								TSchema
-							][]
+								TSchema,
+							][];
 
-							let validator = isFirst ? '\n' : ' else '
-							validator += `if(fileUnions[${fileUnions.length}].Check(c.body)){`
+							let validator = isFirst ? "\n" : " else ";
+							validator += `if(fileUnions[${fileUnions.length}].Check(c.body)){`;
 
-							let validateFile = ''
-							let validatorLength = 0
+							let validateFile = "";
+							let validatorLength = 0;
 							for (let i = 0; i < iterator.length; i++) {
-								const [k, v] = iterator[i]
+								const [k, v] = iterator[i];
 
-								if (
-									!v.extension ||
-									(v[Kind] !== 'File' && v[Kind] !== 'Files')
-								)
-									continue
+								if (!v.extension || (v[Kind] !== "File" && v[Kind] !== "Files"))
+									continue;
 
-								if (validatorLength) validateFile += ','
-								validateFile += `fileType(c.body.${k},${JSON.stringify(v.extension)},'body.${k}')`
+								if (validatorLength) validateFile += ",";
+								validateFile += `fileType(c.body.${k},${JSON.stringify(v.extension)},'body.${k}')`;
 
-								validatorLength++
+								validatorLength++;
 							}
 
 							if (validateFile) {
 								if (validatorLength === 1)
-									validator += `await ${validateFile}\n`
+									validator += `await ${validateFile}\n`;
 								else if (validatorLength > 1)
-									validator += `await Promise.all([${validateFile}])\n`
+									validator += `await Promise.all([${validateFile}])\n`;
 
-								validator += '}'
+								validator += "}";
 
-								fnLiteral += validator
-								fileUnions.push(candidate)
+								fnLiteral += validator;
+								fileUnions.push(candidate);
 							}
 						}
 					}
@@ -1568,45 +1538,35 @@ export const composeHandler = ({
 			} else if (
 				hasNonUnionFileWithDefault ||
 				(!hasUnion &&
-					(hasType(
-						'File',
-						unwrapImportSchema(validator.body.schema)
-					) ||
-						hasType(
-							'Files',
-							unwrapImportSchema(validator.body.schema)
-						)))
+					(hasType("File", unwrapImportSchema(validator.body.schema)) ||
+						hasType("Files", unwrapImportSchema(validator.body.schema))))
 			) {
-				let validateFile = ''
+				let validateFile = "";
 
 				const bodyProperties = getSchemaProperties(
-					unwrapImportSchema(validator.body.schema)
-				)
+					unwrapImportSchema(validator.body.schema),
+				);
 
-				let i = 0
+				let i = 0;
 				if (bodyProperties) {
 					for (const [k, v] of Object.entries(bodyProperties) as [
 						string,
-						TSchema
+						TSchema,
 					][]) {
-						if (
-							!v.extension ||
-							(v[Kind] !== 'File' && v[Kind] !== 'Files')
-						)
-							continue
+						if (!v.extension || (v[Kind] !== "File" && v[Kind] !== "Files"))
+							continue;
 
-						if (i) validateFile += ','
-						validateFile += `fileType(c.body.${k},${JSON.stringify(v.extension)},'body.${k}')`
+						if (i) validateFile += ",";
+						validateFile += `fileType(c.body.${k},${JSON.stringify(v.extension)},'body.${k}')`;
 
-						i++
+						i++;
 					}
 				}
 
-				if (i) fnLiteral += '\n'
+				if (i) fnLiteral += "\n";
 
-				if (i === 1) fnLiteral += `await ${validateFile}\n`
-				else if (i > 1)
-					fnLiteral += `await Promise.all([${validateFile}])\n`
+				if (i === 1) fnLiteral += `await ${validateFile}\n`;
+				else if (i > 1) fnLiteral += `await Promise.all([${validateFile}])\n`;
 			}
 		}
 
@@ -1614,80 +1574,79 @@ export const composeHandler = ({
 			// ! Get latest app.config.cookie
 			validator.cookie.config = mergeCookie(
 				validator.cookie.config,
-				app.config.cookie ?? {}
-			)
+				app.config.cookie ?? {},
+			);
 
 			fnLiteral +=
 				`let cookieValue={}\n` +
 				`for(const [key,value] of Object.entries(c.cookie))` +
-				`cookieValue[key]=value.value\n`
+				`cookieValue[key]=value.value\n`;
 
-			if (validator.cookie.isOptional)
-				fnLiteral += `if(isNotEmpty(c.cookie)){`
+			if (validator.cookie.isOptional) fnLiteral += `if(isNotEmpty(c.cookie)){`;
 
-			if (validator.cookie.provider === 'standard') {
+			if (validator.cookie.provider === "standard") {
 				fnLiteral +=
 					`let vac=validator.cookie.Check(cookieValue)\n` +
 					`if(vac instanceof Promise)vac=await vac\n` +
 					`if(vac.issues){` +
-					validation.validate('cookie', undefined, 'vac.issues') +
-					'}else{cookieValue=vac.value}\n'
+					validation.validate("cookie", undefined, "vac.issues") +
+					"}else{cookieValue=vac.value}\n";
 
 				fnLiteral +=
 					`for(const k of Object.keys(cookieValue))` +
-					`c.cookie[k].value=cookieValue[k]\n`
+					`c.cookie[k].value=cookieValue[k]\n`;
 			} else if (validator.body?.schema?.noValidate !== true) {
 				fnLiteral +=
 					`if(validator.cookie.Check(cookieValue)===false){` +
-					validation.validate('cookie', 'cookieValue') +
-					'}'
+					validation.validate("cookie", "cookieValue") +
+					"}";
 
 				if (validator.cookie.hasTransform)
 					fnLiteral += coerceTransformDecodeError(
 						`for(const [key,value] of Object.entries(validator.cookie.Decode(cookieValue))){` +
 							`c.cookie[key].cookie.value = value` +
 							`}`,
-						'cookie',
-						allowUnsafeValidationDetails
-					)
+						"cookie",
+						allowUnsafeValidationDetails,
+					);
 			}
 
-			if (validator.cookie.isOptional) fnLiteral += `}`
+			if (validator.cookie.isOptional) fnLiteral += `}`;
 		}
 	}
 
 	if (hooks?.beforeHandle || hasTrace) {
-		const reporter = report('beforeHandle', {
-			total: hooks.beforeHandle?.length
-		})
+		const reporter = report("beforeHandle", {
+			total: hooks.beforeHandle?.length,
+		});
 
-		let hasResolve = false
+		let hasResolve = false;
 
 		if (hooks.beforeHandle?.length) {
 			for (let i = 0; i < hooks.beforeHandle.length; i++) {
-				const beforeHandle = hooks.beforeHandle[i]
+				const beforeHandle = hooks.beforeHandle[i];
 
-				const endUnit = reporter.resolveChild(beforeHandle.fn.name)
+				const endUnit = reporter.resolveChild(beforeHandle.fn.name);
 
-				const returning = hasReturn(beforeHandle)
+				const returning = hasReturn(beforeHandle);
 				const isResolver =
-					beforeHandle.subType === 'resolve' ||
-					beforeHandle.subType === 'mapResolve'
+					beforeHandle.subType === "resolve" ||
+					beforeHandle.subType === "mapResolve";
 
 				if (isResolver) {
 					if (!hasResolve) {
-						hasResolve = true
-						fnLiteral += '\nlet resolved\n'
+						hasResolve = true;
+						fnLiteral += "\nlet resolved\n";
 					}
 
 					fnLiteral += isAsync(beforeHandle)
 						? `resolved=await e.beforeHandle[${i}](c);\n`
-						: `resolved=e.beforeHandle[${i}](c);\n`
+						: `resolved=e.beforeHandle[${i}](c);\n`;
 
-					if (beforeHandle.subType === 'mapResolve')
+					if (beforeHandle.subType === "mapResolve")
 						fnLiteral +=
 							`if(resolved instanceof ElysiaCustomStatusResponse){` +
-							mapResponse('resolved') +
+							mapResponse("resolved") +
 							`}else{` +
 							`resolved.request=c.request\n` +
 							`resolved.store=c.store\n` +
@@ -1698,272 +1657,261 @@ export const composeHandler = ({
 							`resolved.set=c.set\n` +
 							`resolved.error=c.error\n` +
 							`c=resolved` +
-							`}`
+							`}`;
 					else
 						fnLiteral +=
 							`if(resolved instanceof ElysiaCustomStatusResponse){` +
-							mapResponse('resolved') +
+							mapResponse("resolved") +
 							`}` +
-							`else Object.assign(c, resolved)\n`
+							`else Object.assign(c, resolved)\n`;
 
-					endUnit()
+					endUnit();
 				} else if (!returning) {
 					fnLiteral += isAsync(beforeHandle)
 						? `await e.beforeHandle[${i}](c)\n`
-						: `e.beforeHandle[${i}](c)\n`
+						: `e.beforeHandle[${i}](c)\n`;
 
-					endUnit()
+					endUnit();
 				} else {
 					fnLiteral += isAsync(beforeHandle)
 						? `be=await e.beforeHandle[${i}](c)\n`
-						: `be=e.beforeHandle[${i}](c)\n`
+						: `be=e.beforeHandle[${i}](c)\n`;
 
-					endUnit('be')
+					endUnit("be");
 
-					fnLiteral += `if(be!==undefined){`
-					reporter.resolve()
+					fnLiteral += `if(be!==undefined){`;
+					reporter.resolve();
 
 					if (hooks.afterHandle?.length || hasTrace) {
-						report('handle', {
-							name: isHandleFn
-								? (handler as Function).name
-								: undefined
-						}).resolve()
+						report("handle", {
+							name: isHandleFn ? (handler as Function).name : undefined,
+						}).resolve();
 
-						const reporter = report('afterHandle', {
-							total: hooks.afterHandle?.length
-						})
+						const reporter = report("afterHandle", {
+							total: hooks.afterHandle?.length,
+						});
 
 						if (hooks.afterHandle?.length) {
 							for (let i = 0; i < hooks.afterHandle.length; i++) {
-								const hook = hooks.afterHandle[i]
-								const returning = hasReturn(hook)
-								const endUnit = reporter.resolveChild(
-									hook.fn.name
-								)
+								const hook = hooks.afterHandle[i];
+								const returning = hasReturn(hook);
+								const endUnit = reporter.resolveChild(hook.fn.name);
 
-								fnLiteral += `c.response=c.responseValue=be\n`
+								fnLiteral += `c.response=c.responseValue=be\n`;
 
 								if (!returning) {
 									fnLiteral += isAsync(hook.fn)
 										? `await e.afterHandle[${i}](c, be)\n`
-										: `e.afterHandle[${i}](c, be)\n`
+										: `e.afterHandle[${i}](c, be)\n`;
 								} else {
 									fnLiteral += isAsync(hook.fn)
 										? `af=await e.afterHandle[${i}](c)\n`
-										: `af=e.afterHandle[${i}](c)\n`
+										: `af=e.afterHandle[${i}](c)\n`;
 
-									fnLiteral += `if(af!==undefined) c.response=c.responseValue=be=af\n`
+									fnLiteral += `if(af!==undefined) c.response=c.responseValue=be=af\n`;
 								}
 
-								endUnit('af')
+								endUnit("af");
 							}
 						}
-						reporter.resolve()
+						reporter.resolve();
 					}
 
-					if (validator.response)
-						fnLiteral += validation.response('be')
+					if (validator.response) fnLiteral += validation.response("be");
 
-					const mapResponseReporter = report('mapResponse', {
-						total: hooks.mapResponse?.length
-					})
+					const mapResponseReporter = report("mapResponse", {
+						total: hooks.mapResponse?.length,
+					});
 
 					if (hooks.mapResponse?.length) {
-						fnLiteral += `c.response=c.responseValue=be\n`
+						fnLiteral += `c.response=c.responseValue=be\n`;
 
 						for (let i = 0; i < hooks.mapResponse.length; i++) {
-							const mapResponse = hooks.mapResponse[i]
+							const mapResponse = hooks.mapResponse[i];
 
 							const endUnit = mapResponseReporter.resolveChild(
-								mapResponse.fn.name
-							)
+								mapResponse.fn.name,
+							);
 
 							fnLiteral +=
 								`if(mr===undefined){` +
-								`mr=${isAsyncName(mapResponse) ? 'await ' : ''}e.mapResponse[${i}](c)\n` +
+								`mr=${isAsyncName(mapResponse) ? "await " : ""}e.mapResponse[${i}](c)\n` +
 								`if(mr!==undefined)be=c.response=c.responseValue=mr` +
-								'}'
+								"}";
 
-							endUnit()
+							endUnit();
 						}
 					}
 
-					mapResponseReporter.resolve()
+					mapResponseReporter.resolve();
 
-					fnLiteral += afterResponse()
+					fnLiteral += afterResponse();
 
-					fnLiteral += encodeCookie()
+					fnLiteral += encodeCookie();
 					fnLiteral += `return mapEarlyResponse(${saveResponse}be,c.set${
 						mapResponseContext
-					})}\n`
+					})}\n`;
 				}
 			}
 		}
 
-		reporter.resolve()
+		reporter.resolve();
 	}
 
 	function reportHandler(name: string | undefined) {
-		const handleReporter = report('handle', {
+		const handleReporter = report("handle", {
 			name,
-			alias: 'reportHandler'
-		})
+			alias: "reportHandler",
+		});
 
 		return () => {
 			if (hasTrace) {
 				fnLiteral +=
 					`if(r&&(r[Symbol.iterator]||r[Symbol.asyncIterator])&&typeof r.next==="function"){` +
-					(maybeAsync ? '' : `(async()=>{`) +
+					(maybeAsync ? "" : `(async()=>{`) +
 					`const stream=await tee(r,3)\n` +
 					`r=stream[0]\n` +
-					(hooks.afterHandle?.length
-						? `c.response=c.responseValue=r\n`
-						: '') +
+					(hooks.afterHandle?.length ? `c.response=c.responseValue=r\n` : "") +
 					`const listener=stream[1]\n` +
 					(hasTrace || hooks.afterResponse?.length
 						? `afterHandlerStreamListener=stream[2]\n`
-						: '') +
+						: "") +
 					`${setImmediateFn}(async ()=>{` +
-					`if(listener)for await(const v of listener){}\n`
-				handleReporter.resolve()
-				fnLiteral += `})` + (maybeAsync ? '' : `})()`) + `}else{`
-				handleReporter.resolve()
-				fnLiteral += '}\n'
+					`if(listener)for await(const v of listener){}\n`;
+				handleReporter.resolve();
+				fnLiteral += `})` + (maybeAsync ? "" : `})()`) + `}else{`;
+				handleReporter.resolve();
+				fnLiteral += "}\n";
 			}
-		}
+		};
 	}
 
 	if (hooks.afterHandle?.length || hasTrace) {
 		const resolveHandler = reportHandler(
-			isHandleFn ? (handler as Function).name : undefined
-		)
+			isHandleFn ? (handler as Function).name : undefined,
+		);
 
 		if (hooks.afterHandle?.length)
 			fnLiteral += isAsyncHandler
 				? `let r=c.response=c.responseValue=await ${handle}\n`
-				: `let r=c.response=c.responseValue=${handle}\n`
+				: `let r=c.response=c.responseValue=${handle}\n`;
 		else
 			fnLiteral += isAsyncHandler
 				? `let r=await ${handle}\n`
-				: `let r=${handle}\n`
+				: `let r=${handle}\n`;
 
-		resolveHandler()
+		resolveHandler();
 
-		const reporter = report('afterHandle', {
-			total: hooks.afterHandle?.length
-		})
+		const reporter = report("afterHandle", {
+			total: hooks.afterHandle?.length,
+		});
 
 		if (hooks.afterHandle?.length) {
 			for (let i = 0; i < hooks.afterHandle.length; i++) {
-				const hook = hooks.afterHandle[i]
-				const returning = hasReturn(hook)
-				const endUnit = reporter.resolveChild(hook.fn.name)
+				const hook = hooks.afterHandle[i];
+				const returning = hasReturn(hook);
+				const endUnit = reporter.resolveChild(hook.fn.name);
 
 				if (!returning) {
 					fnLiteral += isAsync(hook.fn)
 						? `await e.afterHandle[${i}](c)\n`
-						: `e.afterHandle[${i}](c)\n`
+						: `e.afterHandle[${i}](c)\n`;
 
-					endUnit()
+					endUnit();
 				} else {
 					fnLiteral += isAsync(hook.fn)
 						? `af=await e.afterHandle[${i}](c)\n`
-						: `af=e.afterHandle[${i}](c)\n`
+						: `af=e.afterHandle[${i}](c)\n`;
 
-					endUnit('af')
+					endUnit("af");
 
 					if (validator.response) {
-						fnLiteral += `if(af!==undefined){`
-						reporter.resolve()
+						fnLiteral += `if(af!==undefined){`;
+						reporter.resolve();
 
-						fnLiteral += validation.response('af')
+						fnLiteral += validation.response("af");
 
-						fnLiteral += `c.response=c.responseValue=af}`
+						fnLiteral += `c.response=c.responseValue=af}`;
 					} else {
-						fnLiteral += `if(af!==undefined){`
-						reporter.resolve()
+						fnLiteral += `if(af!==undefined){`;
+						reporter.resolve();
 
-						fnLiteral += `c.response=c.responseValue=af}`
+						fnLiteral += `c.response=c.responseValue=af}`;
 					}
 				}
 			}
 		}
 
-		reporter.resolve()
+		reporter.resolve();
 
-		if (hooks.afterHandle?.length) fnLiteral += `r=c.response\n`
+		if (hooks.afterHandle?.length) fnLiteral += `r=c.response\n`;
 
-		if (validator.response) fnLiteral += validation.response()
+		if (validator.response) fnLiteral += validation.response();
 
-		fnLiteral += encodeCookie()
+		fnLiteral += encodeCookie();
 
-		const mapResponseReporter = report('mapResponse', {
-			total: hooks.mapResponse?.length
-		})
+		const mapResponseReporter = report("mapResponse", {
+			total: hooks.mapResponse?.length,
+		});
 		if (hooks.mapResponse?.length) {
 			for (let i = 0; i < hooks.mapResponse.length; i++) {
-				const mapResponse = hooks.mapResponse[i]
+				const mapResponse = hooks.mapResponse[i];
 
-				const endUnit = mapResponseReporter.resolveChild(
-					mapResponse.fn.name
-				)
+				const endUnit = mapResponseReporter.resolveChild(mapResponse.fn.name);
 
 				fnLiteral +=
 					`mr=${
-						isAsyncName(mapResponse) ? 'await ' : ''
+						isAsyncName(mapResponse) ? "await " : ""
 					}e.mapResponse[${i}](c)\n` +
-					`if(mr!==undefined)r=c.response=c.responseValue=mr\n`
+					`if(mr!==undefined)r=c.response=c.responseValue=mr\n`;
 
-				endUnit()
+				endUnit();
 			}
 		}
-		mapResponseReporter.resolve()
+		mapResponseReporter.resolve();
 
-		fnLiteral += mapResponse()
+		fnLiteral += mapResponse();
 	} else {
 		const resolveHandler = reportHandler(
-			isHandleFn ? (handler as Function).name : undefined
-		)
+			isHandleFn ? (handler as Function).name : undefined,
+		);
 
 		if (validator.response || hooks.mapResponse?.length || hasTrace) {
 			fnLiteral += isAsyncHandler
 				? `let r=await ${handle}\n`
-				: `let r=${handle}\n`
+				: `let r=${handle}\n`;
 
-			resolveHandler()
+			resolveHandler();
 
-			if (validator.response) fnLiteral += validation.response()
+			if (validator.response) fnLiteral += validation.response();
 
-			const mapResponseReporter = report('mapResponse', {
-				total: hooks.mapResponse?.length
-			})
+			const mapResponseReporter = report("mapResponse", {
+				total: hooks.mapResponse?.length,
+			});
 
 			if (hooks.mapResponse?.length) {
-				fnLiteral += '\nc.response=c.responseValue=r\n'
+				fnLiteral += "\nc.response=c.responseValue=r\n";
 
 				for (let i = 0; i < hooks.mapResponse.length; i++) {
-					const mapResponse = hooks.mapResponse[i]
+					const mapResponse = hooks.mapResponse[i];
 
-					const endUnit = mapResponseReporter.resolveChild(
-						mapResponse.fn.name
-					)
+					const endUnit = mapResponseReporter.resolveChild(mapResponse.fn.name);
 
 					fnLiteral +=
 						`\nif(mr===undefined){` +
-						`mr=${isAsyncName(mapResponse) ? 'await ' : ''}e.mapResponse[${i}](c)\n` +
+						`mr=${isAsyncName(mapResponse) ? "await " : ""}e.mapResponse[${i}](c)\n` +
 						`if(mr!==undefined)r=c.response=c.responseValue=mr` +
-						`}\n`
+						`}\n`;
 
-					endUnit()
+					endUnit();
 				}
 			}
-			mapResponseReporter.resolve()
+			mapResponseReporter.resolve();
 
-			fnLiteral += encodeCookie()
+			fnLiteral += encodeCookie();
 
 			if (handler instanceof Response) {
-				fnLiteral += afterResponse()
+				fnLiteral += afterResponse();
 
 				fnLiteral += inference.set
 					? `if(` +
@@ -1974,49 +1922,47 @@ export const composeHandler = ({
 							mapResponseContext
 						})\n` +
 						`else return ${handle}.clone()`
-					: `return ${handle}.clone()`
+					: `return ${handle}.clone()`;
 
-				fnLiteral += '\n'
-			} else fnLiteral += mapResponse()
+				fnLiteral += "\n";
+			} else fnLiteral += mapResponse();
 		} else if (hasCookie || hasTrace) {
 			fnLiteral += isAsyncHandler
 				? `let r=await ${handle}\n`
-				: `let r=${handle}\n`
+				: `let r=${handle}\n`;
 
-			resolveHandler()
+			resolveHandler();
 
-			const mapResponseReporter = report('mapResponse', {
-				total: hooks.mapResponse?.length
-			})
+			const mapResponseReporter = report("mapResponse", {
+				total: hooks.mapResponse?.length,
+			});
 			if (hooks.mapResponse?.length) {
-				fnLiteral += 'c.response=c.responseValue= r\n'
+				fnLiteral += "c.response=c.responseValue= r\n";
 
 				for (let i = 0; i < hooks.mapResponse.length; i++) {
-					const mapResponse = hooks.mapResponse[i]
+					const mapResponse = hooks.mapResponse[i];
 
-					const endUnit = mapResponseReporter.resolveChild(
-						mapResponse.fn.name
-					)
+					const endUnit = mapResponseReporter.resolveChild(mapResponse.fn.name);
 
 					fnLiteral +=
 						`if(mr===undefined){` +
-						`mr=${isAsyncName(mapResponse) ? 'await ' : ''}e.mapResponse[${i}](c)\n` +
+						`mr=${isAsyncName(mapResponse) ? "await " : ""}e.mapResponse[${i}](c)\n` +
 						`if(mr!==undefined)r=c.response=c.responseValue=mr` +
-						`}`
+						`}`;
 
-					endUnit()
+					endUnit();
 				}
 			}
-			mapResponseReporter.resolve()
+			mapResponseReporter.resolve();
 
-			fnLiteral += encodeCookie() + mapResponse()
+			fnLiteral += encodeCookie() + mapResponse();
 		} else {
-			resolveHandler()
+			resolveHandler();
 
-			const handled = isAsyncHandler ? `await ${handle}` : handle
+			const handled = isAsyncHandler ? `await ${handle}` : handle;
 
 			if (handler instanceof Response) {
-				fnLiteral += afterResponse()
+				fnLiteral += afterResponse();
 
 				fnLiteral += inference.set
 					? `if(isNotEmpty(c.set.headers)||` +
@@ -2027,104 +1973,100 @@ export const composeHandler = ({
 							mapResponseContext
 						})\n` +
 						`else return ${handle}.clone()\n`
-					: `return ${handle}.clone()\n`
-			} else fnLiteral += mapResponse(handled)
+					: `return ${handle}.clone()\n`;
+			} else fnLiteral += mapResponse(handled);
 		}
 	}
 
-	fnLiteral += `\n}catch(error){`
+	fnLiteral += `\n}catch(error){`;
 
-	if (!maybeAsync && hooks.error?.length) fnLiteral += `return(async()=>{`
+	if (!maybeAsync && hooks.error?.length) fnLiteral += `return(async()=>{`;
 	fnLiteral +=
 		`const set=c.set\n` +
-		`if(!set.status||set.status<300)set.status=error?.status||500\n`
+		`if(!set.status||set.status<300)set.status=error?.status||500\n`;
 
-	if (hasCookie) fnLiteral += encodeCookie()
+	if (hasCookie) fnLiteral += encodeCookie();
 
 	if (hasTrace && hooks.trace)
 		for (let i = 0; i < hooks.trace.length; i++)
 			// There's a case where the error is thrown before any trace is called
-			fnLiteral += `report${i}?.resolve(error);reportChild${i}?.(error)\n`
+			fnLiteral += `report${i}?.resolve(error);reportChild${i}?.(error)\n`;
 
-	const errorReporter = report('error', {
-		total: hooks.error?.length
-	})
+	const errorReporter = report("error", {
+		total: hooks.error?.length,
+	});
 
 	if (hooks.error?.length) {
-		fnLiteral += `c.error=error\n`
+		fnLiteral += `c.error=error\n`;
 
 		if (hasValidation)
 			fnLiteral +=
 				`if(error instanceof TypeBoxError){` +
 				'c.code="VALIDATION"\n' +
-				'c.set.status=422' +
-				'}else{' +
-				`c.code=error.code??error[ERROR_CODE]??"UNKNOWN"}`
-		else fnLiteral += `c.code=error.code??error[ERROR_CODE]??"UNKNOWN"\n`
+				"c.set.status=422" +
+				"}else{" +
+				`c.code=error.code??error[ERROR_CODE]??"UNKNOWN"}`;
+		else fnLiteral += `c.code=error.code??error[ERROR_CODE]??"UNKNOWN"\n`;
 
-		fnLiteral += `let er\n`
+		fnLiteral += `let er\n`;
 		// Mapped error Response
-		if (hooks.mapResponse?.length) fnLiteral += 'let mep\n'
+		if (hooks.mapResponse?.length) fnLiteral += "let mep\n";
 
 		for (let i = 0; i < hooks.error.length; i++) {
-			const endUnit = errorReporter.resolveChild(hooks.error[i].fn.name)
+			const endUnit = errorReporter.resolveChild(hooks.error[i].fn.name);
 
-			if (isAsync(hooks.error[i]))
-				fnLiteral += `er=await e.error[${i}](c)\n`
+			if (isAsync(hooks.error[i])) fnLiteral += `er=await e.error[${i}](c)\n`;
 			else
 				fnLiteral +=
-					`er=e.error[${i}](c)\n` +
-					`if(er instanceof Promise)er=await er\n`
+					`er=e.error[${i}](c)\n` + `if(er instanceof Promise)er=await er\n`;
 
-			endUnit()
+			endUnit();
 
 			if (hooks.mapResponse?.length) {
-				const mapResponseReporter = report('mapResponse', {
-					total: hooks.mapResponse?.length
-				})
+				const mapResponseReporter = report("mapResponse", {
+					total: hooks.mapResponse?.length,
+				});
 
 				for (let i = 0; i < hooks.mapResponse.length; i++) {
-					const mapResponse = hooks.mapResponse[i]
+					const mapResponse = hooks.mapResponse[i];
 
-					const endUnit = mapResponseReporter.resolveChild(
-						mapResponse.fn.name
-					)
+					const endUnit = mapResponseReporter.resolveChild(mapResponse.fn.name);
 
 					fnLiteral +=
 						`c.response=c.responseValue=er\n` +
 						`mep=e.mapResponse[${i}](c)\n` +
 						`if(mep instanceof Promise)mep=await mep\n` +
-						`if(mep!==undefined)er=mep\n`
+						`if(mep!==undefined)er=mep\n`;
 
-					endUnit()
+					endUnit();
 				}
-				mapResponseReporter.resolve()
+				mapResponseReporter.resolve();
 			}
 
-			fnLiteral += `er=mapEarlyResponse(er,set${mapResponseContext})\n`
-			fnLiteral += `if(er){`
+			fnLiteral += `er=mapEarlyResponse(er,set${mapResponseContext})\n`;
+			fnLiteral += `if(er){`;
 
 			if (hasTrace && hooks.trace) {
 				for (let i = 0; i < hooks.trace.length; i++)
-					fnLiteral += `report${i}.resolve()\n`
+					fnLiteral += `report${i}.resolve()\n`;
 
-				errorReporter.resolve()
+				errorReporter.resolve();
 			}
 
-			fnLiteral += afterResponse(false)
-			fnLiteral += `return er}`
+			fnLiteral += afterResponse(false);
+			fnLiteral += `return er}`;
 		}
 	}
 
-	errorReporter.resolve()
+	errorReporter.resolve();
 
-	fnLiteral += `return handleError(c,error,true)`
-	if (!maybeAsync && hooks.error?.length) fnLiteral += '})()'
-	fnLiteral += '}'
+	fnLiteral += `return handleError(c,error,true)`;
+	if (!maybeAsync && hooks.error?.length) fnLiteral += "})()";
+	fnLiteral += "}";
 
 	const adapterVariables = adapter.inject
-		? Object.keys(adapter.inject).join(',') + ','
-		: ''
+		? Object.keys(adapter.inject).join(",") + ","
+		: "";
 
 	let init =
 		`const {` +
@@ -2155,27 +2097,27 @@ export const composeHandler = ({
 		`ElysiaCustomStatusResponse,` +
 		allocateIf(`ELYSIA_TRACE,`, hasTrace) +
 		allocateIf(`ELYSIA_REQUEST_ID,`, hasTrace) +
-		allocateIf('parser,', hooks.parse?.length) +
+		allocateIf("parser,", hooks.parse?.length) +
 		allocateIf(`getServer,`, inference.server) +
 		allocateIf(`fileUnions,`, fileUnions.length) +
 		adapterVariables +
-		allocateIf('TypeBoxError', hasValidation) +
+		allocateIf("TypeBoxError", hasValidation) +
 		`}=hooks\n` +
 		`const trace=e.trace\n` +
-		`return ${maybeAsync ? 'async ' : ''}function handle(c){`
+		`return ${maybeAsync ? "async " : ""}function handle(c){`;
 
-	if (hooks.beforeHandle?.length) init += 'let be\n'
-	if (hooks.afterHandle?.length) init += 'let af\n'
-	if (hooks.mapResponse?.length) init += 'let mr\n'
-	if (allowMeta) init += 'c.schema=schema\nc.defs=definitions\n'
+	if (hooks.beforeHandle?.length) init += "let be\n";
+	if (hooks.afterHandle?.length) init += "let af\n";
+	if (hooks.mapResponse?.length) init += "let mr\n";
+	if (allowMeta) init += "c.schema=schema\nc.defs=definitions\n";
 
-	fnLiteral = init + fnLiteral + '}'
-	init = ''
+	fnLiteral = init + fnLiteral + "}";
+	init = "";
 
 	try {
 		return Function(
-			'hooks',
-			'"use strict";\n' + fnLiteral
+			"hooks",
+			'"use strict";\n' + fnLiteral,
 		)({
 			handler,
 			hooks: lifeCycleToFn(hooks),
@@ -2189,14 +2131,14 @@ export const composeHandler = ({
 			utils: {
 				parseQuery: hasBody ? parseQuery : undefined,
 				parseQueryFromURL: hasQuery
-					? validator.query?.provider === 'standard'
+					? validator.query?.provider === "standard"
 						? parseQueryStandardSchema
 						: parseQueryFromURL
-					: undefined
+					: undefined,
 			},
 			error: {
 				ValidationError: hasValidation ? ValidationError : undefined,
-				ParseError: hasBody ? ParseError : undefined
+				ParseError: hasBody ? ParseError : undefined,
 			},
 			fileType,
 			schema: app.router.history,
@@ -2215,58 +2157,49 @@ export const composeHandler = ({
 			getServer: inference.server ? () => app.getServer() : undefined,
 			fileUnions: fileUnions.length ? fileUnions : undefined,
 			TypeBoxError: hasValidation ? TypeBoxError : undefined,
-			parser: app['~parser'],
-			...adapter.inject
-		})
+			parser: app["~parser"],
+			...adapter.inject,
+		});
 	} catch (error) {
-		const debugHooks = lifeCycleToFn(hooks)
+		const debugHooks = lifeCycleToFn(hooks);
 
-		console.log('[Composer] failed to generate optimized handler')
-		console.log('---')
+		console.log("[Composer] failed to generate optimized handler");
+		console.log("---");
 		console.log({
-			handler:
-				typeof handler === 'function' ? handler.toString() : handler,
+			handler: typeof handler === "function" ? handler.toString() : handler,
 			instruction: fnLiteral,
 			hooks: {
 				...debugHooks,
-				// @ts-ignore
+				// @ts-expect-error
 				transform: debugHooks?.transform?.map?.((x) => x.toString()),
-				// @ts-ignore
+				// @ts-expect-error
 				resolve: debugHooks?.resolve?.map?.((x) => x.toString()),
-				// @ts-ignore
-				beforeHandle: debugHooks?.beforeHandle?.map?.((x) =>
-					x.toString()
-				),
-				// @ts-ignore
-				afterHandle: debugHooks?.afterHandle?.map?.((x) =>
-					x.toString()
-				),
-				// @ts-ignore
-				mapResponse: debugHooks?.mapResponse?.map?.((x) =>
-					x.toString()
-				),
-				// @ts-ignore
+				// @ts-expect-error
+				beforeHandle: debugHooks?.beforeHandle?.map?.((x) => x.toString()),
+				// @ts-expect-error
+				afterHandle: debugHooks?.afterHandle?.map?.((x) => x.toString()),
+				// @ts-expect-error
+				mapResponse: debugHooks?.mapResponse?.map?.((x) => x.toString()),
+				// @ts-expect-error
 				parse: debugHooks?.parse?.map?.((x) => x.toString()),
-				// @ts-ignore
+				// @ts-expect-error
 				error: debugHooks?.error?.map?.((x) => x.toString()),
-				// @ts-ignore
-				afterResponse: debugHooks?.afterResponse?.map?.((x) =>
-					x.toString()
-				),
-				// @ts-ignore
-				stop: debugHooks?.stop?.map?.((x) => x.toString())
+				// @ts-expect-error
+				afterResponse: debugHooks?.afterResponse?.map?.((x) => x.toString()),
+				// @ts-expect-error
+				stop: debugHooks?.stop?.map?.((x) => x.toString()),
 			},
 			validator,
 			// @ts-expect-error
 			definitions: app.definitions.type,
-			error
-		})
-		console.log('---')
+			error,
+		});
+		console.log("---");
 
-		if (typeof process?.exit === 'function') process.exit(1)
-		return () => new Response('Internal Server Error', { status: 500 })
+		if (typeof process?.exit === "function") process.exit(1);
+		return () => new Response("Internal Server Error", { status: 500 });
 	}
-}
+};
 
 export interface ComposerGeneralHandlerOptions {
 	/**
@@ -2278,93 +2211,93 @@ export interface ComposerGeneralHandlerOptions {
 	 *
 	 * @default true
 	 */
-	standardHostname?: boolean
+	standardHostname?: boolean;
 }
 
 export const createOnRequestHandler = (
 	app: AnyElysia,
-	addFn?: (word: string) => void
+	addFn?: (word: string) => void,
 ) => {
-	let fnLiteral = ''
+	let fnLiteral = "";
 
 	const report = createReport({
 		trace: app.event.trace,
 		addFn:
 			addFn ??
 			((word) => {
-				fnLiteral += word
-			})
-	})
+				fnLiteral += word;
+			}),
+	});
 
-	const reporter = report('request', {
-		total: app.event.request?.length
-	})
+	const reporter = report("request", {
+		total: app.event.request?.length,
+	});
 
 	if (app.event.request?.length) {
-		fnLiteral += `try{`
+		fnLiteral += `try{`;
 
 		for (let i = 0; i < app.event.request.length; i++) {
-			const hook = app.event.request[i]
-			const withReturn = hasReturn(hook)
-			const maybeAsync = isAsync(hook)
+			const hook = app.event.request[i];
+			const withReturn = hasReturn(hook);
+			const maybeAsync = isAsync(hook);
 
-			const endUnit = reporter.resolveChild(app.event.request[i].fn.name)
+			const endUnit = reporter.resolveChild(app.event.request[i].fn.name);
 
 			if (withReturn) {
 				fnLiteral +=
 					`re=mapEarlyResponse(` +
-					`${maybeAsync ? 'await ' : ''}onRequest[${i}](c),` +
-					`c.set)\n`
+					`${maybeAsync ? "await " : ""}onRequest[${i}](c),` +
+					`c.set)\n`;
 
-				endUnit('re')
-				fnLiteral += `if(re!==undefined)return re\n`
+				endUnit("re");
+				fnLiteral += `if(re!==undefined)return re\n`;
 			} else {
-				fnLiteral += `${maybeAsync ? 'await ' : ''}onRequest[${i}](c)\n`
-				endUnit()
+				fnLiteral += `${maybeAsync ? "await " : ""}onRequest[${i}](c)\n`;
+				endUnit();
 			}
 		}
 
-		fnLiteral += `}catch(error){return app.handleError(c,error,false)}`
+		fnLiteral += `}catch(error){return app.handleError(c,error,false)}`;
 	}
 
-	reporter.resolve()
+	reporter.resolve();
 
-	return fnLiteral
-}
+	return fnLiteral;
+};
 
-export const createHoc = (app: AnyElysia, fnName = 'map') => {
+export const createHoc = (app: AnyElysia, fnName = "map") => {
 	// @ts-expect-error private property
-	const hoc = app.extender.higherOrderFunctions
+	const hoc = app.extender.higherOrderFunctions;
 
-	if (!hoc.length) return 'return ' + fnName
+	if (!hoc.length) return "return " + fnName;
 
-	const adapter = app['~adapter'].composeGeneralHandler
-	let handler = fnName
+	const adapter = app["~adapter"].composeGeneralHandler;
+	let handler = fnName;
 
 	for (let i = 0; i < hoc.length; i++)
-		handler = `hoc[${i}](${handler},${adapter.parameters})`
+		handler = `hoc[${i}](${handler},${adapter.parameters})`;
 
-	return `return function hocMap(${adapter.parameters}){return ${handler}(${adapter.parameters})}`
-}
+	return `return function hocMap(${adapter.parameters}){return ${handler}(${adapter.parameters})}`;
+};
 
 export const composeGeneralHandler = (
-	app: AnyElysia
+	app: AnyElysia,
 ): ((request: Request) => MaybePromise<Response>) => {
-	const adapter = app['~adapter'].composeGeneralHandler
-	app.router.http.build()
+	const adapter = app["~adapter"].composeGeneralHandler;
+	app.router.http.build();
 
-	const isWebstandard = app['~adapter'].isWebStandard
-	const hasTrace = app.event.trace?.length
+	const isWebstandard = app["~adapter"].isWebStandard;
+	const hasTrace = app.event.trace?.length;
 
-	let fnLiteral = ''
+	let fnLiteral = "";
 
-	const router = app.router
+	const router = app.router;
 
 	let findDynamicRoute = router.http.root.WS
 		? `const route=router.find(r.method==='GET'&&r.headers.get('upgrade')==='websocket'?'WS':r.method,p)`
-		: `const route=router.find(r.method,p)`
+		: `const route=router.find(r.method,p)`;
 
-	findDynamicRoute += router.http.root.ALL ? `??router.find('ALL',p)\n` : '\n'
+	findDynamicRoute += router.http.root.ALL ? `??router.find('ALL',p)\n` : "\n";
 
 	if (isWebstandard)
 		findDynamicRoute +=
@@ -2382,110 +2315,109 @@ export const composeGeneralHandler = (
 			`})` +
 			`});` +
 			`}` +
-			`}`
+			`}`;
 
-	let afterResponse = `c.error=notFound\n`
+	let afterResponse = `c.error=notFound\n`;
 	if (app.event.afterResponse?.length && !app.event.error) {
-		afterResponse = '\nc.error=notFound\n'
+		afterResponse = "\nc.error=notFound\n";
 
-		const prefix = app.event.afterResponse.some(isAsync) ? 'async' : ''
+		const prefix = app.event.afterResponse.some(isAsync) ? "async" : "";
 		afterResponse +=
 			`\n${setImmediateFn}(${prefix}()=>{` +
-			`if(c.responseValue instanceof ElysiaCustomStatusResponse) c.set.status=c.responseValue.code\n`
+			`if(c.responseValue instanceof ElysiaCustomStatusResponse) c.set.status=c.responseValue.code\n`;
 
 		for (let i = 0; i < app.event.afterResponse.length; i++) {
-			const fn = app.event.afterResponse[i].fn
+			const fn = app.event.afterResponse[i].fn;
 
-			afterResponse += `\n${isAsyncName(fn) ? 'await ' : ''}afterResponse[${i}](c)\n`
+			afterResponse += `\n${isAsyncName(fn) ? "await " : ""}afterResponse[${i}](c)\n`;
 		}
 
-		afterResponse += `})\n`
+		afterResponse += `})\n`;
 	}
 
-	// @ts-ignore
+	// @ts-expect-error
 	if (app.inference.query)
 		afterResponse +=
-			'\nif(c.qi===-1){' +
-			'c.query={}' +
-			'}else{' +
-			'c.query=parseQueryFromURL(c.url,c.qi+1)' +
-			'}'
+			"\nif(c.qi===-1){" +
+			"c.query={}" +
+			"}else{" +
+			"c.query=parseQueryFromURL(c.url,c.qi+1)" +
+			"}";
 
 	const error404 = adapter.error404(
 		!!app.event.request?.length,
 		!!app.event.error?.length,
-		afterResponse
-	)
+		afterResponse,
+	);
 
-	findDynamicRoute += error404.code
+	findDynamicRoute += error404.code;
 
 	findDynamicRoute +=
 		`\nc.params=route.params\n` +
 		`if(route.store.handler)return route.store.handler(c)\n` +
-		`return route.store.compile()(c)\n`
+		`return route.store.compile()(c)\n`;
 
-	let switchMap = ''
+	let switchMap = "";
 	for (const [path, methods] of Object.entries(router.static)) {
-		switchMap += `case'${path}':`
+		switchMap += `case'${path}':`;
 
 		if (app.config.strictPath !== true)
-			switchMap += `case'${getLoosePath(path)}':`
+			switchMap += `case'${getLoosePath(path)}':`;
 
-		const encoded = encodePath(path)
-		if (path !== encoded) switchMap += `case'${encoded}':`
+		const encoded = encodePath(path);
+		if (path !== encoded) switchMap += `case'${encoded}':`;
 
-		switchMap += 'switch(r.method){'
+		switchMap += "switch(r.method){";
 
-		if ('GET' in methods || 'WS' in methods) {
-			switchMap += `case 'GET':`
+		if ("GET" in methods || "WS" in methods) {
+			switchMap += `case 'GET':`;
 
-			if ('WS' in methods) {
+			if ("WS" in methods) {
 				switchMap +=
 					`if(r.headers.get('upgrade')==='websocket')` +
-					`return ht[${methods.WS}].composed(c)\n`
+					`return ht[${methods.WS}].composed(c)\n`;
 
-				if ('GET' in methods === false) {
-					if ('ALL' in methods)
-						switchMap += `return ht[${methods.ALL}].composed(c)\n`
-					else switchMap += `break map\n`
+				if ("GET" in methods === false) {
+					if ("ALL" in methods)
+						switchMap += `return ht[${methods.ALL}].composed(c)\n`;
+					else switchMap += `break map\n`;
 				}
 			}
 
-			if ('GET' in methods)
-				switchMap += `return ht[${methods.GET}].composed(c)\n`
+			if ("GET" in methods)
+				switchMap += `return ht[${methods.GET}].composed(c)\n`;
 		}
 
 		if (
 			isWebstandard &&
-			('GET' in methods || 'ALL' in methods) &&
-			'HEAD' in methods === false
+			("GET" in methods || "ALL" in methods) &&
+			"HEAD" in methods === false
 		)
 			switchMap +=
 				`case 'HEAD':` +
 				`return Promise.resolve(ht[${methods.GET ?? methods.ALL}].composed(c)).then(_ht=>getResponseLength(_ht).then((length)=>{` +
 				`_ht.headers.set('content-length', length)\n` +
 				`return new Response(null,{status:_ht.status,statusText:_ht.statusText,headers:_ht.headers})\n` +
-				`}))\n`
+				`}))\n`;
 
 		for (const [method, index] of Object.entries(methods)) {
-			if (method === 'ALL' || method === 'GET' || method === 'WS')
-				continue
+			if (method === "ALL" || method === "GET" || method === "WS") continue;
 
-			switchMap += `case '${method}':return ht[${index}].composed(c)\n`
+			switchMap += `case '${method}':return ht[${index}].composed(c)\n`;
 		}
 
-		if ('ALL' in methods)
-			switchMap += `default:return ht[${methods.ALL}].composed(c)\n`
-		else switchMap += `default:break map\n`
+		if ("ALL" in methods)
+			switchMap += `default:return ht[${methods.ALL}].composed(c)\n`;
+		else switchMap += `default:break map\n`;
 
-		switchMap += '}'
+		switchMap += "}";
 	}
 
-	const maybeAsync = !!app.event.request?.some(isAsync)
+	const maybeAsync = !!app.event.request?.some(isAsync);
 
 	const adapterVariables = adapter.inject
-		? Object.keys(adapter.inject).join(',') + ','
-		: ''
+		? Object.keys(adapter.inject).join(",") + ","
+		: "";
 
 	fnLiteral +=
 		`\nconst {` +
@@ -2498,7 +2430,7 @@ export const composeGeneralHandler = (
 		`redirect,` +
 		`getResponseLength,` +
 		`ElysiaCustomStatusResponse,` +
-		// @ts-ignore
+		// @ts-expect-error
 		allocateIf(`parseQueryFromURL,`, app.inference.query) +
 		allocateIf(`ELYSIA_TRACE,`, hasTrace) +
 		allocateIf(`ELYSIA_REQUEST_ID,`, hasTrace) +
@@ -2511,53 +2443,53 @@ export const composeGeneralHandler = (
 		`const router=app.router.http\n` +
 		`const trace=app.event.trace?.map(x=>typeof x==='function'?x:x.fn)??[]\n` +
 		`const notFound=new NotFoundError()\n` +
-		`const hoc=app.extender.higherOrderFunctions.map(x=>x.fn)\n`
+		`const hoc=app.extender.higherOrderFunctions.map(x=>x.fn)\n`;
 
 	if (app.event.request?.length)
-		fnLiteral += `const onRequest=app.event.request.map(x=>x.fn)\n`
+		fnLiteral += `const onRequest=app.event.request.map(x=>x.fn)\n`;
 
 	if (app.event.afterResponse?.length)
-		fnLiteral += `const afterResponse=app.event.afterResponse.map(x=>x.fn)\n`
+		fnLiteral += `const afterResponse=app.event.afterResponse.map(x=>x.fn)\n`;
 
-	fnLiteral += error404.declare
+	fnLiteral += error404.declare;
 
 	if (app.event.trace?.length)
 		fnLiteral +=
 			`const ` +
 			app.event.trace
 				.map((_, i) => `tr${i}=app.event.trace[${i}].fn`)
-				.join(',') +
-			'\n'
+				.join(",") +
+			"\n";
 
-	fnLiteral += `${maybeAsync ? 'async ' : ''}function map(${adapter.parameters}){`
+	fnLiteral += `${maybeAsync ? "async " : ""}function map(${adapter.parameters}){`;
 
-	if (app.event.request?.length) fnLiteral += `let re\n`
+	if (app.event.request?.length) fnLiteral += `let re\n`;
 
-	fnLiteral += adapter.createContext(app)
+	fnLiteral += adapter.createContext(app);
 
 	if (app.event.trace?.length)
 		fnLiteral +=
 			`c[ELYSIA_TRACE]=[` +
-			app.event.trace.map((_, i) => `tr${i}(c)`).join(',') +
-			`]\n`
+			app.event.trace.map((_, i) => `tr${i}(c)`).join(",") +
+			`]\n`;
 
-	fnLiteral += createOnRequestHandler(app)
+	fnLiteral += createOnRequestHandler(app);
 
-	if (switchMap) fnLiteral += `\nmap: switch(p){\n` + switchMap + `}`
+	if (switchMap) fnLiteral += `\nmap: switch(p){\n` + switchMap + `}`;
 
-	fnLiteral += findDynamicRoute + `}\n` + createHoc(app)
+	fnLiteral += findDynamicRoute + `}\n` + createHoc(app);
 
-	const handleError = composeErrorHandler(app)
+	const handleError = composeErrorHandler(app);
 
 	// @ts-expect-error private property
-	app.handleError = handleError
+	app.handleError = handleError;
 
 	const fn = Function(
-		'data',
-		'"use strict";\n' + fnLiteral
+		"data",
+		'"use strict";\n' + fnLiteral,
 	)({
 		app,
-		mapEarlyResponse: app['~adapter']['handler'].mapEarlyResponse,
+		mapEarlyResponse: app["~adapter"]["handler"].mapEarlyResponse,
 		NotFoundError,
 		randomId,
 		handleError,
@@ -2565,28 +2497,28 @@ export const composeGeneralHandler = (
 		redirect,
 		getResponseLength,
 		ElysiaCustomStatusResponse,
-		// @ts-ignore
+		// @ts-expect-error
 		parseQueryFromURL: app.inference.query ? parseQueryFromURL : undefined,
 		ELYSIA_TRACE: hasTrace ? ELYSIA_TRACE : undefined,
 		ELYSIA_REQUEST_ID: hasTrace ? ELYSIA_REQUEST_ID : undefined,
-		...adapter.inject
-	})
+		...adapter.inject,
+	});
 
-	if (isBun) Bun.gc(false)
+	if (isBun) Bun.gc(false);
 
-	return fn
-}
+	return fn;
+};
 
 export const composeErrorHandler = (app: AnyElysia) => {
-	const hooks = app.event
-	let fnLiteral = ''
+	const hooks = app.event;
+	let fnLiteral = "";
 
-	const adapter = app['~adapter'].composeError
+	const adapter = app["~adapter"].composeError;
 	const adapterVariables = adapter.inject
-		? Object.keys(adapter.inject).join(',') + ','
-		: ''
+		? Object.keys(adapter.inject).join(",") + ","
+		: "";
 
-	const hasTrace = !!app.event.trace?.length
+	const hasTrace = !!app.event.trace?.length;
 
 	fnLiteral +=
 		`const {` +
@@ -2602,58 +2534,58 @@ export const composeErrorHandler = (app: AnyElysia) => {
 		allocateIf(`ELYSIA_TRACE,`, hasTrace) +
 		allocateIf(`ELYSIA_REQUEST_ID,`, hasTrace) +
 		adapterVariables +
-		`}=inject\n`
+		`}=inject\n`;
 
 	// Always make error handler async since toResponse() may return promises
-	fnLiteral += `return async function(context,error,skipGlobal){`
+	fnLiteral += `return async function(context,error,skipGlobal){`;
 
-	fnLiteral += ''
+	fnLiteral += "";
 
-	if (hasTrace) fnLiteral += 'const id=context[ELYSIA_REQUEST_ID]\n'
+	if (hasTrace) fnLiteral += "const id=context[ELYSIA_REQUEST_ID]\n";
 
 	const report = createReport({
-		context: 'context',
+		context: "context",
 		trace: hooks.trace,
 		addFn: (word) => {
-			fnLiteral += word
-		}
-	})
+			fnLiteral += word;
+		},
+	});
 
 	const afterResponse = () => {
-		if (!hooks.afterResponse?.length && !hasTrace) return ''
+		if (!hooks.afterResponse?.length && !hasTrace) return "";
 
-		let afterResponse = ''
-		const prefix = hooks.afterResponse?.some(isAsync) ? 'async' : ''
-		afterResponse += `\n${setImmediateFn}(${prefix}()=>{`
+		let afterResponse = "";
+		const prefix = hooks.afterResponse?.some(isAsync) ? "async" : "";
+		afterResponse += `\n${setImmediateFn}(${prefix}()=>{`;
 
 		const reporter = createReport({
-			context: 'context',
+			context: "context",
 			trace: hooks.trace,
 			addFn: (word) => {
-				afterResponse += word
-			}
-		})('afterResponse', {
+				afterResponse += word;
+			},
+		})("afterResponse", {
 			total: hooks.afterResponse?.length,
-			name: 'context'
-		})
+			name: "context",
+		});
 
 		if (hooks.afterResponse?.length && hooks.afterResponse) {
 			for (let i = 0; i < hooks.afterResponse.length; i++) {
-				const fn = hooks.afterResponse[i].fn
-				const endUnit = reporter.resolveChild(fn.name)
+				const fn = hooks.afterResponse[i].fn;
+				const endUnit = reporter.resolveChild(fn.name);
 
-				afterResponse += `\n${isAsyncName(fn) ? 'await ' : ''}afterResponse[${i}](context)\n`
+				afterResponse += `\n${isAsyncName(fn) ? "await " : ""}afterResponse[${i}](context)\n`;
 
-				endUnit()
+				endUnit();
 			}
 		}
 
-		reporter.resolve()
+		reporter.resolve();
 
-		afterResponse += `})\n`
+		afterResponse += `})\n`;
 
-		return afterResponse
-	}
+		return afterResponse;
+	};
 
 	fnLiteral +=
 		`const set=context.set\n` +
@@ -2663,12 +2595,12 @@ export const composeErrorHandler = (app: AnyElysia) => {
 		`if(error instanceof ElysiaCustomStatusResponse){` +
 		`set.status=error.status=error.code\n` +
 		`error.message=error.response` +
-		`}`
+		`}`;
 
-	if (adapter.declare) fnLiteral += adapter.declare
+	if (adapter.declare) fnLiteral += adapter.declare;
 
 	const saveResponse =
-		hasTrace || !!hooks.afterResponse?.length ? 'context.response = ' : ''
+		hasTrace || !!hooks.afterResponse?.length ? "context.response = " : "";
 
 	fnLiteral +=
 		`if(typeof error?.toResponse==='function'&&!(error instanceof ValidationError)&&!(error instanceof TransformDecodeError)){` +
@@ -2679,17 +2611,17 @@ export const composeErrorHandler = (app: AnyElysia) => {
 		`context.response=context.responseValue=raw\n` +
 		`}catch(toResponseError){\n` +
 		`}\n` +
-		`}\n`
+		`}\n`;
 
 	if (app.event.error)
 		for (let i = 0; i < app.event.error.length; i++) {
-			const handler = app.event.error[i]
+			const handler = app.event.error[i];
 
 			const response = `${
-				isAsync(handler) ? 'await ' : ''
-			}onError[${i}](context)\n`
+				isAsync(handler) ? "await " : ""
+			}onError[${i}](context)\n`;
 
-			fnLiteral += 'if(skipGlobal!==true&&!context.response){'
+			fnLiteral += "if(skipGlobal!==true&&!context.response){";
 
 			if (hasReturn(handler)) {
 				fnLiteral +=
@@ -2701,37 +2633,37 @@ export const composeErrorHandler = (app: AnyElysia) => {
 					`error.status=error.code\n` +
 					`error.message=error.response` +
 					`}` +
-					`if(set.status===200||!set.status)set.status=error.status\n`
+					`if(set.status===200||!set.status)set.status=error.status\n`;
 
-				const mapResponseReporter = report('mapResponse', {
+				const mapResponseReporter = report("mapResponse", {
 					total: hooks.mapResponse?.length,
-					name: 'context'
-				})
+					name: "context",
+				});
 
 				if (hooks.mapResponse?.length) {
 					for (let i = 0; i < hooks.mapResponse.length; i++) {
-						const mapResponse = hooks.mapResponse[i]
+						const mapResponse = hooks.mapResponse[i];
 
 						const endUnit = mapResponseReporter.resolveChild(
-							mapResponse.fn.name
-						)
+							mapResponse.fn.name,
+						);
 
 						fnLiteral +=
 							`context.response=context.responseValue=_r\n` +
-							`_r=${isAsyncName(mapResponse) ? 'await ' : ''}onMapResponse[${i}](context)\n`
+							`_r=${isAsyncName(mapResponse) ? "await " : ""}onMapResponse[${i}](context)\n`;
 
-						endUnit()
+						endUnit();
 					}
 				}
 
-				mapResponseReporter.resolve()
+				mapResponseReporter.resolve();
 
 				fnLiteral +=
 					afterResponse() +
-					`return mapResponse(${saveResponse}_r,set${adapter.mapResponseContext})}`
-			} else fnLiteral += response
+					`return mapResponse(${saveResponse}_r,set${adapter.mapResponseContext})}`;
+			} else fnLiteral += response;
 
-			fnLiteral += '}'
+			fnLiteral += "}";
 		}
 
 	fnLiteral +=
@@ -2740,56 +2672,54 @@ export const composeErrorHandler = (app: AnyElysia) => {
 		`set.status=error.status??422\n` +
 		afterResponse() +
 		adapter.validationError +
-		`\n}\n`
+		`\n}\n`;
 
 	fnLiteral +=
 		`if(!context.response&&error instanceof Error){` +
 		afterResponse() +
 		adapter.unknownError +
-		`\n}`
+		`\n}`;
 
-	const mapResponseReporter = report('mapResponse', {
+	const mapResponseReporter = report("mapResponse", {
 		total: hooks.mapResponse?.length,
-		name: 'context'
-	})
+		name: "context",
+	});
 
 	fnLiteral +=
-		'\nif(!context.response)context.response=context.responseValue=error.message??error\n'
+		"\nif(!context.response)context.response=context.responseValue=error.message??error\n";
 
 	if (hooks.mapResponse?.length) {
-		fnLiteral += 'let mr\n'
+		fnLiteral += "let mr\n";
 
 		for (let i = 0; i < hooks.mapResponse.length; i++) {
-			const mapResponse = hooks.mapResponse[i]
+			const mapResponse = hooks.mapResponse[i];
 
-			const endUnit = mapResponseReporter.resolveChild(
-				mapResponse.fn.name
-			)
+			const endUnit = mapResponseReporter.resolveChild(mapResponse.fn.name);
 
 			fnLiteral +=
 				`if(mr===undefined){` +
-				`mr=${isAsyncName(mapResponse) ? 'await ' : ''}onMapResponse[${i}](context)\n` +
+				`mr=${isAsyncName(mapResponse) ? "await " : ""}onMapResponse[${i}](context)\n` +
 				`if(mr!==undefined)error=context.response=context.responseValue=mr` +
-				'}'
+				"}";
 
-			endUnit()
+			endUnit();
 		}
 	}
 
-	mapResponseReporter.resolve()
+	mapResponseReporter.resolve();
 
 	fnLiteral +=
 		afterResponse() +
-		`\nreturn mapResponse(${saveResponse}error,set${adapter.mapResponseContext})}`
+		`\nreturn mapResponse(${saveResponse}error,set${adapter.mapResponseContext})}`;
 
 	const mapFn = (x: Function | HookContainer) =>
-		typeof x === 'function' ? x : x.fn
+		typeof x === "function" ? x : x.fn;
 
 	return Function(
-		'inject',
-		'"use strict";\n' + fnLiteral
+		"inject",
+		'"use strict";\n' + fnLiteral,
 	)({
-		mapResponse: app['~adapter'].handler.mapResponse,
+		mapResponse: app["~adapter"].handler.mapResponse,
 		ERROR_CODE,
 		ElysiaCustomStatusResponse,
 		ValidationError,
@@ -2800,6 +2730,6 @@ export const composeErrorHandler = (app: AnyElysia) => {
 		onMapResponse: app.event.mapResponse?.map(mapFn),
 		ELYSIA_TRACE: hasTrace ? ELYSIA_TRACE : undefined,
 		ELYSIA_REQUEST_ID: hasTrace ? ELYSIA_REQUEST_ID : undefined,
-		...adapter.inject
-	})
-}
+		...adapter.inject,
+	});
+};

@@ -1,15 +1,15 @@
-import { Elysia } from '../src'
+import { Elysia } from "../src";
 
 new Elysia()
-	.get('/', ({ set }) => {
-		set.headers['X-POWERED-BY'] = 'Elysia'
+	.get("/", ({ set }) => {
+		set.headers["X-POWERED-BY"] = "Elysia";
 
 		// Return custom response
-		return new Response('Shuba Shuba', {
+		return new Response("Shuba Shuba", {
 			headers: {
-				duck: 'shuba duck'
+				duck: "shuba duck",
 			},
-			status: 418
-		})
+			status: 418,
+		});
 	})
-	.listen(3000)
+	.listen(3000);

@@ -1,28 +1,28 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { describe, it, expect } from 'bun:test'
-import { Elysia } from '../../src'
-import { req } from '../utils'
+import { describe, expect, it } from "bun:test";
+import { Elysia } from "../../src";
+import { req } from "../utils";
 
-describe('HOC', () => {
-	it('work', async () => {
-		let called = 0
+describe("HOC", () => {
+	it("work", async () => {
+		let called = 0;
 
 		const app = new Elysia()
 			.wrap((fn) => {
-				called++
+				called++;
 
-				return fn
+				return fn;
 			})
-			.get('/', () => 'ok')
+			.get("/", () => "ok");
 
-		await app.handle(req('/'))
+		await app.handle(req("/"));
 
-		expect(called).toBe(1)
-	})
+		expect(called).toBe(1);
+	});
 
-	it('deduplicate', async () => {
-		const plugin = new Elysia().wrap((fn) => fn)
-		const plugin2 = new Elysia({ name: 'plugin2' }).wrap((fn) => fn)
+	it("deduplicate", async () => {
+		const plugin = new Elysia().wrap((fn) => fn);
+		const plugin2 = new Elysia({ name: "plugin2" }).wrap((fn) => fn);
 
 		const app = new Elysia()
 			.use(plugin)
@@ -30,9 +30,9 @@ describe('HOC', () => {
 			.use(plugin)
 			.use(plugin2)
 			.use(plugin2)
-			.get('/', () => 'ok')
+			.get("/", () => "ok");
 
 		// @ts-expect-error
-		expect(app.extender.higherOrderFunctions.length).toBe(2)
-	})
-})
+		expect(app.extender.higherOrderFunctions.length).toBe(2);
+	});
+});

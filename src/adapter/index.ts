@@ -1,1 +1,1 @@
-export type { ElysiaAdapter } from './types'
+export type { ElysiaAdapter } from "./types";

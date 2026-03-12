@@ -1,531 +1,530 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+
+import { describe, expect, it } from "bun:test";
+import * as z from "zod";
 import {
 	Elysia,
 	InternalServerError,
 	ParseError,
-	ValidationError,
 	t,
-	validationDetail
-} from '../../src'
-import { describe, expect, it } from 'bun:test'
-import { post, req } from '../utils'
-import * as z from 'zod'
+	ValidationError,
+	validationDetail,
+} from "../../src";
+import { post, req } from "../utils";
 
-describe('error', () => {
-	it('use custom 404', async () => {
+describe("error", () => {
+	it("use custom 404", async () => {
 		const app = new Elysia()
-			.get('/', () => 'hello')
+			.get("/", () => "hello")
 			.onError(({ code, set }) => {
-				if (code === 'NOT_FOUND') {
-					set.status = 404
+				if (code === "NOT_FOUND") {
+					set.status = 404;
 
-					return 'UwU'
+					return "UwU";
 				}
-			})
+			});
 
-		const root = await app.handle(req('/')).then((x) => x.text())
-		const notFound = await app
-			.handle(req('/not/found'))
-			.then((x) => x.text())
+		const root = await app.handle(req("/")).then((x) => x.text());
+		const notFound = await app.handle(req("/not/found")).then((x) => x.text());
 
-		expect(root).toBe('hello')
-		expect(notFound).toBe('UwU')
-	})
+		expect(root).toBe("hello");
+		expect(notFound).toBe("UwU");
+	});
 
-	it('handle parse error', async () => {
+	it("handle parse error", async () => {
 		const app = new Elysia()
 			.onError(({ code }) => {
-				if (code === 'PARSE') return 'Why you no proper type'
+				if (code === "PARSE") return "Why you no proper type";
 			})
-			.post('/', () => {
-				throw new ParseError()
-			})
+			.post("/", () => {
+				throw new ParseError();
+			});
 
 		const root = await app.handle(
-			new Request('http://localhost/', {
-				method: 'POST',
-				body: 'A',
+			new Request("http://localhost/", {
+				method: "POST",
+				body: "A",
 				headers: {
-					'content-type': 'application/json'
-				}
-			})
-		)
+					"content-type": "application/json",
+				},
+			}),
+		);
 
-		expect(await root.text()).toBe('Why you no proper type')
-		expect(root.status).toBe(400)
-	})
+		expect(await root.text()).toBe("Why you no proper type");
+		expect(root.status).toBe(400);
+	});
 
-	it('custom validation error', async () => {
+	it("custom validation error", async () => {
 		const app = new Elysia()
 			.onError(({ code, error, set }) => {
-				if (code === 'VALIDATION') {
-					set.status = 400
+				if (code === "VALIDATION") {
+					set.status = 400;
 
 					return error.all.map((i) =>
 						i.summary
 							? {
-									filed: i.path.slice(1) || 'root',
-									reason: i.message
+									filed: i.path.slice(1) || "root",
+									reason: i.message,
 								}
-							: {}
-					)
+							: {},
+					);
 				}
 			})
-			.post('/login', ({ body }) => body, {
+			.post("/login", ({ body }) => body, {
 				body: t.Object({
 					username: t.String(),
-					password: t.String()
-				})
-			})
+					password: t.String(),
+				}),
+			});
 
-		const res = await app.handle(post('/login', {}))
-		const data = await res.json()
+		const res = await app.handle(post("/login", {}));
+		const data = await res.json();
 
-		expect(data).toBeArray()
-		expect(res.status).toBe(400)
-	})
+		expect(data).toBeArray();
+		expect(res.status).toBe(400);
+	});
 
-	it('inherits plugin', async () => {
-		const plugin = new Elysia().onError({ as: 'global' }, () => 'hi')
+	it("inherits plugin", async () => {
+		const plugin = new Elysia().onError({ as: "global" }, () => "hi");
 
-		const app = new Elysia().use(plugin).get('/', () => {
-			throw new Error('')
-		})
+		const app = new Elysia().use(plugin).get("/", () => {
+			throw new Error("");
+		});
 
-		const res = await app.handle(req('/')).then((t) => t.text())
-		expect(res).toBe('hi')
-	})
+		const res = await app.handle(req("/")).then((t) => t.text());
+		expect(res).toBe("hi");
+	});
 
-	it('not inherits plugin on local', async () => {
-		const plugin = new Elysia().onError(() => 'hi')
+	it("not inherits plugin on local", async () => {
+		const plugin = new Elysia().onError(() => "hi");
 
-		const app = new Elysia().use(plugin).get('/', () => {
-			throw new Error('')
-		})
+		const app = new Elysia().use(plugin).get("/", () => {
+			throw new Error("");
+		});
 
-		const res = await app.handle(req('/')).then((t) => t.text())
-		expect(res).not.toBe('hi')
-	})
+		const res = await app.handle(req("/")).then((t) => t.text());
+		expect(res).not.toBe("hi");
+	});
 
-	it('custom 500', async () => {
+	it("custom 500", async () => {
 		const app = new Elysia()
 			.onError(({ code }) => {
-				if (code === 'INTERNAL_SERVER_ERROR') {
-					return 'UwU'
+				if (code === "INTERNAL_SERVER_ERROR") {
+					return "UwU";
 				}
 			})
-			.get('/', () => {
-				throw new InternalServerError()
-			})
+			.get("/", () => {
+				throw new InternalServerError();
+			});
 
-		const response = await app.handle(req('/'))
+		const response = await app.handle(req("/"));
 
-		expect(await response.text()).toBe('UwU')
-		expect(response.status).toBe(500)
-	})
+		expect(await response.text()).toBe("UwU");
+		expect(response.status).toBe(500);
+	});
 
-	it.each([true, false])(
-		'return correct number status on error function with aot: %p',
-		async (aot) => {
-			const app = new Elysia({ aot }).get('/', ({ status }) =>
-				status(418, 'I am a teapot')
-			)
+	it.each([
+		true,
+		false,
+	])("return correct number status on error function with aot: %p", async (aot) => {
+		const app = new Elysia({ aot }).get("/", ({ status }) =>
+			status(418, "I am a teapot"),
+		);
 
-			const response = await app.handle(req('/'))
+		const response = await app.handle(req("/"));
 
-			expect(response.status).toBe(418)
-		}
-	)
+		expect(response.status).toBe(418);
+	});
 
-	it.each([true, false])(
-		'return correct named status on error function with aot: %p',
-		async (aot) => {
-			const app = new Elysia({ aot }).get('/', ({ status }) =>
-				status("I'm a teapot", 'I am a teapot')
-			)
+	it.each([
+		true,
+		false,
+	])("return correct named status on error function with aot: %p", async (aot) => {
+		const app = new Elysia({ aot }).get("/", ({ status }) =>
+			status("I'm a teapot", "I am a teapot"),
+		);
 
-			const response = await app.handle(req('/'))
+		const response = await app.handle(req("/"));
 
-			expect(response.status).toBe(418)
-		}
-	)
+		expect(response.status).toBe(418);
+	});
 
-	it.each([true, false])(
-		'return correct number status without value on error function with aot: %p',
-		async (aot) => {
-			const app = new Elysia({ aot }).get('/', ({ status }) => status(418))
+	it.each([
+		true,
+		false,
+	])("return correct number status without value on error function with aot: %p", async (aot) => {
+		const app = new Elysia({ aot }).get("/", ({ status }) => status(418));
 
-			const response = await app.handle(req('/'))
+		const response = await app.handle(req("/"));
 
-			expect(response.status).toBe(418)
-			expect(await response.text()).toBe("I'm a teapot")
-		}
-	)
+		expect(response.status).toBe(418);
+		expect(await response.text()).toBe("I'm a teapot");
+	});
 
-	it.each([true, false])(
-		'return correct named status without value on error function with aot: %p',
-		async (aot) => {
-			const app = new Elysia({ aot }).get('/', ({ status }) =>
-				status("I'm a teapot")
-			)
+	it.each([
+		true,
+		false,
+	])("return correct named status without value on error function with aot: %p", async (aot) => {
+		const app = new Elysia({ aot }).get("/", ({ status }) =>
+			status("I'm a teapot"),
+		);
 
-			const response = await app.handle(req('/'))
+		const response = await app.handle(req("/"));
 
-			expect(response.status).toBe(418)
-			expect(await response.text()).toBe("I'm a teapot")
-		}
-	)
+		expect(response.status).toBe(418);
+		expect(await response.text()).toBe("I'm a teapot");
+	});
 
-	it('handle error in order', async () => {
-		let order = <string[]>[]
+	it("handle error in order", async () => {
+		const order = <string[]>[];
 
 		const app = new Elysia()
 			.onError(() => {
-				order.push('A')
+				order.push("A");
 			})
 			.onError(() => {
-				order.push('B')
+				order.push("B");
 			})
-			.get('/', () => {
-				throw new Error('A')
-			})
+			.get("/", () => {
+				throw new Error("A");
+			});
 
-		await app.handle(req('/'))
+		await app.handle(req("/"));
 
-		expect(order).toEqual(['A', 'B'])
-	})
+		expect(order).toEqual(["A", "B"]);
+	});
 
-	it('as global', async () => {
-		const called = <string[]>[]
+	it("as global", async () => {
+		const called = <string[]>[];
 
 		const plugin = new Elysia()
-			.onError({ as: 'global' }, ({ path }) => {
-				called.push(path)
+			.onError({ as: "global" }, ({ path }) => {
+				called.push(path);
 
-				return {}
+				return {};
 			})
-			.get('/inner', () => {
-				throw new Error('A')
-			})
+			.get("/inner", () => {
+				throw new Error("A");
+			});
 
-		const app = new Elysia().use(plugin).get('/outer', () => {
-			throw new Error('A')
-		})
+		const app = new Elysia().use(plugin).get("/outer", () => {
+			throw new Error("A");
+		});
 
 		const res = await Promise.all([
-			app.handle(req('/inner')),
-			app.handle(req('/outer'))
-		])
+			app.handle(req("/inner")),
+			app.handle(req("/outer")),
+		]);
 
-		expect(called).toEqual(['/inner', '/outer'])
-	})
+		expect(called).toEqual(["/inner", "/outer"]);
+	});
 
-	it('as local', async () => {
-		const called = <string[]>[]
+	it("as local", async () => {
+		const called = <string[]>[];
 
 		const plugin = new Elysia()
-			.onError({ as: 'local' }, ({ path }) => {
-				called.push(path)
+			.onError({ as: "local" }, ({ path }) => {
+				called.push(path);
 
-				return {}
+				return {};
 			})
-			.get('/inner', () => {
-				throw new Error('A')
-			})
+			.get("/inner", () => {
+				throw new Error("A");
+			});
 
-		const app = new Elysia().use(plugin).get('/outer', () => {
-			throw new Error('A')
-		})
+		const app = new Elysia().use(plugin).get("/outer", () => {
+			throw new Error("A");
+		});
 
 		const res = await Promise.all([
-			app.handle(req('/inner')),
-			app.handle(req('/outer'))
-		])
+			app.handle(req("/inner")),
+			app.handle(req("/outer")),
+		]);
 
-		expect(called).toEqual(['/inner'])
-	})
+		expect(called).toEqual(["/inner"]);
+	});
 
-	it('support array', async () => {
-		let total = 0
+	it("support array", async () => {
+		let total = 0;
 
 		const app = new Elysia()
 			.onAfterHandle([
 				() => {
-					total++
+					total++;
 				},
 				() => {
-					total++
-				}
+					total++;
+				},
 			])
-			.get('/', () => 'NOOP')
+			.get("/", () => "NOOP");
 
-		const res = await app.handle(req('/'))
+		const res = await app.handle(req("/"));
 
-		expect(total).toEqual(2)
-	})
+		expect(total).toEqual(2);
+	});
 
-	it('handle custom error thrown in onRequest', async () => {
+	it("handle custom error thrown in onRequest", async () => {
 		class SomeCustomError extends Error {
 			asJSON() {
 				return JSON.stringify({
-					somePretty: 'json'
-				})
+					somePretty: "json",
+				});
 			}
 		}
 
 		const app = new Elysia()
 			.onError(({ error }) => {
-				if (error instanceof SomeCustomError) return error.asJSON()
+				if (error instanceof SomeCustomError) return error.asJSON();
 			})
 			.onRequest(() => {
-				throw new SomeCustomError()
+				throw new SomeCustomError();
 			})
-			.get('/', () => '')
+			.get("/", () => "");
 
 		const body = await app
-			.handle(new Request('https://localhost/'))
-			.then((x) => x.json())
+			.handle(new Request("https://localhost/"))
+			.then((x) => x.json());
 
 		expect(body).toEqual({
-			somePretty: 'json'
-		})
-	})
+			somePretty: "json",
+		});
+	});
 
-	it('handle cookie signature error', async () => {
+	it("handle cookie signature error", async () => {
 		const app = new Elysia({
-			cookie: { secrets: 'secrets', sign: ['session'] }
+			cookie: { secrets: "secrets", sign: ["session"] },
 		})
 			.onError(({ code, error }) => {
-				if (code === 'INVALID_COOKIE_SIGNATURE')
-					return 'Where is the signature?'
+				if (code === "INVALID_COOKIE_SIGNATURE")
+					return "Where is the signature?";
 			})
-			.get('/', ({ cookie: { session } }) => '')
+			.get("/", ({ cookie: { session } }) => "");
 
 		const root = await app.handle(
-			new Request('http://localhost/', {
+			new Request("http://localhost/", {
 				headers: {
-					Cookie: 'session=1234'
-				}
-			})
-		)
+					Cookie: "session=1234",
+				},
+			}),
+		);
 
-		expect(await root.text()).toBe('Where is the signature?')
-		expect(root.status).toBe(400)
-	})
+		expect(await root.text()).toBe("Where is the signature?");
+		expect(root.status).toBe(400);
+	});
 
 	it("don't duplicate error from plugin", async () => {
-		let i = 0
+		let i = 0;
 
 		const plugin = new Elysia()
 			.onError(() => {
-				i++
+				i++;
 			})
-			.get('/', ({ status }) => {
-				throw status(401)
-			})
+			.get("/", ({ status }) => {
+				throw status(401);
+			});
 
-		const app = new Elysia().use(plugin)
+		const app = new Elysia().use(plugin);
 
-		const response = await app.handle(req('/'))
-		expect(response.status).toBe(401)
-		expect(await response.text()).toBe('Unauthorized')
-		expect(i).toBe(1)
-	})
+		const response = await app.handle(req("/"));
+		expect(response.status).toBe(401);
+		expect(await response.text()).toBe("Unauthorized");
+		expect(i).toBe(1);
+	});
 
-	it('404 should parse query if infer', async () => {
-		const app = new Elysia().onError(({ query }) => query)
+	it("404 should parse query if infer", async () => {
+		const app = new Elysia().onError(({ query }) => query);
 
 		const response = await app.handle(
-			new Request('http://localhost?hello=world')
-		)
+			new Request("http://localhost?hello=world"),
+		);
 
-		expect(response.status).toBe(404)
-		expect(await response.json()).toEqual({ hello: 'world' })
-	})
+		expect(response.status).toBe(404);
+		expect(await response.json()).toEqual({ hello: "world" });
+	});
 
-	it('handle inline custom error message', async () => {
-		const app = new Elysia().post('/', () => 'Hello World!', {
+	it("handle inline custom error message", async () => {
+		const app = new Elysia().post("/", () => "Hello World!", {
 			body: t.Object({
 				x: t.Number({
-					error: 'x must be a number'
-				})
-			})
-		})
+					error: "x must be a number",
+				}),
+			}),
+		});
 
 		const response = await app.handle(
-			new Request('http://localhost', {
-				method: 'POST',
-				body: JSON.stringify({ x: 'hi!' }),
+			new Request("http://localhost", {
+				method: "POST",
+				body: JSON.stringify({ x: "hi!" }),
 				headers: {
-					'Content-Type': 'application/json'
-				}
-			})
-		)
+					"Content-Type": "application/json",
+				},
+			}),
+		);
 
-		expect(response.status).toBe(422)
+		expect(response.status).toBe(422);
 
-		const value = await response.text()
-		expect(value).toBe('x must be a number')
-	})
+		const value = await response.text();
+		expect(value).toBe("x must be a number");
+	});
 
-	it('handle inline custom error message with validationDetail', async () => {
-		const app = new Elysia().post('/', () => 'Hello World!', {
+	it("handle inline custom error message with validationDetail", async () => {
+		const app = new Elysia().post("/", () => "Hello World!", {
 			body: t.Object({
 				x: t.Number({
-					error: validationDetail('x must be a number')
-				})
-			})
-		})
+					error: validationDetail("x must be a number"),
+				}),
+			}),
+		});
 
 		const response = await app.handle(
-			new Request('http://localhost', {
-				method: 'POST',
-				body: JSON.stringify({ x: 'hi!' }),
+			new Request("http://localhost", {
+				method: "POST",
+				body: JSON.stringify({ x: "hi!" }),
 				headers: {
-					'Content-Type': 'application/json'
-				}
-			})
-		)
+					"Content-Type": "application/json",
+				},
+			}),
+		);
 
-		expect(response.status).toBe(422)
+		expect(response.status).toBe(422);
 
-		const value = (await response.json()) as Record<string, unknown>
-		expect(value.type).toBe('validation')
-		expect(value.message).toBe('x must be a number')
-	})
+		const value = (await response.json()) as Record<string, unknown>;
+		expect(value.type).toBe("validation");
+		expect(value.message).toBe("x must be a number");
+	});
 
-	it('handle custom error message globally', async () => {
+	it("handle custom error message globally", async () => {
 		const app = new Elysia()
 			.onError(({ error, code }) => {
-				if (code === 'VALIDATION') return error.detail(error.message)
+				if (code === "VALIDATION") return error.detail(error.message);
 			})
-			.post('/', () => 'Hello World!', {
+			.post("/", () => "Hello World!", {
 				body: t.Object({
 					x: t.Number({
-						error: 'x must be a number'
-					})
-				})
-			})
+						error: "x must be a number",
+					}),
+				}),
+			});
 
 		const response = await app.handle(
-			new Request('http://localhost', {
-				method: 'POST',
-				body: JSON.stringify({ x: 'hi!' }),
+			new Request("http://localhost", {
+				method: "POST",
+				body: JSON.stringify({ x: "hi!" }),
 				headers: {
-					'Content-Type': 'application/json'
-				}
-			})
-		)
+					"Content-Type": "application/json",
+				},
+			}),
+		);
 
-		expect(response.status).toBe(422)
+		expect(response.status).toBe(422);
 
-		const value = (await response.json()) as Record<string, unknown>
-		expect(value.type).toBe('validation')
-		expect(value.message).toBe('x must be a number')
-	})
+		const value = (await response.json()) as Record<string, unknown>;
+		expect(value.type).toBe("validation");
+		expect(value.message).toBe("x must be a number");
+	});
 
-	it('ValidationError.detail only handle custom error', async () => {
+	it("ValidationError.detail only handle custom error", async () => {
 		const app = new Elysia()
 			.onError(({ error, code }) => {
-				if (code === 'VALIDATION') return error.detail(error.message)
+				if (code === "VALIDATION") return error.detail(error.message);
 			})
-			.post('/', () => 'Hello World!', {
+			.post("/", () => "Hello World!", {
 				body: t.Object({
-					x: t.Number()
-				})
-			})
+					x: t.Number(),
+				}),
+			});
 
 		const response = await app.handle(
-			new Request('http://localhost', {
-				method: 'POST',
-				body: JSON.stringify({ x: 'hi!' }),
+			new Request("http://localhost", {
+				method: "POST",
+				body: JSON.stringify({ x: "hi!" }),
 				headers: {
-					'Content-Type': 'application/json'
-				}
-			})
-		)
+					"Content-Type": "application/json",
+				},
+			}),
+		);
 
-		expect(response.status).toBe(422)
+		expect(response.status).toBe(422);
 
-		const value = (await response.json()) as Record<string, unknown>
-		expect(value.type).toBe('validation')
-		expect(value.message).not.toStartWith('{')
-	})
+		const value = (await response.json()) as Record<string, unknown>;
+		expect(value.type).toBe("validation");
+		expect(value.message).not.toStartWith("{");
+	});
 
-	it('ValidationError.all works with Zod validators', async () => {
+	it("ValidationError.all works with Zod validators", async () => {
 		const app = new Elysia()
 			.onError(({ error, code }) => {
 				if (error instanceof ValidationError) {
-					const errors = error.all
+					const errors = error.all;
 
 					return {
-						message: 'Validation failed',
-						errors: errors
-					}
+						message: "Validation failed",
+						errors: errors,
+					};
 				}
 			})
-			.post('/login', ({ body }) => body, {
+			.post("/login", ({ body }) => body, {
 				body: z.object({
 					username: z.string(),
-					password: z.string()
-				})
-			})
+					password: z.string(),
+				}),
+			});
 
-		const res = await app.handle(post('/login', {}))
-		const data = (await res.json()) as any
+		const res = await app.handle(post("/login", {}));
+		const data = (await res.json()) as any;
 
-		expect(data).toHaveProperty('message', 'Validation failed')
-		expect(data).toHaveProperty('errors')
-		expect(data.errors).toBeArray()
-		expect(data.errors.length).toBeGreaterThan(0)
-		expect(res.status).toBe(422)
-	})
+		expect(data).toHaveProperty("message", "Validation failed");
+		expect(data).toHaveProperty("errors");
+		expect(data.errors).toBeArray();
+		expect(data.errors.length).toBeGreaterThan(0);
+		expect(res.status).toBe(422);
+	});
 
-	it('ValidationError.all provides error details with Zod validators', async () => {
+	it("ValidationError.all provides error details with Zod validators", async () => {
 		const app = new Elysia()
 			.onError(({ error, code }) => {
-				expect(code).toBe('VALIDATION')
+				expect(code).toBe("VALIDATION");
 				if (error instanceof ValidationError) {
-					const errors = error.all
+					const errors = error.all;
 
 					return {
-						message: 'Validation failed',
+						message: "Validation failed",
 						errors: errors.map((e: any) => ({
 							path: e.path,
 							message: e.message,
-							summary: e.summary
-						}))
-					}
+							summary: e.summary,
+						})),
+					};
 				}
 			})
-			.post('/user', ({ body }) => body, {
+			.post("/user", ({ body }) => body, {
 				body: z.object({
 					name: z.string().min(3),
 					email: z.string(),
-					age: z.number().min(18)
-				})
-			})
+					age: z.number().min(18),
+				}),
+			});
 
 		const res = await app.handle(
-			post('/user', {
-				name: 'ab',
-				email: 'invalid',
-				age: 10
-			})
-		)
-		const data = (await res.json()) as any
+			post("/user", {
+				name: "ab",
+				email: "invalid",
+				age: 10,
+			}),
+		);
+		const data = (await res.json()) as any;
 
-		expect(data).toHaveProperty('message', 'Validation failed')
-		expect(data).toHaveProperty('errors')
-		expect(data.errors).toBeArray()
-		expect(data.errors.length).toBeGreaterThan(0)
+		expect(data).toHaveProperty("message", "Validation failed");
+		expect(data).toHaveProperty("errors");
+		expect(data.errors).toBeArray();
+		expect(data.errors.length).toBeGreaterThan(0);
 
 		for (const error of data.errors) {
-			expect(error).toHaveProperty('path')
-			expect(error).toHaveProperty('message')
-			expect(error).toHaveProperty('summary')
+			expect(error).toHaveProperty("path");
+			expect(error).toHaveProperty("message");
+			expect(error).toHaveProperty("summary");
 		}
 
-		expect(res.status).toBe(422)
-	})
-})
+		expect(res.status).toBe(422);
+	});
+});

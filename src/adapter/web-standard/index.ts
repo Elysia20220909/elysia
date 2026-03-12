@@ -1,50 +1,48 @@
+import type { ElysiaAdapter } from "../types";
 import {
-	mapResponse,
-	mapEarlyResponse,
+	createStaticHandler,
 	mapCompactResponse,
-	createStaticHandler
-} from './handler'
-
-import type { ElysiaAdapter } from '../types'
+	mapEarlyResponse,
+	mapResponse,
+} from "./handler";
 
 export const WebStandardAdapter: ElysiaAdapter = {
-	name: 'web-standard',
+	name: "web-standard",
 	isWebStandard: true,
 	handler: {
 		mapResponse,
 		mapEarlyResponse,
 		mapCompactResponse,
-		createStaticHandler
+		createStaticHandler,
 	},
 	composeHandler: {
-		mapResponseContext: 'c.request',
+		mapResponseContext: "c.request",
 		preferWebstandardHeaders: true,
-		// @ts-ignore Bun specific
+		// @ts-expect-error Bun specific
 		headers:
-			'c.headers={}\n' +
-			'for(const [k,v] of c.request.headers.entries())' +
-			'c.headers[k]=v\n',
+			"c.headers={}\n" +
+			"for(const [k,v] of c.request.headers.entries())" +
+			"c.headers[k]=v\n",
 		parser: {
 			json(isOptional) {
-				if (isOptional)
-					return `try{c.body=await c.request.json()}catch{}\n`
-				return `c.body=await c.request.json()\n`
+				if (isOptional) return `try{c.body=await c.request.json()}catch{}\n`;
+				return `c.body=await c.request.json()\n`;
 			},
 			text() {
-				return `c.body=await c.request.text()\n`
+				return `c.body=await c.request.text()\n`;
 			},
 			urlencoded() {
-				return `c.body=parseQuery(await c.request.text())\n`
+				return `c.body=parseQuery(await c.request.text())\n`;
 			},
 			arrayBuffer() {
-				return `c.body=await c.request.arrayBuffer()\n`
+				return `c.body=await c.request.arrayBuffer()\n`;
 			},
 			formData(isOptional) {
-				let fnLiteral = '\nc.body={}\n'
+				let fnLiteral = "\nc.body={}\n";
 
 				if (isOptional)
-					fnLiteral += `let form;try{form=await c.request.formData()}catch{}`
-				else fnLiteral += `const form=await c.request.formData()\n`
+					fnLiteral += `let form;try{form=await c.request.formData()}catch{}`;
+				else fnLiteral += `const form=await c.request.formData()\n`;
 
 				return (
 					fnLiteral +
@@ -62,16 +60,16 @@ export const WebStandardAdapter: ElysiaAdapter = {
 					`if(c.body[key])continue\n` +
 					`const value=form.getAll(key)\n` +
 					`let finalValue\n` +
-    				`if(value.length===1){\n` +
-    				`const sv=value[0]\n` +
-    				`if(typeof sv==='string'&&(sv.charCodeAt(0)===123||sv.charCodeAt(0)===91)){\n` +
-    				`try{\n` +
-    				`const p=JSON.parse(sv)\n` +
-    				`if(p&&typeof p==='object')finalValue=p\n` +
-    				`}catch{}\n` +
-    				`}\n` +
-    				`if(finalValue===undefined)finalValue=sv\n` +
-    				`}else finalValue=value\n` +
+					`if(value.length===1){\n` +
+					`const sv=value[0]\n` +
+					`if(typeof sv==='string'&&(sv.charCodeAt(0)===123||sv.charCodeAt(0)===91)){\n` +
+					`try{\n` +
+					`const p=JSON.parse(sv)\n` +
+					`if(p&&typeof p==='object')finalValue=p\n` +
+					`}catch{}\n` +
+					`}\n` +
+					`if(finalValue===undefined)finalValue=sv\n` +
+					`}else finalValue=value\n` +
 					`if(Array.isArray(finalValue)){\n` +
 					`const stringValue=finalValue.find((entry)=>typeof entry==='string')\n` +
 					`const files=typeof File==='undefined'?[]:finalValue.filter((entry)=>entry instanceof File)\n` +
@@ -122,48 +120,47 @@ export const WebStandardAdapter: ElysiaAdapter = {
 					`}` +
 					`}else c.body[key]=finalValue` +
 					`}`
-				)
-			}
-		}
+				);
+			},
+		},
 	},
 	async stop(app, closeActiveConnections) {
 		if (!app.server)
 			throw new Error(
-				"Elysia isn't running. Call `app.listen` to start the server."
-			)
+				"Elysia isn't running. Call `app.listen` to start the server.",
+			);
 
 		if (app.server) {
-			await app.server.stop(closeActiveConnections)
-			app.server = null
+			await app.server.stop(closeActiveConnections);
+			app.server = null;
 
 			if (app.event.stop?.length)
 				for (let i = 0; i < app.event.stop.length; i++)
-					app.event.stop[i].fn(app)
+					app.event.stop[i].fn(app);
 		}
 	},
 	composeGeneralHandler: {
-		parameters: 'r',
+		parameters: "r",
 		createContext(app) {
-			let decoratorsLiteral = ''
-			let fnLiteral = ''
+			let decoratorsLiteral = "";
+			let fnLiteral = "";
 
 			// @ts-expect-error private
-			const defaultHeaders = app.setHeaders
+			const defaultHeaders = app.setHeaders;
 
 			for (const key of Object.keys(app.decorator))
-				decoratorsLiteral += `,'${key}':decorator['${key}']`
+				decoratorsLiteral += `,'${key}':decorator['${key}']`;
 
-			const standardHostname =
-				app.config.handler?.standardHostname ?? true
-			const hasTrace = !!app.event.trace?.length
+			const standardHostname = app.config.handler?.standardHostname ?? true;
+			const hasTrace = !!app.event.trace?.length;
 
 			fnLiteral +=
 				`const u=r.url,` +
 				`s=u.indexOf('/',${standardHostname ? 11 : 7}),` +
 				`qi=u.indexOf('?',s+1),` +
-				`p=u.substring(s,qi===-1?undefined:qi)\n`
+				`p=u.substring(s,qi===-1?undefined:qi)\n`;
 
-			if (hasTrace) fnLiteral += `const id=randomId()\n`
+			if (hasTrace) fnLiteral += `const id=randomId()\n`;
 
 			fnLiteral +=
 				`const c={request:r,` +
@@ -173,65 +170,65 @@ export const WebStandardAdapter: ElysiaAdapter = {
 				`url:u,` +
 				`redirect,` +
 				`status,` +
-				`set:{headers:`
+				`set:{headers:`;
 
 			fnLiteral += Object.keys(defaultHeaders ?? {}).length
-				? 'Object.assign({},app.setHeaders)'
-				: 'Object.create(null)'
+				? "Object.assign({},app.setHeaders)"
+				: "Object.create(null)";
 
-			fnLiteral += `,status:200}`
+			fnLiteral += `,status:200}`;
 
 			// @ts-expect-error private
 			if (app.inference.server)
-				fnLiteral += `,get server(){return app.getServer()}`
-			if (hasTrace) fnLiteral += ',[ELYSIA_REQUEST_ID]:id'
-			fnLiteral += decoratorsLiteral
-			fnLiteral += `}\n`
+				fnLiteral += `,get server(){return app.getServer()}`;
+			if (hasTrace) fnLiteral += ",[ELYSIA_REQUEST_ID]:id";
+			fnLiteral += decoratorsLiteral;
+			fnLiteral += `}\n`;
 
-			return fnLiteral
+			return fnLiteral;
 		},
-		error404(hasEventHook, hasErrorHook, afterHandle = '') {
+		error404(hasEventHook, hasErrorHook, afterHandle = "") {
 			let findDynamicRoute =
 				`if(route===null){` +
 				afterHandle +
-				(hasErrorHook ? '' : 'c.set.status=404') +
-				'\nreturn '
+				(hasErrorHook ? "" : "c.set.status=404") +
+				"\nreturn ";
 
 			if (hasErrorHook)
-				findDynamicRoute += `app.handleError(c,notFound,false,${this.parameters})`
+				findDynamicRoute += `app.handleError(c,notFound,false,${this.parameters})`;
 			else
 				findDynamicRoute += hasEventHook
 					? `c.response=c.responseValue=new Response(error404Message,{` +
 						`status:c.set.status===200?404:c.set.status,` +
 						`headers:c.set.headers` +
 						`})`
-					: `c.response=c.responseValue=error404.clone()`
+					: `c.response=c.responseValue=error404.clone()`;
 
-			findDynamicRoute += '}'
+			findDynamicRoute += "}";
 
 			return {
 				declare: hasErrorHook
-					? ''
+					? ""
 					: `const error404Message=notFound.message.toString()\n` +
 						`const error404=new Response(error404Message,{status:404})\n`,
-				code: findDynamicRoute
-			}
-		}
+				code: findDynamicRoute,
+			};
+		},
 	},
 	composeError: {
-		mapResponseContext: '',
+		mapResponseContext: "",
 		validationError:
 			`set.headers['content-type']='application/json';` +
 			`return mapResponse(error.message,set)`,
 		unknownError:
 			`set.status=error.status??set.status??500;` +
-			`return mapResponse(error.message,set)`
+			`return mapResponse(error.message,set)`,
 	},
 	listen() {
 		return () => {
 			throw new Error(
-				'WebStandard does not support listen, you might want to export default Elysia.fetch instead'
-			)
-		}
-	}
-}
+				"WebStandard does not support listen, you might want to export default Elysia.fetch instead",
+			);
+		};
+	},
+};

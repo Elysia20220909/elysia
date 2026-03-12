@@ -1,16 +1,16 @@
 // @ts-nocheck
-import { describe, expect, it } from 'bun:test'
-import { Elysia } from '../../src'
+import { describe, expect, it } from "bun:test";
+import { Elysia } from "../../src";
 
-import { separateFunction, sucrose } from '../../src/sucrose'
-import { req } from '../utils'
+import { separateFunction, sucrose } from "../../src/sucrose";
+import { req } from "../utils";
 
-describe('sucrose', () => {
-	it('common 1', () => {
+describe("sucrose", () => {
+	it("common 1", () => {
 		expect(
 			sucrose({
-				handler: function ({ query }) {
-					query.a
+				handler: ({ query }) => {
+					query.a;
 				},
 				afterHandle: [],
 				beforeHandle: [],
@@ -21,10 +21,10 @@ describe('sucrose', () => {
 						headers: { hello },
 						...rest
 					}) {
-						query.b
-						rest.query.e
+						query.b;
+						rest.query.e;
 					},
-					({ query: { f } }) => {}
+					({ query: { f } }) => {},
 				],
 				mapResponse: [],
 				afterResponse: [],
@@ -33,8 +33,8 @@ describe('sucrose', () => {
 				start: [],
 				stop: [],
 				trace: [],
-				transform: []
-			})
+				transform: [],
+			}),
 		).toEqual({
 			query: true,
 			headers: true,
@@ -44,16 +44,16 @@ describe('sucrose', () => {
 			server: false,
 			path: false,
 			url: false,
-			route: false
-		})
-	})
+			route: false,
+		});
+	});
 
-	it('common 2', async () => {
+	it("common 2", async () => {
 		expect(
 			sucrose({
 				handler: ({ set, cookie: { auth } }) => {
-					console.log(auth.value)
-					return ''
+					console.log(auth.value);
+					return "";
 				},
 				afterHandle: [],
 				beforeHandle: [],
@@ -65,8 +65,8 @@ describe('sucrose', () => {
 				start: [],
 				stop: [],
 				trace: [],
-				transform: []
-			})
+				transform: [],
+			}),
 		).toEqual({
 			query: false,
 			headers: false,
@@ -76,68 +76,68 @@ describe('sucrose', () => {
 			server: false,
 			path: false,
 			url: false,
-			route: false
-		})
-	})
+			route: false,
+		});
+	});
 
-	it('integration 1', async () => {
-		const path = 'a'
+	it("integration 1", async () => {
+		const path = "a";
 
 		const app = new Elysia()
 			// ✅ easy to perform inference
-			.get('/1', ({ query: { a } }) => a)
-			.get('/2', ({ query }) => query.a)
-			.get('/3', (c) => c.query.a)
-			.get('/4', ({ query }) => query[path])
-			.get('/5', (c) => c.query[path])
+			.get("/1", ({ query: { a } }) => a)
+			.get("/2", ({ query }) => query.a)
+			.get("/3", (c) => c.query.a)
+			.get("/4", ({ query }) => query[path])
+			.get("/5", (c) => c.query[path]);
 
 		new Array(5).fill(0).map(async (_, i) => {
 			const result = await app
 				.handle(req(`/${i + 1}?a=a&b=b`))
-				.then((x) => x.text())
+				.then((x) => x.text());
 
-			expect(result).toBe('a')
-		})
-	})
+			expect(result).toBe("a");
+		});
+	});
 
-	it('inherits inference from plugin', () => {
+	it("inherits inference from plugin", () => {
 		const plugin = new Elysia().derive(({ headers: { authorization } }) => {
 			return {
 				get auth() {
-					return authorization
-				}
-			}
-		})
+					return authorization;
+				},
+			};
+		});
 
-		const main = new Elysia().use(plugin)
+		const main = new Elysia().use(plugin);
 
 		// @ts-expect-error
-		expect(main.inference.headers).toBe(true)
-	})
+		expect(main.inference.headers).toBe(true);
+	});
 
 	it("don't link inference", async () => {
 		const app = new Elysia({
 			cookie: {
-				secrets: 'Zero Exception',
-				sign: true
-			}
+				secrets: "Zero Exception",
+				sign: true,
+			},
 		})
-			.get('/', () => 'hello')
+			.get("/", () => "hello")
 			.onBeforeHandle(({ cookie: { session }, error }) => {
-				if (!session.value) return error(401, 'Unauthorized')
-			})
+				if (!session.value) return error(401, "Unauthorized");
+			});
 
-		const status = await app.handle(req('/')).then((x) => x.status)
-		expect(status).toBe(200)
-	})
+		const status = await app.handle(req("/")).then((x) => x.status);
+		expect(status).toBe(200);
+	});
 
-	it('mix up chain properties as query', () => {
+	it("mix up chain properties as query", () => {
 		expect(
 			sucrose({
 				handler: async (c) => {
-					const id = c.query.id
-					const cookie = c.cookie
-					return { cookie, id }
+					const id = c.query.id;
+					const cookie = c.cookie;
+					return { cookie, id };
 				},
 				afterHandle: [],
 				beforeHandle: [],
@@ -149,8 +149,8 @@ describe('sucrose', () => {
 				start: [],
 				stop: [],
 				trace: [],
-				transform: []
-			})
+				transform: [],
+			}),
 		).toEqual({
 			body: false,
 			cookie: true,
@@ -160,162 +160,28 @@ describe('sucrose', () => {
 			server: false,
 			path: false,
 			url: false,
-			route: false
-		})
-	})
+			route: false,
+		});
+	});
 
-	it('infer all inferences if context is passed to function', () => {
-		expect(
-			sucrose({
-				handler: function (context) {
-					console.log(context)
-				},
-				afterHandle: [],
-				beforeHandle: [],
-				error: [],
-				mapResponse: [],
-				onResponse: [],
-				parse: [],
-				request: [],
-				start: [],
-				stop: [],
-				trace: [],
-				transform: []
-			})
-		).toEqual({
-			query: true,
-			headers: true,
-			body: true,
-			cookie: true,
-			set: true,
-			server: true,
-			path: true,
-			url: true,
-			route: true
-		})
-	})
-
-	it('infer all inferences if context is passed to function', () => {
-		expect(
-			sucrose({
-				handler: function ({ ...context }) {
-					console.log(context)
-				},
-				afterHandle: [],
-				beforeHandle: [],
-				error: [],
-				mapResponse: [],
-				onResponse: [],
-				parse: [],
-				request: [],
-				start: [],
-				stop: [],
-				trace: [],
-				transform: []
-			})
-		).toEqual({
-			query: true,
-			headers: true,
-			body: true,
-			cookie: true,
-			set: true,
-			server: true,
-			path: true,
-			url: true,
-			route: true
-		})
-	})
-
-	it('infer single object destructure property', () => {
-		expect(
-			sucrose({
-				handler: function ({ server }) {
-					console.log(server)
-				},
-				afterHandle: [],
-				beforeHandle: [],
-				error: [],
-				mapResponse: [],
-				onResponse: [],
-				parse: [],
-				request: [],
-				start: [],
-				stop: [],
-				trace: [],
-				transform: []
-			})
-		).toEqual({
-			query: false,
-			headers: false,
-			body: false,
-			cookie: false,
-			set: false,
-			server: true,
-			path: false,
-			url: false,
-			route: false
-		})
-	})
-
-	it('infer server', async () => {
-		const app = new Elysia({ precompile: true })
-			.onRequest(({ server }) => {})
-			.get('/', () => 'Hello, World!')
-
-		const response = await app.handle(new Request('http://localhost:3000'))
-
-		expect(response.status).toBe(200)
-	})
-
-	it('not death lock on empty', async () => {
-		const app = new Elysia({ precompile: true })
-			.onRequest((c) => {})
-			.get('/', () => 'Hello, World!')
-
-		const response = await app.handle(new Request('http://localhost:3000'))
-
-		expect(response.status).toBe(200)
-	})
-
-	it('access route, url, path', () => {
-		expect(
-			sucrose({
-				handler: function (context) {
-					console.log(context.url, context.path, context.route)
-				},
-				afterHandle: [],
-				beforeHandle: [],
-				error: [],
-				mapResponse: [],
-				onResponse: [],
-				parse: [],
-				request: [],
-				start: [],
-				stop: [],
-				trace: [],
-				transform: []
-			})
-		).toEqual({
-			query: false,
-			headers: false,
-			body: false,
-			cookie: false,
-			set: false,
-			server: false,
-			path: true,
-			url: true,
-			route: true
-		})
-	})
-
-	it('handle context pass to function with sub context', () => {
+	it("infer all inferences if context is passed to function", () => {
 		expect(
 			sucrose({
 				handler: (context) => {
-					console.log('path >>> ', context.path)
-					console.log(context)
-				}
-			})
+					console.log(context);
+				},
+				afterHandle: [],
+				beforeHandle: [],
+				error: [],
+				mapResponse: [],
+				onResponse: [],
+				parse: [],
+				request: [],
+				start: [],
+				stop: [],
+				trace: [],
+				transform: [],
+			}),
 		).toEqual({
 			query: true,
 			headers: true,
@@ -325,7 +191,141 @@ describe('sucrose', () => {
 			server: true,
 			path: true,
 			url: true,
-			route: true
-		})
-	})
-})
+			route: true,
+		});
+	});
+
+	it("infer all inferences if context is passed to function", () => {
+		expect(
+			sucrose({
+				handler: ({ ...context }) => {
+					console.log(context);
+				},
+				afterHandle: [],
+				beforeHandle: [],
+				error: [],
+				mapResponse: [],
+				onResponse: [],
+				parse: [],
+				request: [],
+				start: [],
+				stop: [],
+				trace: [],
+				transform: [],
+			}),
+		).toEqual({
+			query: true,
+			headers: true,
+			body: true,
+			cookie: true,
+			set: true,
+			server: true,
+			path: true,
+			url: true,
+			route: true,
+		});
+	});
+
+	it("infer single object destructure property", () => {
+		expect(
+			sucrose({
+				handler: ({ server }) => {
+					console.log(server);
+				},
+				afterHandle: [],
+				beforeHandle: [],
+				error: [],
+				mapResponse: [],
+				onResponse: [],
+				parse: [],
+				request: [],
+				start: [],
+				stop: [],
+				trace: [],
+				transform: [],
+			}),
+		).toEqual({
+			query: false,
+			headers: false,
+			body: false,
+			cookie: false,
+			set: false,
+			server: true,
+			path: false,
+			url: false,
+			route: false,
+		});
+	});
+
+	it("infer server", async () => {
+		const app = new Elysia({ precompile: true })
+			.onRequest(({ server }) => {})
+			.get("/", () => "Hello, World!");
+
+		const response = await app.handle(new Request("http://localhost:3000"));
+
+		expect(response.status).toBe(200);
+	});
+
+	it("not death lock on empty", async () => {
+		const app = new Elysia({ precompile: true })
+			.onRequest((c) => {})
+			.get("/", () => "Hello, World!");
+
+		const response = await app.handle(new Request("http://localhost:3000"));
+
+		expect(response.status).toBe(200);
+	});
+
+	it("access route, url, path", () => {
+		expect(
+			sucrose({
+				handler: (context) => {
+					console.log(context.url, context.path, context.route);
+				},
+				afterHandle: [],
+				beforeHandle: [],
+				error: [],
+				mapResponse: [],
+				onResponse: [],
+				parse: [],
+				request: [],
+				start: [],
+				stop: [],
+				trace: [],
+				transform: [],
+			}),
+		).toEqual({
+			query: false,
+			headers: false,
+			body: false,
+			cookie: false,
+			set: false,
+			server: false,
+			path: true,
+			url: true,
+			route: true,
+		});
+	});
+
+	it("handle context pass to function with sub context", () => {
+		expect(
+			sucrose({
+				handler: (context) => {
+					console.log("path >>> ", context.path);
+					console.log(context);
+				},
+			}),
+		).toEqual({
+			query: true,
+			headers: true,
+			body: true,
+			cookie: true,
+			set: true,
+			server: true,
+			path: true,
+			url: true,
+			route: true,
+		});
+	});
+});

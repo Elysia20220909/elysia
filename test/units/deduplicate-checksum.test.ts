@@ -1,15 +1,15 @@
-import { describe, expect, it } from 'bun:test'
-import { deduplicateChecksum, checksum } from '../../src'
+import { describe, expect, it } from "bun:test";
+import { checksum, deduplicateChecksum } from "../../src";
 
-describe('Deduplicate Checksum', () => {
-	it('work', () => {
-		const a = ['a', 'b', 'c', 'a'].map((x) => ({
+describe("Deduplicate Checksum", () => {
+	it("work", () => {
+		const a = ["a", "b", "c", "a"].map((x) => ({
 			checksum: checksum(x),
-			fn: () => x
-		}))
+			fn: () => x,
+		}));
 
-		deduplicateChecksum(a)
+		deduplicateChecksum(a);
 
-		expect(a).toHaveLength(3)
-	})
-})
+		expect(a).toHaveLength(3);
+	});
+});

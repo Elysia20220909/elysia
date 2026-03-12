@@ -1,194 +1,193 @@
-import { Elysia } from '../../src'
+import { describe, expect, it } from "bun:test";
+import { Elysia } from "../../src";
+import { req } from "../utils";
 
-import { describe, expect, it } from 'bun:test'
-import { req } from '../utils'
-
-describe('derive', () => {
-	it('work', async () => {
+describe("derive", () => {
+	it("work", async () => {
 		const app = new Elysia()
 			.derive(() => ({
-				hi: () => 'hi'
+				hi: () => "hi",
 			}))
-			.get('/', ({ hi }) => hi())
+			.get("/", ({ hi }) => hi());
 
-		const res = await app.handle(req('/')).then((t) => t.text())
-		expect(res).toBe('hi')
-	})
+		const res = await app.handle(req("/")).then((t) => t.text());
+		expect(res).toBe("hi");
+	});
 
-	it('inherits plugin', async () => {
-		const plugin = new Elysia().derive({ as: 'global' }, () => ({
-			hi: () => 'hi'
-		}))
+	it("inherits plugin", async () => {
+		const plugin = new Elysia().derive({ as: "global" }, () => ({
+			hi: () => "hi",
+		}));
 
-		const app = new Elysia().use(plugin).get('/', ({ hi }) => hi())
+		const app = new Elysia().use(plugin).get("/", ({ hi }) => hi());
 
-		const res = await app.handle(req('/')).then((t) => t.text())
-		expect(res).toBe('hi')
-	})
+		const res = await app.handle(req("/")).then((t) => t.text());
+		expect(res).toBe("hi");
+	});
 
-	it('inherits plugin on local', async () => {
+	it("inherits plugin on local", async () => {
 		const plugin = new Elysia().derive(() => ({
-			hi: () => 'hi'
-		}))
+			hi: () => "hi",
+		}));
 
 		const app = new Elysia()
 			.use(plugin)
 			// @ts-expect-error
-			.get('/', ({ hi }) => typeof hi === 'undefined')
+			.get("/", ({ hi }) => typeof hi === "undefined");
 
-		const res = await app.handle(req('/')).then((t) => t.text())
-		expect(res).toBe('true')
-	})
+		const res = await app.handle(req("/")).then((t) => t.text());
+		expect(res).toBe("true");
+	});
 
-	it('derive in order', async () => {
-		let order = <string[]>[]
+	it("derive in order", async () => {
+		const order = <string[]>[];
 
 		const app = new Elysia()
 			.derive(() => {
-				order.push('A')
-				return {}
+				order.push("A");
+				return {};
 			})
 			.derive(() => {
-				order.push('B')
-				return {}
+				order.push("B");
+				return {};
 			})
-			.get('/', () => '')
+			.get("/", () => "");
 
-		await app.handle(req('/'))
+		await app.handle(req("/"));
 
-		expect(order).toEqual(['A', 'B'])
-	})
+		expect(order).toEqual(["A", "B"]);
+	});
 
-	it('can mutate store', async () => {
+	it("can mutate store", async () => {
 		const app = new Elysia()
-			.state('counter', 1)
+			.state("counter", 1)
 			.derive(({ store }) => ({
-				increase: () => store.counter++
+				increase: () => store.counter++,
 			}))
-			.get('/', ({ store, increase }) => {
-				increase()
+			.get("/", ({ store, increase }) => {
+				increase();
 
-				return store.counter
-			})
+				return store.counter;
+			});
 
-		const res = await app.handle(req('/')).then((t) => t.text())
-		expect(res).toBe('2')
-	})
+		const res = await app.handle(req("/")).then((t) => t.text());
+		expect(res).toBe("2");
+	});
 
-	it('derive with static analysis', async () => {
+	it("derive with static analysis", async () => {
 		const app = new Elysia()
 			.derive(({ headers: { name } }) => ({
-				name
+				name,
 			}))
-			.get('/', ({ name }) => name)
+			.get("/", ({ name }) => name);
 
 		const res = await app
 			.handle(
-				new Request('http://localhost/', {
+				new Request("http://localhost/", {
 					headers: {
-						name: 'Elysia'
-					}
-				})
+						name: "Elysia",
+					},
+				}),
 			)
-			.then((t) => t.text())
+			.then((t) => t.text());
 
-		expect(res).toBe('Elysia')
-	})
+		expect(res).toBe("Elysia");
+	});
 
-	it('as global', async () => {
-		const called = <string[]>[]
-
-		const plugin = new Elysia()
-			.derive({ as: 'global' }, ({ path }) => {
-				called.push(path)
-
-				return {}
-			})
-			.get('/inner', () => 'NOOP')
-
-		const app = new Elysia().use(plugin).get('/outer', () => 'NOOP')
-
-		const res = await Promise.all([
-			app.handle(req('/inner')),
-			app.handle(req('/outer'))
-		])
-
-		expect(called).toEqual(['/inner', '/outer'])
-	})
-
-	it('as local', async () => {
-		const called = <string[]>[]
+	it("as global", async () => {
+		const called = <string[]>[];
 
 		const plugin = new Elysia()
-			.derive({ as: 'local' }, ({ path }) => {
-				called.push(path)
+			.derive({ as: "global" }, ({ path }) => {
+				called.push(path);
 
-				return {}
+				return {};
 			})
-			.get('/inner', () => 'NOOP')
+			.get("/inner", () => "NOOP");
 
-		const app = new Elysia().use(plugin).get('/outer', () => 'NOOP')
+		const app = new Elysia().use(plugin).get("/outer", () => "NOOP");
 
 		const res = await Promise.all([
-			app.handle(req('/inner')),
-			app.handle(req('/outer'))
-		])
+			app.handle(req("/inner")),
+			app.handle(req("/outer")),
+		]);
 
-		expect(called).toEqual(['/inner'])
-	})
+		expect(called).toEqual(["/inner", "/outer"]);
+	});
 
-	it('as scoped', async () => {
-		const called = <string[]>[]
+	it("as local", async () => {
+		const called = <string[]>[];
 
 		const plugin = new Elysia()
-			.derive({ as: 'scoped' }, ({ path }) => {
-				called.push(path)
+			.derive({ as: "local" }, ({ path }) => {
+				called.push(path);
 
-				return {}
+				return {};
 			})
-			.get('/inner', () => 'NOOP')
+			.get("/inner", () => "NOOP");
 
-		const middle = new Elysia().use(plugin).get('/middle', () => 'NOOP')
-
-		const app = new Elysia().use(middle).get('/outer', () => 'NOOP')
+		const app = new Elysia().use(plugin).get("/outer", () => "NOOP");
 
 		const res = await Promise.all([
-			app.handle(req('/inner')),
-			app.handle(req('/middle')),
-			app.handle(req('/outer'))
-		])
+			app.handle(req("/inner")),
+			app.handle(req("/outer")),
+		]);
 
-		expect(called).toEqual(['/inner', '/middle'])
-	})
+		expect(called).toEqual(["/inner"]);
+	});
 
-	it('support array', async () => {
-		let total = 0
+	it("as scoped", async () => {
+		const called = <string[]>[];
+
+		const plugin = new Elysia()
+			.derive({ as: "scoped" }, ({ path }) => {
+				called.push(path);
+
+				return {};
+			})
+			.get("/inner", () => "NOOP");
+
+		const middle = new Elysia().use(plugin).get("/middle", () => "NOOP");
+
+		const app = new Elysia().use(middle).get("/outer", () => "NOOP");
+
+		const res = await Promise.all([
+			app.handle(req("/inner")),
+			app.handle(req("/middle")),
+			app.handle(req("/outer")),
+		]);
+
+		expect(called).toEqual(["/inner", "/middle"]);
+	});
+
+	it("support array", async () => {
+		let total = 0;
 
 		const app = new Elysia()
 			.onAfterHandle([
 				() => {
-					total++
+					total++;
 				},
 				() => {
-					total++
-				}
+					total++;
+				},
 			])
-			.get('/', () => 'NOOP')
+			.get("/", () => "NOOP");
 
-		const res = await app.handle(req('/'))
+		const res = await app.handle(req("/"));
 
-		expect(total).toEqual(2)
-	})
+		expect(total).toEqual(2);
+	});
 
-	it('handle error', async () => {
+	it("handle error", async () => {
 		const app = new Elysia()
 			.derive(({ status }) => status(418))
-			.get('/', () => '')
+			.get("/", () => "");
 
-		const res = await app.handle(req('/')).then((x) => x.text())
+		const res = await app.handle(req("/")).then((x) => x.text());
 
-		expect(res).toEqual("I'm a teapot")
-	})
+		expect(res).toEqual("I'm a teapot");
+	});
 
 	// it('work inline', async () => {
 	// 	const app = new Elysia().get('/', ({ hi }) => hi(), {
@@ -325,18 +324,18 @@ describe('derive', () => {
 	// 	expect(res2).toBe('hi')
 	// })
 
-	it('handle return derive without throw', async () => {
-		let isOnErrorCalled = false
+	it("handle return derive without throw", async () => {
+		let isOnErrorCalled = false;
 
 		const app = new Elysia()
 			.onError(() => {
-				isOnErrorCalled = true
+				isOnErrorCalled = true;
 			})
 			.derive(({ status }) => status(418))
-			.get('/', () => '')
+			.get("/", () => "");
 
-		await app.handle(req('/'))
+		await app.handle(req("/"));
 
-		expect(isOnErrorCalled).toBe(false)
-	})
-})
+		expect(isOnErrorCalled).toBe(false);
+	});
+});

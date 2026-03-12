@@ -1,188 +1,186 @@
 import {
 	Kind,
-	TUnsafe,
+	type TAnySchema,
+	type TUnsafe,
 	TypeRegistry,
 	Unsafe,
-	type TAnySchema
-} from '@sinclair/typebox'
-import { Value } from '@sinclair/typebox/value'
-import { TypeCheck, TypeCompiler } from '@sinclair/typebox/compiler'
-
-import { ElysiaFile } from '../universal/file'
-import { InvalidFileType, ValidationError } from '../error'
+} from "@sinclair/typebox";
+import { type TypeCheck, TypeCompiler } from "@sinclair/typebox/compiler";
+import { Value } from "@sinclair/typebox/value";
+import { InvalidFileType, ValidationError } from "../error";
+import type { MaybeArray } from "../types";
+import { ElysiaFile } from "../universal/file";
 import type {
 	ElysiaTypeCustomErrorCallback,
 	FileOptions,
+	FileType,
 	FileUnit,
-	FileType
-} from './types'
-import type { MaybeArray } from '../types'
+} from "./types";
 
 export const tryParse = (v: unknown, schema: TAnySchema) => {
 	try {
-		return JSON.parse(v as string)
+		return JSON.parse(v as string);
 	} catch {
-		throw new ValidationError('property', schema, v)
+		throw new ValidationError("property", schema, v);
 	}
-}
+};
 
 export function createType<TSchema = unknown, TReturn = unknown>(
 	kind: string,
-	func: TypeRegistry.TypeRegistryValidationFunction<TSchema>
+	func: TypeRegistry.TypeRegistryValidationFunction<TSchema>,
 ): TUnsafe<TReturn> {
-	if (!TypeRegistry.Has(kind)) TypeRegistry.Set<TSchema>(kind, func)
+	if (!TypeRegistry.Has(kind)) TypeRegistry.Set<TSchema>(kind, func);
 
-	return ((options = {}) => Unsafe({ ...options, [Kind]: kind })) as any
+	return ((options = {}) => Unsafe({ ...options, [Kind]: kind })) as any;
 }
 
 export const compile = <T extends TAnySchema>(schema: T) => {
 	try {
 		const compiler = TypeCompiler.Compile(schema) as TypeCheck<T> & {
-			Create(): T['static']
-			Error(v: unknown): asserts v is T['static']
-		}
+			Create(): T["static"];
+			Error(v: unknown): asserts v is T["static"];
+		};
 
-		compiler.Create = () => Value.Create(schema)
+		compiler.Create = () => Value.Create(schema);
 		compiler.Error = (v: unknown) =>
-			// @ts-ignore
-			new ValidationError('property', schema, v, compiler.Errors(v))
+			// @ts-expect-error
+			new ValidationError("property", schema, v, compiler.Errors(v));
 
-		return compiler
+		return compiler;
 	} catch {
 		return {
 			Check: (v: unknown) => Value.Check(schema, v),
 			CheckThrow: (v: unknown) => {
 				if (!Value.Check(schema, v))
 					throw new ValidationError(
-						'property',
+						"property",
 						schema,
 						v,
-						// @ts-ignore
-						Value.Errors(schema, v)
-					)
+						// @ts-expect-error
+						Value.Errors(schema, v),
+					);
 			},
 			Decode: (v: unknown) => Value.Decode(schema, v),
 			Create: () => Value.Create(schema),
 			Error: (v: unknown) =>
 				new ValidationError(
-					'property',
+					"property",
 					schema,
 					v,
-					// @ts-ignore
-					Value.Errors(schema, v)
-				)
-		}
+					// @ts-expect-error
+					Value.Errors(schema, v),
+				),
+		};
 	}
-}
+};
 
 export const parseFileUnit = (size: FileUnit) => {
-	if (typeof size === 'string')
+	if (typeof size === "string")
 		switch (size.slice(-1)) {
-			case 'k':
-				return +size.slice(0, size.length - 1) * 1024
+			case "k":
+				return +size.slice(0, size.length - 1) * 1024;
 
-			case 'm':
-				return +size.slice(0, size.length - 1) * 1048576
+			case "m":
+				return +size.slice(0, size.length - 1) * 1048576;
 
 			default:
-				return +size
+				return +size;
 		}
 
-	return size
-}
+	return size;
+};
 
 export const checkFileExtension = (type: string, extension: string) => {
-	if (type.startsWith(extension)) return true
+	if (type.startsWith(extension)) return true;
 
 	return (
 		extension.charCodeAt(extension.length - 1) === 42 &&
 		extension.charCodeAt(extension.length - 2) === 47 &&
 		type.startsWith(extension.slice(0, -1))
-	)
-}
+	);
+};
 
-let _fileTypeFromBlobWarn = false
+let _fileTypeFromBlobWarn = false;
 const warnIfFileTypeIsNotInstalled = () => {
 	if (!_fileTypeFromBlobWarn) {
 		console.warn(
-			"[Elysia] Attempt to validate file type without 'file-type'. This may lead to security risks. We recommend installing 'file-type' to properly validate file extension."
-		)
-		_fileTypeFromBlobWarn = true
+			"[Elysia] Attempt to validate file type without 'file-type'. This may lead to security risks. We recommend installing 'file-type' to properly validate file extension.",
+		);
+		_fileTypeFromBlobWarn = true;
 	}
-}
+};
 
 export const loadFileType = async () =>
-	import('file-type')
+	import("file-type")
 		.then((x) => {
-			_fileTypeFromBlob = x.fileTypeFromBlob
-			return _fileTypeFromBlob
+			_fileTypeFromBlob = x.fileTypeFromBlob;
+			return _fileTypeFromBlob;
 		})
-		.catch(warnIfFileTypeIsNotInstalled)
+		.catch(warnIfFileTypeIsNotInstalled);
 
-let _fileTypeFromBlob: Function
+let _fileTypeFromBlob: Function;
 export const fileTypeFromBlob = (file: Blob | File) => {
-	if (_fileTypeFromBlob) return _fileTypeFromBlob(file)
+	if (_fileTypeFromBlob) return _fileTypeFromBlob(file);
 
 	return loadFileType().then((mod) => {
-		if (mod) return mod(file)
-	})
-}
+		if (mod) return mod(file);
+	});
+};
 
 export const fileType = async (
 	file: MaybeArray<Blob | File | undefined>,
 	extension: FileType | FileType[],
-	// @ts-ignore
-	name = file?.name ?? ''
+	// @ts-expect-error
+	name = file?.name ?? "",
 ): Promise<boolean> => {
 	if (Array.isArray(file)) {
-		await Promise.all(file.map((f) => fileType(f, extension, name)))
+		await Promise.all(file.map((f) => fileType(f, extension, name)));
 
-		return true
+		return true;
 	}
 
-	if (!file) return false
+	if (!file) return false;
 
-	const result = await fileTypeFromBlob(file)
-	if (!result) throw new InvalidFileType(name, extension)
+	const result = await fileTypeFromBlob(file);
+	if (!result) throw new InvalidFileType(name, extension);
 
-	if (typeof extension === 'string')
+	if (typeof extension === "string")
 		if (!checkFileExtension(result.mime, extension))
-			throw new InvalidFileType(name, extension)
+			throw new InvalidFileType(name, extension);
 
 	for (let i = 0; i < extension.length; i++)
-		if (checkFileExtension(result.mime, extension[i])) return true
+		if (checkFileExtension(result.mime, extension[i])) return true;
 
-	throw new InvalidFileType(name, extension)
-}
+	throw new InvalidFileType(name, extension);
+};
 
 /**
  * This only check file extension based on it's name / mimetype
  * to actual check the file type, use `validateFileExtension` instead
  */
 export const validateFile = (options: FileOptions, value: any) => {
-	if (value instanceof ElysiaFile) return true
+	if (value instanceof ElysiaFile) return true;
 
-	if (!(value instanceof Blob)) return false
+	if (!(value instanceof Blob)) return false;
 
 	if (options.minSize && value.size < parseFileUnit(options.minSize))
-		return false
+		return false;
 
 	if (options.maxSize && value.size > parseFileUnit(options.maxSize))
-		return false
+		return false;
 
 	if (options.extension) {
-		if (typeof options.extension === 'string')
-			return checkFileExtension(value.type, options.extension)
+		if (typeof options.extension === "string")
+			return checkFileExtension(value.type, options.extension);
 
 		for (let i = 0; i < options.extension.length; i++)
-			if (checkFileExtension(value.type, options.extension[i]))
-				return true
+			if (checkFileExtension(value.type, options.extension[i])) return true;
 
-		return false
+		return false;
 	}
 
-	return true
-}
+	return true;
+};
 
 /**
  * Utility function to inherit add custom error and keep the original Validation error
@@ -206,5 +204,5 @@ export const validationDetail =
 	<T>(message: T) =>
 	(error: Parameters<ElysiaTypeCustomErrorCallback>[0]) => ({
 		...error,
-		message
-	})
+		message,
+	});

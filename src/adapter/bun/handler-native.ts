@@ -1,17 +1,16 @@
-import { isHTMLBundle } from './index'
-import type { Context } from '../../context'
-import type { AnyLocalHook, MaybePromise } from '../../types'
-
-import { mapResponse } from './handler'
+import type { Context } from "../../context";
+import type { AnyLocalHook, MaybePromise } from "../../types";
+import { mapResponse } from "./handler";
+import { isHTMLBundle } from "./index";
 
 export const createNativeStaticHandler = (
 	handle: unknown,
 	hooks: AnyLocalHook,
-	set?: Context['set']
+	set?: Context["set"],
 ): (() => MaybePromise<Response>) | undefined => {
-	if (typeof handle === 'function' || handle instanceof Blob) return
+	if (typeof handle === "function" || handle instanceof Blob) return;
 
-	if (isHTMLBundle(handle)) return () => handle as any
+	if (isHTMLBundle(handle)) return () => handle as any;
 
 	const response = mapResponse(
 		handle instanceof Response
@@ -20,9 +19,9 @@ export const createNativeStaticHandler = (
 				? handle.then((x) => (x instanceof Response ? x.clone() : x))
 				: handle,
 		set ?? {
-			headers: {}
-		}
-	)
+			headers: {},
+		},
+	);
 
 	if (
 		!hooks.parse?.length &&
@@ -32,11 +31,11 @@ export const createNativeStaticHandler = (
 	) {
 		if (response instanceof Promise)
 			return response.then((response) => {
-				if (!response) return
+				if (!response) return;
 
-				return response.clone()
-			}) as any as () => Promise<Response>
+				return response.clone();
+			}) as any as () => Promise<Response>;
 
-		return () => response.clone() as Response
+		return () => response.clone() as Response;
 	}
-}
+};

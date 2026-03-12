@@ -1,7 +1,7 @@
 export const req = (path: string, options?: RequestInit) =>
-	new Request(`http://localhost${path}`, options)
+	new Request(`http://localhost${path}`, options);
 
-type MaybeArray<T> = T | T[]
+type MaybeArray<T> = T | T[];
 
 export const upload = (
 	path: string,
@@ -9,62 +9,60 @@ export const upload = (
 		string,
 		MaybeArray<
 			| (string & {})
-			| 'aris-yuzu.jpg'
-			| 'midori.png'
-			| 'millenium.jpg'
-			| 'fake.jpg'
-			| 'kozeki-ui.webp'
+			| "aris-yuzu.jpg"
+			| "midori.png"
+			| "millenium.jpg"
+			| "fake.jpg"
+			| "kozeki-ui.webp"
 		>
-	>
+	>,
 ) => {
-	const body = new FormData()
-	let size = 0
+	const body = new FormData();
+	let size = 0;
 
 	for (const [key, value] of Object.entries(fields)) {
 		if (Array.isArray(value))
 			value.forEach((value) => {
-				const file = Bun.file(`./test/images/${value}`)
-				size += file.size
-				body.append(key, file)
-			})
-		else if (value.includes('.')) {
-			const file = Bun.file(`./test/images/${value}`)
-			size += file.size
-			body.append(key, file)
-		} else body.append(key, value)
+				const file = Bun.file(`./test/images/${value}`);
+				size += file.size;
+				body.append(key, file);
+			});
+		else if (value.includes(".")) {
+			const file = Bun.file(`./test/images/${value}`);
+			size += file.size;
+			body.append(key, file);
+		} else body.append(key, value);
 	}
 
 	return {
 		request: new Request(`http://localhost${path}`, {
-			method: 'POST',
-			body
+			method: "POST",
+			body,
 		}),
-		size
-	}
-}
+		size,
+	};
+};
 
 export const post = (path: string, body?: string | Record<string, any>) =>
-	typeof body === 'string'
+	typeof body === "string"
 		? new Request(`http://localhost${path}`, {
-				method: 'POST',
+				method: "POST",
 				headers: {
-					'Content-Type': 'text/plain',
-					'Content-Length': String(Buffer.byteLength(body))
+					"Content-Type": "text/plain",
+					"Content-Length": String(Buffer.byteLength(body)),
 				},
-				body
+				body,
 			})
 		: new Request(`http://localhost${path}`, {
-				method: 'POST',
+				method: "POST",
 				headers: body
 					? {
-							'Content-Type': 'application/json',
-							'Content-Length': String(
-								Buffer.byteLength(JSON.stringify(body))
-							)
+							"Content-Type": "application/json",
+							"Content-Length": String(Buffer.byteLength(JSON.stringify(body))),
 						}
 					: {},
-				body: body ? JSON.stringify(body) : body
-			})
+				body: body ? JSON.stringify(body) : body,
+			});
 
 export const delay = (delay: number) =>
-	new Promise((resolve) => setTimeout(resolve, delay))
+	new Promise((resolve) => setTimeout(resolve, delay));

@@ -1,65 +1,64 @@
-import { ELYSIA_REQUEST_ID } from './utils'
-
-import type { Context } from './context'
-import type { Prettify, RouteSchema, SingletonBase } from './types'
+import type { Context } from "./context";
+import type { Prettify, RouteSchema, SingletonBase } from "./types";
+import { ELYSIA_REQUEST_ID } from "./utils";
 
 export type TraceEvent =
-	| 'request'
-	| 'parse'
-	| 'transform'
-	| 'beforeHandle'
-	| 'handle'
-	| 'afterHandle'
-	| 'mapResponse'
-	| 'afterResponse'
-	| 'error'
+	| "request"
+	| "parse"
+	| "transform"
+	| "beforeHandle"
+	| "handle"
+	| "afterHandle"
+	| "mapResponse"
+	| "afterResponse"
+	| "error";
 
 export type TraceStream = {
-	id: number
-	event: TraceEvent
-	type: 'begin' | 'end'
-	begin: number
-	name?: string
-	total?: number
-}
+	id: number;
+	event: TraceEvent;
+	type: "begin" | "end";
+	begin: number;
+	name?: string;
+	total?: number;
+};
 
 type TraceEndDetail = {
 	/**
 	 * Timestamp of a function after it's executed since the server start
 	 */
-	end: TraceProcess<'end'>
+	end: TraceProcess<"end">;
 	/**
 	 * Error that was thrown in the lifecycle
 	 */
-	error: Error | null
+	error: Error | null;
 	/**
 	 * Elapsed time of the lifecycle
 	 */
-	elapsed: number
-}
+	elapsed: number;
+};
 
 export type TraceProcess<
-	Type extends 'begin' | 'end' = 'begin' | 'end',
-	WithChildren extends boolean = true
-> = Type extends 'begin'
+	Type extends "begin" | "end" = "begin" | "end",
+	WithChildren extends boolean = true,
+> = Type extends "begin"
 	? Prettify<
 			{
 				/**
 				 * Function name
 				 */
-				name: string
+				name: string;
 				/**
 				 * Timestamp of a function is called since the server start
 				 */
-				begin: number
+				begin: number;
 				/**
 				 * Timestamp of a function after it's executed since the server start
 				 */
-				end: Promise<number>
+				end: Promise<number>;
 				/**
 				 * Error that was thrown in the lifecycle
 				 */
-				error: Promise<Error | null>
+				error: Promise<Error | null>;
 				/**
 				 * Listener to intercept the end of the lifecycle
 				 *
@@ -73,8 +72,8 @@ export type TraceProcess<
 					 * If you want to mutate the context, you must do it in this function
 					 * as there's a lock mechanism to ensure the context is mutate successfully
 					 */
-					callback?: (detail: TraceEndDetail) => unknown
-				): Promise<void>
+					callback?: (detail: TraceEndDetail) => unknown,
+				): Promise<void>;
 			} & (WithChildren extends true
 				? {
 						/**
@@ -82,7 +81,7 @@ export type TraceProcess<
 						 * total number of `onEvent` will be called
 						 * if there were no early exists or error thrown
 						 */
-						total: number
+						total: number;
 						/**
 						 * Listener to intercept each child lifecycle
 						 */
@@ -90,89 +89,84 @@ export type TraceProcess<
 							/**
 							 * Callback function that will be called for when each child start
 							 */
-							callback?: (
-								process: TraceProcess<'begin', false>
-							) => unknown
-						): Promise<void>
+							callback?: (process: TraceProcess<"begin", false>) => unknown,
+						): Promise<void>;
 					}
 				: {
 						/**
 						 * Index of the child event
 						 */
-						index: number
+						index: number;
 					})
 		>
-	: number
+	: number;
 
 export type TraceListener = (
-	callback?: (process: TraceProcess<'begin'>) => unknown
-) => Promise<TraceProcess<'begin'>>
+	callback?: (process: TraceProcess<"begin">) => unknown,
+) => Promise<TraceProcess<"begin">>;
 
 export type TraceHandler<
 	in out Route extends RouteSchema = {},
 	in out Singleton extends SingletonBase = {
-		decorator: {}
-		store: {}
-		derive: {}
-		resolve: {}
-	}
-> = {
-	(
-		lifecycle: Prettify<
-			{
-				id: number
-				context: Context<Route, Singleton>
-				set: Context['set']
-				time: number
-				store: Singleton['store']
-				response: unknown
-			} & {
-				[x in `on${Capitalize<TraceEvent>}`]: TraceListener
-			}
-		>
-	): unknown
-}
+		decorator: {};
+		store: {};
+		derive: {};
+		resolve: {};
+	},
+> = (
+	lifecycle: Prettify<
+		{
+			id: number;
+			context: Context<Route, Singleton>;
+			set: Context["set"];
+			time: number;
+			store: Singleton["store"];
+			response: unknown;
+		} & {
+			[x in `on${Capitalize<TraceEvent>}`]: TraceListener;
+		}
+	>,
+) => unknown;
 
-export const ELYSIA_TRACE = Symbol('ElysiaTrace')
+export const ELYSIA_TRACE = Symbol("ElysiaTrace");
 
 const createProcess = () => {
-	const { promise, resolve } = Promise.withResolvers<TraceProcess>()
-	const { promise: end, resolve: resolveEnd } =
-		Promise.withResolvers<number>()
+	const { promise, resolve } = Promise.withResolvers<TraceProcess>();
+	const { promise: end, resolve: resolveEnd } = Promise.withResolvers<number>();
 	const { promise: error, resolve: resolveError } =
-		Promise.withResolvers<Error | null>()
+		Promise.withResolvers<Error | null>();
 
-	const callbacks = <Function[]>[]
-	const callbacksEnd = <Function[]>[]
+	const callbacks = <Function[]>[];
+	const callbacksEnd = <Function[]>[];
 
 	return [
 		(callback?: Function) => {
-			if (callback) callbacks.push(callback)
+			if (callback) callbacks.push(callback);
 
-			return promise
+			return promise;
 		},
 		(process: TraceStream) => {
-			const processes = <((callback?: Function) => Promise<void>)[]>[]
-			const resolvers = <((process: TraceStream) => () => void)[]>[]
+			const processes = <((callback?: Function) => Promise<void>)[]>[];
+			const resolvers = <((process: TraceStream) => () => void)[]>[];
 
 			// When error is return but not thrown
-			let groupError: Error | null = null
+			let groupError: Error | null = null;
 
 			for (let i = 0; i < (process.total ?? 0); i++) {
-				const { promise, resolve } = Promise.withResolvers<void>()
+				const { promise, resolve } = Promise.withResolvers<void>();
 				const { promise: end, resolve: resolveEnd } =
-					Promise.withResolvers<number>()
+					Promise.withResolvers<number>();
 				const { promise: error, resolve: resolveError } =
-					Promise.withResolvers<Error | null>()
+					Promise.withResolvers<Error | null>();
 
-				const callbacks = <Function[]>[]
-				const callbacksEnd = <Function[]>[]
+				const callbacks = <Function[]>[];
+				const callbacksEnd = <Function[]>[];
 
 				processes.push((callback?: Function) => {
-					if (callback) callbacks.push(callback)
+					if (callback) callbacks.push(callback);
 
-					return promise
-				})
+					return promise;
+				});
 
 				resolvers.push((process: TraceStream) => {
 					const result = {
@@ -181,37 +175,36 @@ const createProcess = () => {
 						error,
 						index: i,
 						onStop(callback?: Function) {
-							if (callback) callbacksEnd.push(callback)
+							if (callback) callbacksEnd.push(callback);
 
-							return end
-						}
-					} as any
+							return end;
+						},
+					} as any;
 
-					resolve(result)
-					for (let i = 0; i < callbacks.length; i++)
-						callbacks[i](result)
+					resolve(result);
+					for (let i = 0; i < callbacks.length; i++) callbacks[i](result);
 
 					return (error: Error | null = null) => {
-						const end = performance.now()
+						const end = performance.now();
 
 						// Catch return error
-						if (error) groupError = error
+						if (error) groupError = error;
 
 						const detail = {
 							end,
 							error,
 							get elapsed() {
-								return end - process.begin
-							}
-						}
+								return end - process.begin;
+							},
+						};
 
 						for (let i = 0; i < callbacksEnd.length; i++)
-							callbacksEnd[i](detail)
+							callbacksEnd[i](detail);
 
-						resolveEnd(end)
-						resolveError(error)
-					}
-				})
+						resolveEnd(end);
+						resolveError(error);
+					};
+				});
 			}
 
 			const result = {
@@ -219,85 +212,83 @@ const createProcess = () => {
 				end,
 				error,
 				onEvent(callback?: Function) {
-					for (let i = 0; i < processes.length; i++)
-						processes[i](callback)
+					for (let i = 0; i < processes.length; i++) processes[i](callback);
 				},
 				onStop(callback?: Function) {
-					if (callback) callbacksEnd.push(callback)
+					if (callback) callbacksEnd.push(callback);
 
-					return end
-				}
-			} as any
+					return end;
+				},
+			} as any;
 
-			resolve(result)
-			for (let i = 0; i < callbacks.length; i++) callbacks[i](result)
+			resolve(result);
+			for (let i = 0; i < callbacks.length; i++) callbacks[i](result);
 
 			return {
 				resolveChild: resolvers,
 				resolve(error: Error | null = null) {
-					const end = performance.now()
+					const end = performance.now();
 
 					// If error is return, parent group will not catch an error
 					// but the child group will catch the error
-					if (!error && groupError) error = groupError
+					if (!error && groupError) error = groupError;
 
 					const detail = {
 						end,
 						error,
 						get elapsed() {
-							return end - process.begin
-						}
-					}
+							return end - process.begin;
+						},
+					};
 
-					for (let i = 0; i < callbacksEnd.length; i++)
-						callbacksEnd[i](detail)
+					for (let i = 0; i < callbacksEnd.length; i++) callbacksEnd[i](detail);
 
-					resolveEnd(end)
-					resolveError(error)
-				}
-			}
-		}
-	] as const
-}
+					resolveEnd(end);
+					resolveError(error);
+				},
+			};
+		},
+	] as const;
+};
 
 export const createTracer = (traceListener: TraceHandler) => {
 	return (context: Context) => {
-		const [onRequest, resolveRequest] = createProcess()
-		const [onParse, resolveParse] = createProcess()
-		const [onTransform, resolveTransform] = createProcess()
-		const [onBeforeHandle, resolveBeforeHandle] = createProcess()
-		const [onHandle, resolveHandle] = createProcess()
-		const [onAfterHandle, resolveAfterHandle] = createProcess()
-		const [onError, resolveError] = createProcess()
-		const [onMapResponse, resolveMapResponse] = createProcess()
-		const [onAfterResponse, resolveAfterResponse] = createProcess()
+		const [onRequest, resolveRequest] = createProcess();
+		const [onParse, resolveParse] = createProcess();
+		const [onTransform, resolveTransform] = createProcess();
+		const [onBeforeHandle, resolveBeforeHandle] = createProcess();
+		const [onHandle, resolveHandle] = createProcess();
+		const [onAfterHandle, resolveAfterHandle] = createProcess();
+		const [onError, resolveError] = createProcess();
+		const [onMapResponse, resolveMapResponse] = createProcess();
+		const [onAfterResponse, resolveAfterResponse] = createProcess();
 
 		traceListener({
-			// @ts-ignore
+			// @ts-expect-error
 			id: context[ELYSIA_REQUEST_ID],
 			context,
 			set: context.set,
-			// @ts-ignore
+			// @ts-expect-error
 			onRequest,
-			// @ts-ignore
+			// @ts-expect-error
 			onParse,
-			// @ts-ignore
+			// @ts-expect-error
 			onTransform,
-			// @ts-ignore
+			// @ts-expect-error
 			onBeforeHandle,
-			// @ts-ignore
+			// @ts-expect-error
 			onHandle,
-			// @ts-ignore
+			// @ts-expect-error
 			onAfterHandle,
-			// @ts-ignore
+			// @ts-expect-error
 			onMapResponse,
-			// @ts-ignore
+			// @ts-expect-error
 			onAfterResponse,
-			// @ts-ignore
+			// @ts-expect-error
 			onError,
 			time: Date.now(),
-			store: context.store
-		})
+			store: context.store,
+		});
 
 		// ? This is pass to compiler
 		return {
@@ -309,7 +300,7 @@ export const createTracer = (traceListener: TraceHandler) => {
 			afterHandle: resolveAfterHandle,
 			error: resolveError,
 			mapResponse: resolveMapResponse,
-			afterResponse: resolveAfterResponse
-		}
-	}
-}
+			afterResponse: resolveAfterResponse,
+		};
+	};
+};

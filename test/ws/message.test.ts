@@ -1,60 +1,60 @@
-import { describe, it, expect } from 'bun:test'
-import { Elysia, t } from '../../src'
-import { newWebsocket, wsOpen, wsMessage, wsClosed } from './utils'
-import z from 'zod'
+import { describe, expect, it } from "bun:test";
+import z from "zod";
+import { Elysia, t } from "../../src";
+import { newWebsocket, wsClosed, wsMessage, wsOpen } from "./utils";
 
-describe('WebSocket message', () => {
-	it('should send & receive', async () => {
+describe("WebSocket message", () => {
+	it("should send & receive", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				message(ws, message) {
-					ws.send(message)
-				}
+					ws.send(message);
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send('Hello!')
+		ws.send("Hello!");
 
-		const { type, data } = await message
+		const { type, data } = await message;
 
-		expect(type).toBe('message')
-		expect(data).toBe('Hello!')
+		expect(type).toBe("message");
+		expect(data).toBe("Hello!");
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should respond with remoteAddress', async () => {
+	it("should respond with remoteAddress", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				message(ws) {
-					ws.send(ws.remoteAddress)
-				}
+					ws.send(ws.remoteAddress);
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send('Hello!')
+		ws.send("Hello!");
 
-		const { type, data } = await message
+		const { type, data } = await message;
 
-		expect(type).toBe('message')
-		expect(data === '::1' || data === '::ffff:127.0.0.1').toBeTruthy()
+		expect(type).toBe("message");
+		expect(data === "::1" || data === "::ffff:127.0.0.1").toBeTruthy();
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
 	// it('should subscribe & publish', async () => {
 	// 	const app = new Elysia()
@@ -88,525 +88,527 @@ describe('WebSocket message', () => {
 	// 	app.stop()
 	// })
 
-	it('should unsubscribe', async () => {
+	it("should unsubscribe", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				open(ws) {
-					ws.subscribe('asdf')
+					ws.subscribe("asdf");
 				},
 				message(ws, message) {
-					if (message === 'unsubscribe') {
-						ws.unsubscribe('asdf')
+					if (message === "unsubscribe") {
+						ws.unsubscribe("asdf");
 					}
 
-					ws.send(ws.isSubscribed('asdf'))
-				}
+					ws.send(ws.isSubscribed("asdf"));
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const subscribedMessage = wsMessage(ws)
+		const subscribedMessage = wsMessage(ws);
 
-		ws.send('Hello!')
+		ws.send("Hello!");
 
-		const subscribed = await subscribedMessage
+		const subscribed = await subscribedMessage;
 
-		expect(subscribed.type).toBe('message')
-		expect(subscribed.data).toBe('true')
+		expect(subscribed.type).toBe("message");
+		expect(subscribed.data).toBe("true");
 
-		const unsubscribedMessage = wsMessage(ws)
+		const unsubscribedMessage = wsMessage(ws);
 
-		ws.send('unsubscribe')
+		ws.send("unsubscribe");
 
-		const unsubscribed = await unsubscribedMessage
+		const unsubscribed = await unsubscribedMessage;
 
-		expect(unsubscribed.type).toBe('message')
-		expect(unsubscribed.data).toBe('false')
+		expect(unsubscribed.type).toBe("message");
+		expect(unsubscribed.data).toBe("false");
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should validate success', async () => {
+	it("should validate success", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				body: t.Object({
-					message: t.String()
+					message: t.String(),
 				}),
 				message(ws, { message }) {
-					ws.send(message)
-				}
+					ws.send(message);
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send(JSON.stringify({ message: 'Hello!' }))
+		ws.send(JSON.stringify({ message: "Hello!" }));
 
-		const { type, data } = await message
+		const { type, data } = await message;
 
-		expect(type).toBe('message')
-		expect(data).toBe('Hello!')
+		expect(type).toBe("message");
+		expect(data).toBe("Hello!");
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should validate fail', async () => {
+	it("should validate fail", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				body: t.Object({
-					message: t.String()
+					message: t.String(),
 				}),
 				message(ws, { message }) {
-					ws.send(message)
-				}
+					ws.send(message);
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send('Hello!')
+		ws.send("Hello!");
 
-		const { type, data } = await message
+		const { type, data } = await message;
 
-		expect(type).toBe('message')
-		expect(data).toInclude('Expected')
+		expect(type).toBe("message");
+		expect(data).toInclude("Expected");
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should validate standard schema success', async () => {
+	it("should validate standard schema success", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				body: z.object({
-					message: z.string()
+					message: z.string(),
 				}),
 				message(ws, { message }) {
-					ws.send(message)
-				}
+					ws.send(message);
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send(JSON.stringify({ message: 'Hello!' }))
+		ws.send(JSON.stringify({ message: "Hello!" }));
 
-		const { type, data } = await message
+		const { type, data } = await message;
 
-		expect(type).toBe('message')
-		expect(data).toBe('Hello!')
+		expect(type).toBe("message");
+		expect(data).toBe("Hello!");
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should validate standard schema fail', async () => {
+	it("should validate standard schema fail", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				body: z.object({
-					message: z.string()
+					message: z.string(),
 				}),
 				message(ws, { message }) {
-					ws.send(message)
-				}
+					ws.send(message);
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send('Hello!')
+		ws.send("Hello!");
 
-		const { type, data } = await message
+		const { type, data } = await message;
 
-		expect(type).toBe('message')
-		expect(data).toInclude('validation')
+		expect(type).toBe("message");
+		expect(data).toInclude("validation");
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should parse objects', async () => {
+	it("should parse objects", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				message(ws, raw) {
-					ws.send(raw)
-				}
+					ws.send(raw);
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send(JSON.stringify({ message: 'Hello!' }))
+		ws.send(JSON.stringify({ message: "Hello!" }));
 
-		const { type, data } = await message
-		expect(type).toBe('message')
-		expect(data).toInclude('{"message":"Hello!"}')
+		const { type, data } = await message;
+		expect(type).toBe("message");
+		expect(data).toInclude('{"message":"Hello!"}');
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should parse arrays', async () => {
+	it("should parse arrays", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				message(ws, raw) {
-					ws.send(JSON.stringify(raw))
-				}
+					ws.send(JSON.stringify(raw));
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send(JSON.stringify([{ message: 'Hello!' }]))
+		ws.send(JSON.stringify([{ message: "Hello!" }]));
 
-		const { type, data } = await message
-		expect(type).toBe('message')
-		expect(data).toInclude('[{"message":"Hello!"}]')
+		const { type, data } = await message;
+		expect(type).toBe("message");
+		expect(data).toInclude('[{"message":"Hello!"}]');
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should parse strings', async () => {
+	it("should parse strings", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				message(ws, raw) {
-					ws.send(JSON.stringify(raw))
-				}
+					ws.send(JSON.stringify(raw));
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send(JSON.stringify("Hello!"))
+		ws.send(JSON.stringify("Hello!"));
 
-		const { type, data } = await message
-		expect(type).toBe('message')
-		expect(data).toInclude('"Hello!"')
+		const { type, data } = await message;
+		expect(type).toBe("message");
+		expect(data).toInclude('"Hello!"');
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should parse numbers', async () => {
+	it("should parse numbers", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				message(ws, raw) {
-					ws.send(JSON.stringify(raw))
-				}
+					ws.send(JSON.stringify(raw));
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send(JSON.stringify(1234567890))
+		ws.send(JSON.stringify(1234567890));
 
-		const { type, data } = await message
-		expect(type).toBe('message')
-		expect(data).toInclude('1234567890')
+		const { type, data } = await message;
+		expect(type).toBe("message");
+		expect(data).toInclude("1234567890");
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should parse true', async () => {
+	it("should parse true", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				message(ws, raw) {
-					ws.send(JSON.stringify(raw))
-				}
+					ws.send(JSON.stringify(raw));
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send(JSON.stringify(true))
+		ws.send(JSON.stringify(true));
 
-		const { type, data } = await message
-		expect(type).toBe('message')
-		expect(data).toInclude('true')
+		const { type, data } = await message;
+		expect(type).toBe("message");
+		expect(data).toInclude("true");
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should parse false', async () => {
+	it("should parse false", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				message(ws, raw) {
-					ws.send(JSON.stringify(raw))
-				}
+					ws.send(JSON.stringify(raw));
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send(JSON.stringify(false))
+		ws.send(JSON.stringify(false));
 
-		const { type, data } = await message
-		expect(type).toBe('message')
-		expect(data).toInclude('false')
+		const { type, data } = await message;
+		expect(type).toBe("message");
+		expect(data).toInclude("false");
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should parse null', async () => {
+	it("should parse null", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				message(ws, raw) {
-					ws.send(JSON.stringify(raw))
-				}
+					ws.send(JSON.stringify(raw));
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send(JSON.stringify(null))
+		ws.send(JSON.stringify(null));
 
-		const { type, data } = await message
-		expect(type).toBe('message')
-		expect(data).toInclude('null')
+		const { type, data } = await message;
+		expect(type).toBe("message");
+		expect(data).toInclude("null");
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should parse not parse /hello', async () => {
+	it("should parse not parse /hello", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				message(ws, raw) {
-					ws.send(JSON.stringify(raw))
-				}
+					ws.send(JSON.stringify(raw));
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send(JSON.stringify("/hello"))
+		ws.send(JSON.stringify("/hello"));
 
-		const { type, data } = await message
-		expect(type).toBe('message')
-		expect(data).toInclude('/hello')
+		const { type, data } = await message;
+		expect(type).toBe("message");
+		expect(data).toInclude("/hello");
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should send from plugin', async () => {
-		const plugin = new Elysia().ws('/ws', {
+	it("should send from plugin", async () => {
+		const plugin = new Elysia().ws("/ws", {
 			message(ws, message) {
-				ws.send(message)
-			}
-		})
+				ws.send(message);
+			},
+		});
 
-		const app = new Elysia().use(plugin).listen(0)
+		const app = new Elysia().use(plugin).listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send('Hello!')
+		ws.send("Hello!");
 
-		const { type, data } = await message
+		const { type, data } = await message;
 
-		expect(type).toBe('message')
-		expect(data).toBe('Hello!')
+		expect(type).toBe("message");
+		expect(data).toBe("Hello!");
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should be able to receive binary data', async () => {
-		const plugin = new Elysia().ws('/ws', {
+	it("should be able to receive binary data", async () => {
+		const plugin = new Elysia().ws("/ws", {
 			message(ws, message) {
-				ws.send(message)
-			}
-		})
+				ws.send(message);
+			},
+		});
 
-		const app = new Elysia().use(plugin).listen(0)
+		const app = new Elysia().use(plugin).listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send(new Uint8Array(3))
+		ws.send(new Uint8Array(3));
 
-		const { type, data } = await message
+		const { type, data } = await message;
 
-		expect(type).toBe('message')
-		// @ts-ignore
-		expect(data).toEqual(new Uint8Array(3))
+		expect(type).toBe("message");
+		// @ts-expect-error
+		expect(data).toEqual(new Uint8Array(3));
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('should send & receive', async () => {
+	it("should send & receive", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				message(ws, message) {
-					ws.send(message)
-				}
+					ws.send(message);
+				},
 			})
-			.listen(0)
-		const ws = newWebsocket(app.server!)
-		await wsOpen(ws)
-		const message = wsMessage(ws)
-		ws.send(' ')
-		const { type, data } = await message
-		expect(type).toBe('message')
-		expect(data).toBe(' ')
-		await wsClosed(ws)
-		app.stop()
-	})
+			.listen(0);
+		const ws = newWebsocket(app.server!);
+		await wsOpen(ws);
+		const message = wsMessage(ws);
+		ws.send(" ");
+		const { type, data } = await message;
+		expect(type).toBe("message");
+		expect(data).toBe(" ");
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('handle error', async () => {
+	it("handle error", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				error() {
-					return 'caught'
+					return "caught";
 				},
 				message(ws, message) {
-					throw new Error('A')
-				}
+					throw new Error("A");
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send('Hello!')
+		ws.send("Hello!");
 
-		const { type, data } = await message
+		const { type, data } = await message;
 
-		expect(type).toBe('message')
-		expect(data).toBe('caught')
+		expect(type).toBe("message");
+		expect(data).toBe("caught");
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-	it('handle error with onError', async () => {
+	it("handle error with onError", async () => {
 		const app = new Elysia()
 			.onError(() => {
-				return 'caught'
+				return "caught";
 			})
-			.ws('/ws', {
+			.ws("/ws", {
 				message(ws, message) {
-					throw new Error('A')
-				}
+					throw new Error("A");
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		ws.send('Hello!')
+		ws.send("Hello!");
 
-		const { type, data } = await message
+		const { type, data } = await message;
 
-		expect(type).toBe('message')
-		expect(data).toBe('caught')
+		expect(type).toBe("message");
+		expect(data).toBe("caught");
 
-		await wsClosed(ws)
-		app.stop()
-	})
+		await wsClosed(ws);
+		app.stop();
+	});
 
-    it('handle validation error with onError', async () => {
-        const app = new Elysia()
-            .onError(() => {
-                return 'caught'
-            })
-            .ws('/ws', {
-                body: t.Object({
-                    name: t.String()
-                }),
-                message(ws, message) {
-                    return ws.send(message)
-                }
-            })
-            .listen(0)
+	it("handle validation error with onError", async () => {
+		const app = new Elysia()
+			.onError(() => {
+				return "caught";
+			})
+			.ws("/ws", {
+				body: t.Object({
+					name: t.String(),
+				}),
+				message(ws, message) {
+					return ws.send(message);
+				},
+			})
+			.listen(0);
 
-        const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-        await wsOpen(ws)
+		await wsOpen(ws);
 
-        const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-        ws.send(JSON.stringify({
-            name: 123, // expecting a string
-        }))
+		ws.send(
+			JSON.stringify({
+				name: 123, // expecting a string
+			}),
+		);
 
-        const { type, data } = await message
+		const { type, data } = await message;
 
-        expect(type).toBe('message')
-        expect(data).toBe('caught')
+		expect(type).toBe("message");
+		expect(data).toBe("caught");
 
-        await wsClosed(ws)
-        app.stop()
-    })
-})
+		await wsClosed(ws);
+		app.stop();
+	});
+});

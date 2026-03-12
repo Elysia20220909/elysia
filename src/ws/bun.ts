@@ -11,9 +11,9 @@ type TypedArray =
 	| BigUint64Array
 	| BigInt64Array
 	| Float32Array
-	| Float64Array
+	| Float64Array;
 
-export type BufferSource = TypedArray | DataView | ArrayBufferLike
+export type BufferSource = TypedArray | DataView | ArrayBufferLike;
 
 /**
  * A status that represents the outcome of a sent message.
@@ -34,7 +34,7 @@ export type BufferSource = TypedArray | DataView | ArrayBufferLike
  * }
  * ```
  */
-export type ServerWebSocketSendStatus = number
+export type ServerWebSocketSendStatus = number;
 
 /**
  * A state that represents if a WebSocket is connected.
@@ -46,7 +46,7 @@ export type ServerWebSocketSendStatus = number
  *
  * @link https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
  */
-export type WebSocketReadyState = 0 | 1 | 2 | 3
+export type WebSocketReadyState = 0 | 1 | 2 | 3;
 
 /**
  * A fast WebSocket designed for servers.
@@ -92,8 +92,8 @@ export interface ServerWebSocket<T = undefined> {
 	 */
 	send(
 		data: string | BufferSource,
-		compress?: boolean
-	): ServerWebSocketSendStatus
+		compress?: boolean,
+	): ServerWebSocketSendStatus;
 
 	/**
 	 * Sends a text message to the client.
@@ -104,7 +104,7 @@ export interface ServerWebSocket<T = undefined> {
 	 * ws.send("Hello!");
 	 * ws.send("Compress this.", true);
 	 */
-	sendText(data: string, compress?: boolean): ServerWebSocketSendStatus
+	sendText(data: string, compress?: boolean): ServerWebSocketSendStatus;
 
 	/**
 	 * Sends a binary message to the client.
@@ -115,10 +115,7 @@ export interface ServerWebSocket<T = undefined> {
 	 * ws.send(new TextEncoder().encode("Hello!"));
 	 * ws.send(new Uint8Array([1, 2, 3, 4]), true);
 	 */
-	sendBinary(
-		data: BufferSource,
-		compress?: boolean
-	): ServerWebSocketSendStatus
+	sendBinary(data: BufferSource, compress?: boolean): ServerWebSocketSendStatus;
 
 	/**
 	 * Closes the connection.
@@ -136,28 +133,28 @@ export interface ServerWebSocket<T = undefined> {
 	 * @param code The close code to send
 	 * @param reason The close reason to send
 	 */
-	close(code?: number, reason?: string): void
+	close(code?: number, reason?: string): void;
 
 	/**
 	 * Abruptly close the connection.
 	 *
 	 * To gracefully close the connection, use `close()`.
 	 */
-	terminate(): void
+	terminate(): void;
 
 	/**
 	 * Sends a ping.
 	 *
 	 * @param data The data to send
 	 */
-	ping(data?: string | BufferSource): ServerWebSocketSendStatus
+	ping(data?: string | BufferSource): ServerWebSocketSendStatus;
 
 	/**
 	 * Sends a pong.
 	 *
 	 * @param data The data to send
 	 */
-	pong(data?: string | BufferSource): ServerWebSocketSendStatus
+	pong(data?: string | BufferSource): ServerWebSocketSendStatus;
 
 	/**
 	 * Sends a message to subscribers of the topic.
@@ -173,8 +170,8 @@ export interface ServerWebSocket<T = undefined> {
 	publish(
 		topic: string,
 		data: string | BufferSource,
-		compress?: boolean
-	): ServerWebSocketSendStatus
+		compress?: boolean,
+	): ServerWebSocketSendStatus;
 
 	/**
 	 * Sends a text message to subscribers of the topic.
@@ -189,8 +186,8 @@ export interface ServerWebSocket<T = undefined> {
 	publishText(
 		topic: string,
 		data: string,
-		compress?: boolean
-	): ServerWebSocketSendStatus
+		compress?: boolean,
+	): ServerWebSocketSendStatus;
 
 	/**
 	 * Sends a binary message to subscribers of the topic.
@@ -205,8 +202,8 @@ export interface ServerWebSocket<T = undefined> {
 	publishBinary(
 		topic: string,
 		data: BufferSource,
-		compress?: boolean
-	): ServerWebSocketSendStatus
+		compress?: boolean,
+	): ServerWebSocketSendStatus;
 
 	/**
 	 * Subscribes a client to the topic.
@@ -215,7 +212,7 @@ export interface ServerWebSocket<T = undefined> {
 	 * @example
 	 * ws.subscribe("chat");
 	 */
-	subscribe(topic: string): void
+	subscribe(topic: string): void;
 
 	/**
 	 * Unsubscribes a client to the topic.
@@ -224,7 +221,7 @@ export interface ServerWebSocket<T = undefined> {
 	 * @example
 	 * ws.unsubscribe("chat");
 	 */
-	unsubscribe(topic: string): void
+	unsubscribe(topic: string): void;
 
 	/**
 	 * Is the client subscribed to a topic?
@@ -234,7 +231,7 @@ export interface ServerWebSocket<T = undefined> {
 	 * ws.subscribe("chat");
 	 * console.log(ws.isSubscribed("chat")); // true
 	 */
-	isSubscribed(topic: string): boolean
+	isSubscribed(topic: string): boolean;
 
 	/**
 	 * Returns an array of all topics the client is currently subscribed to.
@@ -244,7 +241,7 @@ export interface ServerWebSocket<T = undefined> {
 	 * ws.subscribe("notifications");
 	 * console.log(ws.subscriptions); // ["chat", "notifications"]
 	 */
-	readonly subscriptions: string[]
+	readonly subscriptions: string[];
 
 	/**
 	 * Batches `send()` and `publish()` operations, which makes it faster to send data.
@@ -261,7 +258,7 @@ export interface ServerWebSocket<T = undefined> {
 	 *   ctx.sendBinary(new TextEncoder().encode("together!"));
 	 * });
 	 */
-	cork<T = unknown>(callback: (ws: ServerWebSocket<T>) => T): T
+	cork<T = unknown>(callback: (ws: ServerWebSocket<T>) => T): T;
 
 	/**
 	 * The IP address of the client.
@@ -269,7 +266,7 @@ export interface ServerWebSocket<T = undefined> {
 	 * @example
 	 * console.log(socket.remoteAddress); // "127.0.0.1"
 	 */
-	readonly remoteAddress: string
+	readonly remoteAddress: string;
 
 	/**
 	 * The ready state of the client.
@@ -282,7 +279,7 @@ export interface ServerWebSocket<T = undefined> {
 	 * @example
 	 * console.log(socket.readyState); // 1
 	 */
-	readonly readyState: WebSocketReadyState
+	readonly readyState: WebSocketReadyState;
 
 	/**
 	 * Sets how binary data is returned in events.
@@ -298,7 +295,7 @@ export interface ServerWebSocket<T = undefined> {
 	 *   console.log(data instanceof Uint8Array); // true
 	 * });
 	 */
-	binaryType?: 'nodebuffer' | 'arraybuffer' | 'uint8array'
+	binaryType?: "nodebuffer" | "arraybuffer" | "uint8array";
 
 	/**
 	 * Custom data that you can assign to a client, can be read and written at any time.
@@ -323,24 +320,24 @@ export interface ServerWebSocket<T = undefined> {
 	 *   }
 	 * });
 	 */
-	data: T
+	data: T;
 }
 
 /**
  * Compression options for WebSocket messages.
  */
 export type WebSocketCompressor =
-	| 'disable'
-	| 'shared'
-	| 'dedicated'
-	| '3KB'
-	| '4KB'
-	| '8KB'
-	| '16KB'
-	| '32KB'
-	| '64KB'
-	| '128KB'
-	| '256KB'
+	| "disable"
+	| "shared"
+	| "dedicated"
+	| "3KB"
+	| "4KB"
+	| "8KB"
+	| "16KB"
+	| "32KB"
+	| "64KB"
+	| "128KB"
+	| "256KB";
 
 /**
  * Create a server-side {@link ServerWebSocket} handler for use with {@link Bun.serve}
@@ -395,15 +392,15 @@ export interface WebSocketHandler<in out T = undefined> {
 	 */
 	message(
 		ws: ServerWebSocket<T>,
-		message: string | Buffer
-	): void | Promise<void>
+		message: string | Buffer,
+	): void | Promise<void>;
 
 	/**
 	 * Called when a connection is opened.
 	 *
 	 * @param ws The websocket that was opened
 	 */
-	open?(ws: ServerWebSocket<T>): void | Promise<void>
+	open?(ws: ServerWebSocket<T>): void | Promise<void>;
 
 	/**
 	 * Called when a connection was previously under backpressure,
@@ -411,7 +408,7 @@ export interface WebSocketHandler<in out T = undefined> {
 	 *
 	 * @param ws The websocket that is ready for more data
 	 */
-	drain?(ws: ServerWebSocket<T>): void | Promise<void>
+	drain?(ws: ServerWebSocket<T>): void | Promise<void>;
 
 	/**
 	 * Called when a connection is closed.
@@ -423,8 +420,8 @@ export interface WebSocketHandler<in out T = undefined> {
 	close?(
 		ws: ServerWebSocket<T>,
 		code: number,
-		reason: string
-	): void | Promise<void>
+		reason: string,
+	): void | Promise<void>;
 
 	/**
 	 * Called when a ping is sent.
@@ -432,7 +429,7 @@ export interface WebSocketHandler<in out T = undefined> {
 	 * @param ws The websocket that received the ping
 	 * @param data The data sent with the ping
 	 */
-	ping?(ws: ServerWebSocket<T>, data: Buffer): void | Promise<void>
+	ping?(ws: ServerWebSocket<T>, data: Buffer): void | Promise<void>;
 
 	/**
 	 * Called when a pong is received.
@@ -440,28 +437,28 @@ export interface WebSocketHandler<in out T = undefined> {
 	 * @param ws The websocket that received the ping
 	 * @param data The data sent with the ping
 	 */
-	pong?(ws: ServerWebSocket<T>, data: Buffer): void | Promise<void>
+	pong?(ws: ServerWebSocket<T>, data: Buffer): void | Promise<void>;
 
 	/**
 	 * Sets the maximum size of messages in bytes.
 	 *
 	 * Default is 16 MB, or `1024 * 1024 * 16` in bytes.
 	 */
-	maxPayloadLength?: number
+	maxPayloadLength?: number;
 
 	/**
 	 * Sets the maximum number of bytes that can be buffered on a single connection.
 	 *
 	 * Default is 16 MB, or `1024 * 1024 * 16` in bytes.
 	 */
-	backpressureLimit?: number
+	backpressureLimit?: number;
 
 	/**
 	 * Sets if the connection should be closed if `backpressureLimit` is reached.
 	 *
 	 * Default is `false`.
 	 */
-	closeOnBackpressureLimit?: boolean
+	closeOnBackpressureLimit?: boolean;
 
 	/**
 	 * Sets the the number of seconds to wait before timing out a connection
@@ -469,21 +466,21 @@ export interface WebSocketHandler<in out T = undefined> {
 	 *
 	 * Default is 2 minutes, or `120` in seconds.
 	 */
-	idleTimeout?: number
+	idleTimeout?: number;
 
 	/**
 	 * Should `ws.publish()` also send a message to `ws` (itself), if it is subscribed?
 	 *
 	 * Default is `false`.
 	 */
-	publishToSelf?: boolean
+	publishToSelf?: boolean;
 
 	/**
 	 * Should the server automatically send and respond to pings to clients?
 	 *
 	 * Default is `true`.
 	 */
-	sendPings?: boolean
+	sendPings?: boolean;
 
 	/**
 	 * Sets the compression level for messages, for clients that supports it. By default, compression is disabled.
@@ -496,10 +493,10 @@ export interface WebSocketHandler<in out T = undefined> {
 				/**
 				 * Sets the compression level.
 				 */
-				compress?: WebSocketCompressor | boolean
+				compress?: WebSocketCompressor | boolean;
 				/**
 				 * Sets the decompression level.
 				 */
-				decompress?: WebSocketCompressor | boolean
-		  }
+				decompress?: WebSocketCompressor | boolean;
+		  };
 }

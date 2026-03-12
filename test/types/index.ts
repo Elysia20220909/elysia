@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
+import { expectTypeOf } from "expect-type";
 import {
 	type Cookie,
 	Elysia,
@@ -8,349 +9,361 @@ import {
 	SSEPayload,
 	sse,
 	status,
-	t
-} from '../../src'
+	t,
+} from "../../src";
 
-import { expectTypeOf } from 'expect-type'
-
-const app = new Elysia()
+const app = new Elysia();
 
 // ? default value of context
-app.get('/', ({ headers, query, params, body, store }) => {
+app.get("/", ({ headers, query, params, body, store }) => {
 	// ? default keyof params should be never
-	expectTypeOf<typeof params>().toEqualTypeOf<{}>()
+	expectTypeOf<typeof params>().toEqualTypeOf<{}>();
 
 	// ? default headers should be Record<string, unknown>
 	expectTypeOf<typeof headers>().toEqualTypeOf<
 		Record<string, string | undefined>
-	>()
+	>();
 
 	// ? default query should be Record<string, string>
-	expectTypeOf<typeof query>().toEqualTypeOf<Record<string, string>>()
+	expectTypeOf<typeof query>().toEqualTypeOf<Record<string, string>>();
 
 	// ? default body should be unknown
-	expectTypeOf<typeof body>().toBeUnknown()
+	expectTypeOf<typeof body>().toBeUnknown();
 
 	// ? default store should be empty
-	expectTypeOf<typeof store>().toEqualTypeOf<{}>()
-})
+	expectTypeOf<typeof store>().toEqualTypeOf<{}>();
+});
 
-app.model({
-	t: t.Object({
-		username: t.String(),
-		password: t.String()
+app
+	.model({
+		t: t.Object({
+			username: t.String(),
+			password: t.String(),
+		}),
 	})
-}).get(
-	'/',
-	({ headers, query, params, body, cookie }) => {
-		// ? unwrap body type
-		expectTypeOf<{
-			username: string
-			password: string
-		}>().toEqualTypeOf<typeof body>()
+	.get(
+		"/",
+		({ headers, query, params, body, cookie }) => {
+			// ? unwrap body type
+			expectTypeOf<{
+				username: string;
+				password: string;
+			}>().toEqualTypeOf<typeof body>();
 
-		// ? unwrap body type
-		expectTypeOf<{
-			username: string
-			password: string
-		}>().toEqualTypeOf<typeof query>()
+			// ? unwrap body type
+			expectTypeOf<{
+				username: string;
+				password: string;
+			}>().toEqualTypeOf<typeof query>();
 
-		// ? unwrap body type
-		expectTypeOf<{
-			username: string
-			password: string
-		}>().toEqualTypeOf<typeof params>()
+			// ? unwrap body type
+			expectTypeOf<{
+				username: string;
+				password: string;
+			}>().toEqualTypeOf<typeof params>();
 
-		// ? unwrap body type
-		expectTypeOf<{
-			username: string
-			password: string
-		}>().toEqualTypeOf<typeof headers>()
+			// ? unwrap body type
+			expectTypeOf<{
+				username: string;
+				password: string;
+			}>().toEqualTypeOf<typeof headers>();
 
-		// ? unwrap cookie
-		expectTypeOf<
-			Record<string, Cookie<unknown>> & {
-				username: Cookie<string>
-				password: Cookie<string>
-			}
-		>().toEqualTypeOf<typeof cookie>()
+			// ? unwrap cookie
+			expectTypeOf<
+				Record<string, Cookie<unknown>> & {
+					username: Cookie<string>;
+					password: Cookie<string>;
+				}
+			>().toEqualTypeOf<typeof cookie>();
 
-		return body
-	},
-	{
-		body: 't',
-		params: 't',
-		query: 't',
-		headers: 't',
-		response: 't',
-		cookie: 't'
-	}
-)
+			return body;
+		},
+		{
+			body: "t",
+			params: "t",
+			query: "t",
+			headers: "t",
+			response: "t",
+			cookie: "t",
+		},
+	);
 
-app.model({
-	t: t.Object({
-		username: t.String(),
-		password: t.String()
+app
+	.model({
+		t: t.Object({
+			username: t.String(),
+			password: t.String(),
+		}),
 	})
-}).get(
-	'/',
-	({ body }) => {
-		// ? unwrap body type
-		expectTypeOf<{
-			username: string
-			password: string
-		}>().toEqualTypeOf<typeof body>()
+	.get(
+		"/",
+		({ body }) => {
+			// ? unwrap body type
+			expectTypeOf<{
+				username: string;
+				password: string;
+			}>().toEqualTypeOf<typeof body>();
 
-		return body
-	},
-	{
-		body: 't',
-		response: 't'
-	}
-)
+			return body;
+		},
+		{
+			body: "t",
+			response: "t",
+		},
+	);
 
-app.get('/id/:id', ({ params }) => {
+app.get("/id/:id", ({ params }) => {
 	// ? infer params name
 	expectTypeOf<{
-		id: string
-	}>().toEqualTypeOf<typeof params>()
-})
+		id: string;
+	}>().toEqualTypeOf<typeof params>();
+});
 
-app.get('/id/:id/name/:name', ({ params }) => {
+app.get("/id/:id/name/:name", ({ params }) => {
 	// ? infer multiple params name
 	expectTypeOf<{
-		id: string
-		name: string
-	}>().toEqualTypeOf<typeof params>()
-})
+		id: string;
+		name: string;
+	}>().toEqualTypeOf<typeof params>();
+});
 
 // ? support unioned response
-app.get('/', () => '1', {
-	response: {
-		200: t.String(),
-		400: t.Number()
-	}
-}).get('/', () => 1, {
-	response: {
-		200: t.String(),
-		400: t.Number()
-	}
-})
+app
+	.get("/", () => "1", {
+		response: {
+			200: t.String(),
+			400: t.Number(),
+		},
+	})
+	.get("/", () => 1, {
+		response: {
+			200: t.String(),
+			400: t.Number(),
+		},
+	});
 
 // ? support pre-defined schema
-app.guard({
-	body: t.String()
-}).get('/', ({ body }) => {
-	expectTypeOf<typeof body>().not.toBeUnknown()
-	expectTypeOf<typeof body>().toBeString()
-})
-
-// ? override schema
-app.guard({
-	body: t.String()
-}).get(
-	'/',
-	({ body }) => {
-		expectTypeOf<typeof body>().not.toBeUnknown()
-		expectTypeOf<typeof body>().toBeNumber()
-	},
-	{
-		body: t.Number()
-	}
-)
-
-// ? override schema
-app.model({
-	string: t.String()
-}).guard(
-	{
-		body: t.String()
-	},
-	(app) =>
-		app
-			// ? Inherits guard type
-			.get('/', ({ body }) => {
-				expectTypeOf<typeof body>().not.toBeUnknown()
-				expectTypeOf<typeof body>().toBeString()
-			})
-			// // ? override guard type
-			.get(
-				'/',
-				({ body }) => {
-					expectTypeOf<typeof body>().not.toBeUnknown()
-					expectTypeOf<typeof body>().toBeNumber()
-				},
-				{
-					body: t.Number()
-				}
-			)
-			// ? Merge schema and inherits typed
-			.get(
-				'/',
-				({ body, query }) => {
-					expectTypeOf<typeof query>().not.toEqualTypeOf<
-						Record<string, unknown>
-					>()
-					expectTypeOf<typeof query>().toEqualTypeOf<{
-						a: string
-					}>()
-
-					expectTypeOf<typeof body>().not.toBeUnknown()
-					expectTypeOf<typeof body>().toBeString()
-				},
-				{
-					query: t.Object({
-						a: t.String()
-					})
-				}
-			)
-			// ? Inherits schema reference
-			.get(
-				'/',
-				({ body }) => {
-					expectTypeOf<typeof body>().not.toBeUnknown()
-					expectTypeOf<typeof body>().toEqualTypeOf<string>()
-				},
-				{
-					body: 'string'
-				}
-			)
-			.get(
-				'/',
-				({ body }) => {
-					expectTypeOf<typeof body>().not.toBeUnknown()
-					expectTypeOf<typeof body>().toEqualTypeOf<string>()
-				},
-				{
-					body: 'string'
-				}
-			)
-			.model({
-				authorization: t.Object({
-					authorization: t.String()
-				})
-			})
-			// ? Merge inherited schema
-			.get(
-				'/',
-				({ body, headers }) => {
-					expectTypeOf<typeof body>().not.toBeUnknown()
-
-					expectTypeOf<typeof headers>().not.toEqualTypeOf<
-						Record<string, unknown>
-					>()
-					expectTypeOf<typeof headers>().toEqualTypeOf<{
-						authorization: string
-					}>()
-				},
-				{
-					headers: 'authorization'
-				}
-			)
-			.guard(
-				{
-					headers: 'authorization'
-				},
-				(app) =>
-					// ? To reconcilate multiple level of schema
-					app.get('/', ({ body, headers }) => {
-						expectTypeOf<typeof body>().not.toBeUnknown()
-						expectTypeOf<typeof body>().toEqualTypeOf<string>()
-
-						expectTypeOf<typeof headers>().not.toBeUnknown()
-						expectTypeOf<typeof headers>().toEqualTypeOf<{
-							authorization: string
-						}>()
-					})
-			)
-)
-
-app.state('a', 'b')
-	// ? Infer state
-	.get('/', ({ store }) => {
-		expectTypeOf<typeof store>().toEqualTypeOf<{
-			a: string
-		}>()
+app
+	.guard({
+		body: t.String(),
 	})
-	.state('b', 'c')
-	// ? Merge state
-	.get('/', ({ store }) => {
+	.get("/", ({ body }) => {
+		expectTypeOf<typeof body>().not.toBeUnknown();
+		expectTypeOf<typeof body>().toBeString();
+	});
+
+// ? override schema
+app
+	.guard({
+		body: t.String(),
+	})
+	.get(
+		"/",
+		({ body }) => {
+			expectTypeOf<typeof body>().not.toBeUnknown();
+			expectTypeOf<typeof body>().toBeNumber();
+		},
+		{
+			body: t.Number(),
+		},
+	);
+
+// ? override schema
+app
+	.model({
+		string: t.String(),
+	})
+	.guard(
+		{
+			body: t.String(),
+		},
+		(app) =>
+			app
+				// ? Inherits guard type
+				.get("/", ({ body }) => {
+					expectTypeOf<typeof body>().not.toBeUnknown();
+					expectTypeOf<typeof body>().toBeString();
+				})
+				// // ? override guard type
+				.get(
+					"/",
+					({ body }) => {
+						expectTypeOf<typeof body>().not.toBeUnknown();
+						expectTypeOf<typeof body>().toBeNumber();
+					},
+					{
+						body: t.Number(),
+					},
+				)
+				// ? Merge schema and inherits typed
+				.get(
+					"/",
+					({ body, query }) => {
+						expectTypeOf<typeof query>().not.toEqualTypeOf<
+							Record<string, unknown>
+						>();
+						expectTypeOf<typeof query>().toEqualTypeOf<{
+							a: string;
+						}>();
+
+						expectTypeOf<typeof body>().not.toBeUnknown();
+						expectTypeOf<typeof body>().toBeString();
+					},
+					{
+						query: t.Object({
+							a: t.String(),
+						}),
+					},
+				)
+				// ? Inherits schema reference
+				.get(
+					"/",
+					({ body }) => {
+						expectTypeOf<typeof body>().not.toBeUnknown();
+						expectTypeOf<typeof body>().toEqualTypeOf<string>();
+					},
+					{
+						body: "string",
+					},
+				)
+				.get(
+					"/",
+					({ body }) => {
+						expectTypeOf<typeof body>().not.toBeUnknown();
+						expectTypeOf<typeof body>().toEqualTypeOf<string>();
+					},
+					{
+						body: "string",
+					},
+				)
+				.model({
+					authorization: t.Object({
+						authorization: t.String(),
+					}),
+				})
+				// ? Merge inherited schema
+				.get(
+					"/",
+					({ body, headers }) => {
+						expectTypeOf<typeof body>().not.toBeUnknown();
+
+						expectTypeOf<typeof headers>().not.toEqualTypeOf<
+							Record<string, unknown>
+						>();
+						expectTypeOf<typeof headers>().toEqualTypeOf<{
+							authorization: string;
+						}>();
+					},
+					{
+						headers: "authorization",
+					},
+				)
+				.guard(
+					{
+						headers: "authorization",
+					},
+					(app) =>
+						// ? To reconcilate multiple level of schema
+						app.get("/", ({ body, headers }) => {
+							expectTypeOf<typeof body>().not.toBeUnknown();
+							expectTypeOf<typeof body>().toEqualTypeOf<string>();
+
+							expectTypeOf<typeof headers>().not.toBeUnknown();
+							expectTypeOf<typeof headers>().toEqualTypeOf<{
+								authorization: string;
+							}>();
+						}),
+				),
+	);
+
+app
+	.state("a", "b")
+	// ? Infer state
+	.get("/", ({ store }) => {
 		expectTypeOf<typeof store>().toEqualTypeOf<{
-			a: string
-			b: string
-		}>()
+			a: string;
+		}>();
+	})
+	.state("b", "c")
+	// ? Merge state
+	.get("/", ({ store }) => {
+		expectTypeOf<typeof store>().toEqualTypeOf<{
+			a: string;
+			b: string;
+		}>();
 	})
 	.state({
-		c: 'd',
-		d: 'e'
+		c: "d",
+		d: "e",
 	})
 	// ? Use multiple state
-	.get('/', ({ store }) => {
+	.get("/", ({ store }) => {
 		expectTypeOf<typeof store>().toEqualTypeOf<{
-			a: string
-			b: string
-			c: string
-			d: string
-		}>()
-	})
+			a: string;
+			b: string;
+			c: string;
+			d: string;
+		}>();
+	});
 
-app.decorate('a', 'b')
+app
+	.decorate("a", "b")
 	// ? Infer state
-	.get('/', ({ a }) => {
-		expectTypeOf<typeof a>().toBeString()
+	.get("/", ({ a }) => {
+		expectTypeOf<typeof a>().toBeString();
 	})
-	.decorate('b', 'c')
+	.decorate("b", "c")
 	// ? Merge state
-	.get('/', ({ a, b }) => {
-		expectTypeOf<typeof a>().toBeString()
-		expectTypeOf<typeof b>().toBeString()
+	.get("/", ({ a, b }) => {
+		expectTypeOf<typeof a>().toBeString();
+		expectTypeOf<typeof b>().toBeString();
 	})
 	.decorate({
-		c: 'd',
-		d: 'e'
+		c: "d",
+		d: "e",
 	})
 	// ? Use multiple decorate
-	.get('/', ({ a, b, c, d }) => {
+	.get("/", ({ a, b, c, d }) => {
 		expectTypeOf<{
-			a: typeof a
-			b: typeof b
-			c: typeof c
-			d: typeof d
+			a: typeof a;
+			b: typeof b;
+			c: typeof c;
+			d: typeof d;
 		}>().toEqualTypeOf<{
-			a: string
-			b: string
-			c: string
-			d: string
-		}>()
-	})
+			a: string;
+			b: string;
+			c: string;
+			d: string;
+		}>();
+	});
 
 // ? Reconcile deep using name
 {
 	const app = new Elysia()
-		.decorate('a', {
+		.decorate("a", {
 			hello: {
-				world: 'Tako'
-			}
+				world: "Tako",
+			},
 		})
-		.decorate('a', {
+		.decorate("a", {
 			hello: {
-				world: 'Ina',
-				cookie: 'wah!'
-			}
-		})
+				world: "Ina",
+				cookie: "wah!",
+			},
+		});
 
-	expectTypeOf<(typeof app)['decorator']['a']>().toEqualTypeOf<
+	expectTypeOf<(typeof app)["decorator"]["a"]>().toEqualTypeOf<
 		{
 			hello: {
-				world: string
-			}
+				world: string;
+			};
 		} & {
 			hello: {
-				world: string
-				cookie: string
-			}
+				world: string;
+				cookie: string;
+			};
 		}
-	>()
+	>();
 }
 
 // ? Reconcile deep using value
@@ -358,52 +371,52 @@ app.decorate('a', 'b')
 	const app = new Elysia()
 		.decorate({
 			hello: {
-				world: 'Tako'
-			}
+				world: "Tako",
+			},
 		})
 		.decorate(
-			{ as: 'override' },
+			{ as: "override" },
 			{
 				hello: {
-					world: 'Ina',
-					cookie: 'wah!'
-				}
-			}
-		)
+					world: "Ina",
+					cookie: "wah!",
+				},
+			},
+		);
 
 	expectTypeOf<typeof app.decorator.hello>().toEqualTypeOf<{
-		world: string
-		cookie: string
-	}>()
+		world: string;
+		cookie: string;
+	}>();
 }
 
 // ? Reconcile deep using name
 {
 	const app = new Elysia()
-		.state('a', {
+		.state("a", {
 			hello: {
-				world: 'Tako'
-			}
+				world: "Tako",
+			},
 		})
-		.state('a', {
+		.state("a", {
 			hello: {
-				world: 'Ina',
-				cookie: 'wah!'
-			}
-		})
+				world: "Ina",
+				cookie: "wah!",
+			},
+		});
 
-	expectTypeOf<(typeof app)['store']['a']>().toEqualTypeOf<
+	expectTypeOf<(typeof app)["store"]["a"]>().toEqualTypeOf<
 		{
 			hello: {
-				world: string
-			}
+				world: string;
+			};
 		} & {
 			hello: {
-				world: string
-				cookie: string
-			}
+				world: string;
+				cookie: string;
+			};
 		}
-	>()
+	>();
 }
 
 // ? Reconcile deep using value
@@ -411,268 +424,274 @@ app.decorate('a', 'b')
 	const app = new Elysia()
 		.state({
 			hello: {
-				world: 'Tako'
-			}
+				world: "Tako",
+			},
 		})
 		.state(
-			{ as: 'override' },
+			{ as: "override" },
 			{
 				hello: {
-					world: 'Ina',
-					cookie: 'wah!'
-				}
-			}
-		)
+					world: "Ina",
+					cookie: "wah!",
+				},
+			},
+		);
 
 	expectTypeOf<typeof app.store.hello>().toEqualTypeOf<{
-		world: string
-		cookie: string
-	}>()
+		world: string;
+		cookie: string;
+	}>();
 }
 
 const b = app
-	.model('a', t.Literal('a'))
+	.model("a", t.Literal("a"))
 	// ? Infer label model
 	.post(
-		'/',
+		"/",
 		({ body }) => {
-			expectTypeOf<typeof body>().toEqualTypeOf<'a'>()
+			expectTypeOf<typeof body>().toEqualTypeOf<"a">();
 		},
 		{
-			body: 'a',
-			transform() {}
-		}
+			body: "a",
+			transform() {},
+		},
 	)
 	// ? Infer multiple model
 	.model({
-		b: t.Literal('b'),
-		c: t.Literal('c')
+		b: t.Literal("b"),
+		c: t.Literal("c"),
 	})
 	.post(
-		'/',
+		"/",
 		({ body }) => {
-			expectTypeOf<typeof body>().toEqualTypeOf<'b'>()
+			expectTypeOf<typeof body>().toEqualTypeOf<"b">();
 		},
 		{
-			body: 'b'
-		}
+			body: "b",
+		},
 	)
 	.post(
-		'/',
+		"/",
 		({ body }) => {
-			expectTypeOf<typeof body>().toEqualTypeOf<'c'>()
+			expectTypeOf<typeof body>().toEqualTypeOf<"c">();
 		},
 		{
-			body: 'c'
-		}
-	)
+			body: "c",
+		},
+	);
 
 // ? It derive void
 {
-	app.derive(({ headers }) => {
-		if (Math.random() > 0.5)
-			return {
-				stuff: 'a'
-			}
-	}).get('/', ({ stuff }) => {
-		expectTypeOf<typeof stuff>().not.toBeUnknown()
-		expectTypeOf<typeof stuff>().toEqualTypeOf<'a' | undefined>()
-	})
+	app
+		.derive(({ headers }) => {
+			if (Math.random() > 0.5)
+				return {
+					stuff: "a",
+				};
+		})
+		.get("/", ({ stuff }) => {
+			expectTypeOf<typeof stuff>().not.toBeUnknown();
+			expectTypeOf<typeof stuff>().toEqualTypeOf<"a" | undefined>();
+		});
 }
 
 // ? It resolve void
 {
-	app.resolve(async ({ headers }) => {
-		if (Math.random() > 0.5)
-			return {
-				stuff: 'a'
-			}
-	}).get('/', ({ stuff }) => {
-		expectTypeOf<typeof stuff>().not.toBeUnknown()
-		expectTypeOf<typeof stuff>().toEqualTypeOf<'a' | undefined>()
-	})
+	app
+		.resolve(async ({ headers }) => {
+			if (Math.random() > 0.5)
+				return {
+					stuff: "a",
+				};
+		})
+		.get("/", ({ stuff }) => {
+			expectTypeOf<typeof stuff>().not.toBeUnknown();
+			expectTypeOf<typeof stuff>().toEqualTypeOf<"a" | undefined>();
+		});
 }
 
-app.derive(({ headers }) => {
-	return {
-		authorization: headers.authorization as string
-	}
-})
-	.get('/', ({ authorization }) => {
-		// ? infers derive type
-		expectTypeOf<typeof authorization>().toBeString()
+app
+	.derive(({ headers }) => {
+		return {
+			authorization: headers.authorization as string,
+		};
 	})
-	.decorate('a', 'b')
+	.get("/", ({ authorization }) => {
+		// ? infers derive type
+		expectTypeOf<typeof authorization>().toBeString();
+	})
+	.decorate("a", "b")
 	.derive(({ a }) => {
 		// ? derive from current context
-		expectTypeOf<typeof a>().toBeString()
+		expectTypeOf<typeof a>().toBeString();
 
 		return {
-			b: a
-		}
+			b: a,
+		};
 	})
-	.get('/', ({ a, b }) => {
+	.get("/", ({ a, b }) => {
 		// ? save previous derivation
-		expectTypeOf<typeof a>().toBeString()
+		expectTypeOf<typeof a>().toBeString();
 		// ? derive from context
-		expectTypeOf<typeof b>().toBeString()
+		expectTypeOf<typeof b>().toBeString();
 	})
 	// ? Resolve should not include in onRequest
 	.onRequest((context) => {
 		expectTypeOf<
-			'b' extends keyof typeof context ? true : false
-		>().toEqualTypeOf<false>()
+			"b" extends keyof typeof context ? true : false
+		>().toEqualTypeOf<false>();
 	})
 	// ? Resolve should not include in onTransform
 	.onTransform((context) => {
 		expectTypeOf<
-			'b' extends keyof typeof context ? true : false
-		>().toEqualTypeOf<true>()
-	})
+			"b" extends keyof typeof context ? true : false
+		>().toEqualTypeOf<true>();
+	});
 
 const plugin = (app: Elysia) =>
-	app.decorate('decorate', 'a').state('state', 'a').model({
-		string: t.String()
-	})
+	app.decorate("decorate", "a").state("state", "a").model({
+		string: t.String(),
+	});
 
 // ? inherits plugin type
-app.use(plugin)
+app
+	.use(plugin)
 	.get(
-		'/',
+		"/",
 		({ body, decorate, store: { state } }) => {
-			expectTypeOf<typeof decorate>().toBeString()
-			expectTypeOf<typeof state>().toBeString()
-			expectTypeOf<typeof body>().toBeString()
+			expectTypeOf<typeof decorate>().toBeString();
+			expectTypeOf<typeof state>().toBeString();
+			expectTypeOf<typeof body>().toBeString();
 		},
 		{
-			body: 'string'
-		}
+			body: "string",
+		},
 	)
 	.get(
-		'/',
+		"/",
 		({ body, decorate, store: { state } }) => {
-			expectTypeOf<typeof decorate>().toBeString()
-			expectTypeOf<typeof state>().toBeString()
-			expectTypeOf<typeof body>().toEqualTypeOf<string>()
+			expectTypeOf<typeof decorate>().toBeString();
+			expectTypeOf<typeof state>().toBeString();
+			expectTypeOf<typeof body>().toEqualTypeOf<string>();
 		},
 		{
-			body: 'string'
-		}
-	)
+			body: "string",
+		},
+	);
 
 export const asyncPlugin = async (app: Elysia) =>
-	app.decorate('decorate', 'a').state('state', 'a').model({
-		string: t.String()
-	})
+	app.decorate("decorate", "a").state("state", "a").model({
+		string: t.String(),
+	});
 
 // ? group inherits type
-app.use(plugin).group('/', (app) =>
+app.use(plugin).group("/", (app) =>
 	app.get(
-		'/',
+		"/",
 		({ body, decorate, store: { state } }) => {
-			expectTypeOf<typeof decorate>().toBeString()
-			expectTypeOf<typeof state>().toBeString()
-			expectTypeOf<typeof body>().toBeString()
+			expectTypeOf<typeof decorate>().toBeString();
+			expectTypeOf<typeof state>().toBeString();
+			expectTypeOf<typeof body>().toBeString();
 		},
 		{
-			body: 'string'
-		}
-	)
-)
+			body: "string",
+		},
+	),
+);
 
 // ? guard inherits type
 app.use(plugin).guard({}, (app) =>
 	app.get(
-		'/',
+		"/",
 		({ body, decorate, store: { state } }) => {
-			expectTypeOf<typeof decorate>().toBeString()
-			expectTypeOf<typeof state>().toBeString()
-			expectTypeOf<typeof body>().toBeString()
+			expectTypeOf<typeof decorate>().toBeString();
+			expectTypeOf<typeof state>().toBeString();
+			expectTypeOf<typeof body>().toBeString();
 		},
 		{
-			body: 'string'
-		}
-	)
-)
+			body: "string",
+		},
+	),
+);
 
 // ? guarded group inherits type
 app.use(plugin).group(
-	'/',
+	"/",
 	{
 		query: t.Object({
-			username: t.String()
-		})
+			username: t.String(),
+		}),
 	},
 	(app) => {
-		app['~Metadata'].schema
+		app["~Metadata"].schema;
 
 		return app.get(
-			'/',
+			"/",
 			({ query, body, decorate, store: { state } }) => {
 				expectTypeOf<typeof query>().toEqualTypeOf<{
-					username: string
-				}>()
-				expectTypeOf<typeof decorate>().toBeString()
-				expectTypeOf<typeof state>().toBeString()
-				expectTypeOf<typeof body>().toBeString()
+					username: string;
+				}>();
+				expectTypeOf<typeof decorate>().toBeString();
+				expectTypeOf<typeof state>().toBeString();
+				expectTypeOf<typeof body>().toBeString();
 			},
 			{
-				body: 'string'
-			}
-		)
-	}
-)
+				body: "string",
+			},
+		);
+	},
+);
 
 // ? It inherits group type to Eden
 {
 	const server = app
 		.group(
-			'/v1',
+			"/v1",
 			{
 				query: t.Object({
-					name: t.String()
-				})
+					name: t.String(),
+				}),
 			},
 			(app) =>
 				app.guard(
 					{
 						headers: t.Object({
-							authorization: t.String()
-						})
+							authorization: t.String(),
+						}),
 					},
 					(app) =>
-						app.get('/a', () => 1, {
-							body: t.String()
-						})
-				)
+						app.get("/a", () => 1, {
+							body: t.String(),
+						}),
+				),
 		)
-		.get('/', () => 1)
+		.get("/", () => 1);
 
-	type App = (typeof server)['~Routes']
-	type Route = App['v1']['a']['get']
+	type App = (typeof server)["~Routes"];
+	type Route = App["v1"]["a"]["get"];
 
 	expectTypeOf<Route>().toEqualTypeOf<{
 		headers: {
-			authorization: string
-		}
-		body: string
+			authorization: string;
+		};
+		body: string;
 		query: {
-			name: string
-		}
-		params: Record<never, string>
+			name: string;
+		};
+		params: Record<never, string>;
 		response: {
-			200: number
+			200: number;
 			422: {
-				type: 'validation'
-				on: string
-				summary?: string
-				message?: string
-				found?: unknown
-				property?: string
-				expected?: string
-			}
-		}
-	}>()
+				type: "validation";
+				on: string;
+				summary?: string;
+				message?: string;
+				found?: unknown;
+				property?: string;
+				expected?: string;
+			};
+		};
+	}>();
 }
 
 // ? It doesn't exposed guard type to external route
@@ -681,216 +700,218 @@ app.use(plugin).group(
 		.guard(
 			{
 				query: t.Object({
-					name: t.String()
-				})
+					name: t.String(),
+				}),
 			},
-			(app) => app
+			(app) => app,
 		)
-		.get('/', () => 1)
+		.get("/", () => 1);
 
-	type App = (typeof server)['~Routes']
-	type Route = App['get']
+	type App = (typeof server)["~Routes"];
+	type Route = App["get"];
 
 	expectTypeOf<Route>().toEqualTypeOf<{
-		body: unknown
-		params: {}
-		query: unknown
-		headers: unknown
+		body: unknown;
+		params: {};
+		query: unknown;
+		headers: unknown;
 		response: {
-			200: number
-		}
-	}>()
+			200: number;
+		};
+	}>();
 }
 
 // ? Register websocket
 {
 	const server = app.group(
-		'/v1',
+		"/v1",
 		{
 			query: t.Object({
-				name: t.String()
-			})
+				name: t.String(),
+			}),
 		},
 		(app) =>
 			app.guard(
 				{
 					headers: t.Object({
-						authorization: t.String()
-					})
+						authorization: t.String(),
+					}),
 				},
 				(app) =>
-					app.ws('/a', {
+					app.ws("/a", {
 						message(ws, message) {
-							message
+							message;
 
-							ws.data.params
+							ws.data.params;
 						},
-						body: t.String()
-					})
-			)
-	)
-	type App = (typeof server)['~Routes']
-	type Route = App['v1']['a']['subscribe']
+						body: t.String(),
+					}),
+			),
+	);
+	type App = (typeof server)["~Routes"];
+	type Route = App["v1"]["a"]["subscribe"];
 	expectTypeOf<Route>().toEqualTypeOf<{
-		body: string
-		params: {}
+		body: string;
+		params: {};
 		query: {
-			name: string
-		}
+			name: string;
+		};
 		headers: {
-			authorization: string
-		}
+			authorization: string;
+		};
 		response: {
 			422: {
-				type: 'validation'
-				on: string
-				summary?: string
-				message?: string
-				found?: unknown
-				property?: string
-				expected?: string
-			}
-		}
-	}>()
+				type: "validation";
+				on: string;
+				summary?: string;
+				message?: string;
+				found?: unknown;
+				property?: string;
+				expected?: string;
+			};
+		};
+	}>();
 }
 
 // ? Register empty model
 {
-	const server = app.get('/', () => 'Hello').get('/a', () => 'hi')
+	const server = app.get("/", () => "Hello").get("/a", () => "hi");
 
-	type App = (typeof server)['~Routes']
-	type Route = App['get']
+	type App = (typeof server)["~Routes"];
+	type Route = App["get"];
 
 	expectTypeOf<Route>().toEqualTypeOf<{
-		body: unknown
-		params: {}
-		query: unknown
-		headers: unknown
+		body: unknown;
+		params: {};
+		query: unknown;
+		headers: unknown;
 		response: {
-			200: string
-		}
-	}>()
+			200: string;
+		};
+	}>();
 }
 
 // ? Register wildcard as params
-app.get('/*', ({ params }) => {
-	expectTypeOf<typeof params>().toEqualTypeOf<{
-		'*': string
-	}>()
+app
+	.get("/*", ({ params }) => {
+		expectTypeOf<typeof params>().toEqualTypeOf<{
+			"*": string;
+		}>();
 
-	return 'hello'
-}).get('/id/:id/*', ({ params }) => {
-	expectTypeOf<typeof params>().toEqualTypeOf<{
-		id: string
-		'*': string
-	}>()
+		return "hello";
+	})
+	.get("/id/:id/*", ({ params }) => {
+		expectTypeOf<typeof params>().toEqualTypeOf<{
+			id: string;
+			"*": string;
+		}>();
 
-	return 'hello'
-})
+		return "hello";
+	});
 
 // ? Handle recursive path typing
 app.group(
-	'/:a',
+	"/:a",
 	{
 		body: t.Object({}),
 		beforeHandle({ params, params: { a } }) {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				a: string
-			}>()
+				a: string;
+			}>();
 
-			return a
-		}
+			return a;
+		},
 	},
 	(app) =>
 		app
-			.get('/', ({ params, params: { a } }) => {
+			.get("/", ({ params, params: { a } }) => {
 				expectTypeOf<typeof params>().toEqualTypeOf<{
-					a: string
-				}>()
+					a: string;
+				}>();
 
-				return a
+				return a;
 			})
-			.group('/:b', (app) =>
-				app.get('/', ({ params, params: { a, b } }) => {
+			.group("/:b", (app) =>
+				app.get("/", ({ params, params: { a, b } }) => {
 					expectTypeOf<typeof params>().toEqualTypeOf<{
-						a: string
-						b: string
-					}>()
+						a: string;
+						b: string;
+					}>();
 
-					return b
-				})
+					return b;
+				}),
 			)
 			.group(
-				'/:c',
+				"/:c",
 				{
 					beforeHandle({ params, params: { a, c } }) {
 						expectTypeOf<typeof params>().toEqualTypeOf<{
-							a: string
-							c: string
-						}>()
+							a: string;
+							c: string;
+						}>();
 
-						return a
-					}
+						return a;
+					},
 				},
 				(app) =>
-					app.get('/', ({ params, params: { a, c } }) => {
+					app.get("/", ({ params, params: { a, c } }) => {
 						expectTypeOf<typeof params>().toEqualTypeOf<{
-							a: string
-							c: string
-						}>()
+							a: string;
+							c: string;
+						}>();
 
-						return c
-					})
-			)
-)
+						return c;
+					}),
+			),
+);
 
 // ? Handle recursive schema collision causing infinite type
 app.group(
-	'/:a',
+	"/:a",
 	{
 		body: t.Object({
-			username: t.String()
+			username: t.String(),
 		}),
 		query: t.Object({
-			user: t.String()
+			user: t.String(),
 		}),
 		beforeHandle: ({ body }) => {
 			expectTypeOf<typeof body>().toEqualTypeOf<{
-				username: string
-			}>()
-		}
+				username: string;
+			}>();
+		},
 	},
 	(app) =>
 		app.group(
-			'/:c',
+			"/:c",
 			{
 				beforeHandle({ body, query }) {
 					expectTypeOf<typeof body>().toEqualTypeOf<{
-						username: string
-						password: string
-					}>()
+						username: string;
+						password: string;
+					}>();
 
 					expectTypeOf<typeof query>().toEqualTypeOf<{
-						user: string
-					}>()
+						user: string;
+					}>();
 
-					return body
+					return body;
 				},
 				body: t.Object({
-					password: t.String()
-				})
+					password: t.String(),
+				}),
 			},
 			(app) =>
-				app.get('/', ({ body }) => {
+				app.get("/", ({ body }) => {
 					expectTypeOf<typeof body>().toEqualTypeOf<{
-						username: string
-						password: string
-					}>()
+						username: string;
+						password: string;
+					}>();
 
-					return body
-				})
-		)
-)
+					return body;
+				}),
+		),
+);
 
 // ? Reconcilation on state
 // {
@@ -962,495 +983,496 @@ app.group(
 
 // ? Inherits plugin instance path
 {
-	const plugin = new Elysia().get('/', () => 'hello')
+	const plugin = new Elysia().get("/", () => "hello");
 
-	const server = app.use(plugin)
+	const server = app.use(plugin);
 
-	type App = (typeof server)['~Routes']
-	type Route = App['get']
+	type App = (typeof server)["~Routes"];
+	type Route = App["get"];
 
 	expectTypeOf<Route>().toEqualTypeOf<{
-		body: unknown
-		params: {}
-		query: unknown
-		headers: unknown
+		body: unknown;
+		params: {};
+		query: unknown;
+		headers: unknown;
 		response: {
-			200: string
-		}
-	}>()
+			200: string;
+		};
+	}>();
 }
 
 // ? Inherits plugin instance prefix path
 {
-	const pluginPrefixApp = new Elysia({ prefix: '/app' }).get(
-		'/test',
-		() => 'hello'
-	)
+	const pluginPrefixApp = new Elysia({ prefix: "/app" }).get(
+		"/test",
+		() => "hello",
+	);
 
-	const appWithArrayOfPlugin = new Elysia({ prefix: '/api' }).use([
-		pluginPrefixApp
-	])
-	const appWithPlugin = new Elysia({ prefix: '/api' }).use(pluginPrefixApp)
+	const appWithArrayOfPlugin = new Elysia({ prefix: "/api" }).use([
+		pluginPrefixApp,
+	]);
+	const appWithPlugin = new Elysia({ prefix: "/api" }).use(pluginPrefixApp);
 
-	expectTypeOf<(typeof appWithArrayOfPlugin)['~Routes']>().toEqualTypeOf<{
+	expectTypeOf<(typeof appWithArrayOfPlugin)["~Routes"]>().toEqualTypeOf<{
 		api: {
 			app: {
 				test: {
 					get: {
-						body: unknown
-						params: {}
-						query: unknown
-						headers: unknown
+						body: unknown;
+						params: {};
+						query: unknown;
+						headers: unknown;
 						response: {
-							200: string
-						}
-					}
-				}
-			}
-		}
-	}>()
-	expectTypeOf<(typeof appWithArrayOfPlugin)['~Routes']>().toEqualTypeOf<
-		(typeof appWithPlugin)['~Routes']
-	>()
+							200: string;
+						};
+					};
+				};
+			};
+		};
+	}>();
+	expectTypeOf<(typeof appWithArrayOfPlugin)["~Routes"]>().toEqualTypeOf<
+		(typeof appWithPlugin)["~Routes"]
+	>();
 }
 
 // ? Inlining function callback don't repeat prefix
 {
 	const test = (app: Elysia) =>
-		app.group('/app', (group) => group.get('/test', () => 'test'))
+		app.group("/app", (group) => group.get("/test", () => "test"));
 
-	const app = new Elysia().use(test)
+	const app = new Elysia().use(test);
 
-	type App = (typeof app)['~Routes']
-	type Routes = keyof App['app']['test']['get']
+	type App = (typeof app)["~Routes"];
+	type Routes = keyof App["app"]["test"]["get"];
 
-	expectTypeOf<Routes>().not.toBeUnknown()
+	expectTypeOf<Routes>().not.toBeUnknown();
 }
 
 // ? Merging identical plugin type
 {
 	const cookie = new Elysia({
-		prefix: '/'
-	}).derive({ as: 'global' }, () => {
+		prefix: "/",
+	}).derive({ as: "global" }, () => {
 		return {
-			customCookie: 'A'
-		}
-	})
+			customCookie: "A",
+		};
+	});
 
-	const controller = new Elysia().use(cookie).get('/', () => 'A')
+	const controller = new Elysia().use(cookie).get("/", () => "A");
 
 	const app = new Elysia()
 		.use(cookie)
 		.use(controller)
-		.get('/', ({ customCookie }) => {
-			expectTypeOf<typeof customCookie>().toBeString()
-		})
+		.get("/", ({ customCookie }) => {
+			expectTypeOf<typeof customCookie>().toBeString();
+		});
 }
 
 // ? Prefer local schema over parent schema for nesting
 {
 	new Elysia().group(
-		'/id/:id',
+		"/id/:id",
 		{
 			params: t.Object({
-				id: t.Number()
+				id: t.Number(),
 			}),
 			beforeHandle({ params }) {
 				expectTypeOf<typeof params>().toEqualTypeOf<{
-					id: number
-				}>()
-			}
+					id: number;
+				}>();
+			},
 		},
 		(app) =>
 			app
-				.get('/awd', ({ params }) => {
+				.get("/awd", ({ params }) => {
 					expectTypeOf<typeof params>().toEqualTypeOf<{
-						id: number
-					}>()
+						id: number;
+					}>();
 				})
 				.group(
-					'/name/:name',
+					"/name/:name",
 					{
 						params: t.Object({
 							id: t.Numeric(),
-							name: t.String()
-						})
+							name: t.String(),
+						}),
 					},
 					(app) =>
-						app.get('/awd', ({ params }) => {
+						app.get("/awd", ({ params }) => {
 							expectTypeOf<typeof params>().toEqualTypeOf<{
-								id: number
-								name: string
-							}>()
-						})
-				)
-	)
+								id: number;
+								name: string;
+							}>();
+						}),
+				),
+	);
 }
 
 // ? Inherits route for scoped instance
 {
 	const child = new Elysia()
-		.decorate('b', 'b')
-		.model('b', t.String())
-		.get('/child', () => 'Hello from child route')
-	const main = new Elysia().use(child)
+		.decorate("b", "b")
+		.model("b", t.String())
+		.get("/child", () => "Hello from child route");
+	const main = new Elysia().use(child);
 
-	type App = (typeof main)['~Routes']
+	type App = (typeof main)["~Routes"];
 
-	expectTypeOf<keyof (typeof main)['~Routes']>().toEqualTypeOf<'child'>()
+	expectTypeOf<keyof (typeof main)["~Routes"]>().toEqualTypeOf<"child">();
 	expectTypeOf<
-		keyof (typeof main)['~Singleton']['decorator']
+		keyof (typeof main)["~Singleton"]["decorator"]
 	>().not.toEqualTypeOf<{
 		request: {
-			b: 'b'
-		}
-		store: {}
-	}>()
-	expectTypeOf<keyof (typeof main)['definitions']>().not.toEqualTypeOf<{
+			b: "b";
+		};
+		store: {};
+	}>();
+	expectTypeOf<keyof (typeof main)["definitions"]>().not.toEqualTypeOf<{
 		type: {
-			b: string
-		}
-		error: {}
-	}>()
+			b: string;
+		};
+		error: {};
+	}>();
 }
 
 // ? WebSocket infers params
 {
 	new Elysia()
-		.ws('/:id', {
+		.ws("/:id", {
 			open(ws) {
 				expectTypeOf<typeof ws.data.params>().toEqualTypeOf<{
-					id: string
-				}>()
-			}
+					id: string;
+				}>();
+			},
 		})
-		.ws('/:id', {
+		.ws("/:id", {
 			params: t.Object({
-				id: t.Number()
+				id: t.Number(),
 			}),
 			open(ws) {
 				expectTypeOf<typeof ws.data.params>().toEqualTypeOf<{
-					id: number
-				}>()
-			}
-		})
+					id: number;
+				}>();
+			},
+		});
 }
 
 const a = app
 	.resolve(({ headers }) => {
 		return {
-			authorization: headers.authorization as string
-		}
+			authorization: headers.authorization as string,
+		};
 	})
 	// .get('/', ({ authorization }) => {
 	// 	// ? infers derive type
 	// 	expectTypeOf<typeof authorization>().toBeString()
 	// })
-	.decorate('a', 'b')
+	.decorate("a", "b")
 	.resolve(({ a }) => {
 		// ? derive from current context
-		expectTypeOf<typeof a>().toBeString()
+		expectTypeOf<typeof a>().toBeString();
 
 		return {
-			b: a
-		}
+			b: a,
+		};
 	})
-	.get('/', ({ a, b }) => {
+	.get("/", ({ a, b }) => {
 		// ? save previous derivation
-		expectTypeOf<typeof a>().toBeString()
+		expectTypeOf<typeof a>().toBeString();
 		// ? derive from context
-		expectTypeOf<typeof b>().toBeString()
+		expectTypeOf<typeof b>().toBeString();
 	})
 	// ? Resolve should not include in onTransform
 	.onTransform((context) => {
 		expectTypeOf<
-			'b' extends keyof typeof context ? true : false
-		>().toEqualTypeOf<false>()
+			"b" extends keyof typeof context ? true : false
+		>().toEqualTypeOf<false>();
 	})
 	// ? Resolve should not include in onBeforeHandle
 	.onBeforeHandle((context) => {
 		expectTypeOf<
-			'b' extends keyof typeof context ? true : false
-		>().toEqualTypeOf<true>()
-	})
+			"b" extends keyof typeof context ? true : false
+		>().toEqualTypeOf<true>();
+	});
 
 {
-	app.macro({
-		a(a: string) {}
-	})
-		.get('/', () => {}, {
-			// ? Should contains macro
-			a: 'a'
+	app
+		.macro({
+			a(a: string) {},
 		})
-		.get('/', () => {}, {
+		.get("/", () => {}, {
+			// ? Should contains macro
+			a: "a",
+		})
+		.get("/", () => {}, {
 			// ? Should have error
 			// @ts-expect-error
-			a: 1
+			a: 1,
 		})
 		.macro({
-			b(a: number) {}
+			b(a: number) {},
 		})
-		.get('/', () => {}, {
+		.get("/", () => {}, {
 			// ? Should merge macro
-			a: 'a',
-			b: 2
+			a: "a",
+			b: 2,
 		})
 		.guard(
 			{
 				// ? Should contains macro
-				a: 'a',
-				b: 2
+				a: "a",
+				b: 2,
 			},
 			(app) =>
-				app.get('/', () => {}, {
+				app.get("/", () => {}, {
 					// ? Should contains macro
-					a: 'a',
-					b: 2
-				})
-		)
+					a: "a",
+					b: 2,
+				}),
+		);
 }
 
 // ? Join Eden path correctly
 {
 	const testController = new Elysia({
-		name: 'testController',
-		prefix: '/test'
+		name: "testController",
+		prefix: "/test",
 	})
-		.get('/could-be-error/right', () => ({ couldBeError: true }))
-		.ws('/deep/ws', {
-			message() {}
-		})
+		.get("/could-be-error/right", () => ({ couldBeError: true }))
+		.ws("/deep/ws", {
+			message() {},
+		});
 
-	const app = new Elysia().group('/api', (app) => app.use(testController))
+	const app = new Elysia().group("/api", (app) => app.use(testController));
 
 	expectTypeOf<
-		(typeof app)['~Routes']['api']['test']['could-be-error']['right']['get']
+		(typeof app)["~Routes"]["api"]["test"]["could-be-error"]["right"]["get"]
 	>().toEqualTypeOf<{
-		body: unknown
-		params: {}
-		query: unknown
-		headers: unknown
+		body: unknown;
+		params: {};
+		query: unknown;
+		headers: unknown;
 		response: {
 			200: {
-				couldBeError: boolean
-			}
-		}
-	}>()
+				couldBeError: boolean;
+			};
+		};
+	}>();
 
 	expectTypeOf<
-		(typeof app)['~Routes']['api']['test']['deep']['ws']['subscribe']
+		(typeof app)["~Routes"]["api"]["test"]["deep"]["ws"]["subscribe"]
 	>().toEqualTypeOf<{
-		body: {}
-		params: {}
-		query: {}
-		headers: {}
-		response: {}
-	}>()
+		body: {};
+		params: {};
+		query: {};
+		headers: {};
+		response: {};
+	}>();
 }
 
 // ? Handle error status
 {
 	const a = new Elysia()
-		.get('/', ({ status }) => status(418, 'a'), {
+		.get("/", ({ status }) => status(418, "a"), {
 			response: {
 				200: t.String(),
-				418: t.Literal('a')
-			}
+				418: t.Literal("a"),
+			},
 		})
-		.get('/', ({ status }) => status(418, 'b' as any), {
+		.get("/", ({ status }) => status(418, "b" as any), {
 			response: {
 				200: t.String(),
-				418: t.Literal('a')
-			}
-		})
+				418: t.Literal("a"),
+			},
+		});
 }
 
 // ? Get response type correctly
 {
 	const app = new Elysia()
-		.get('', () => 'a')
-		.get('/true', () => true)
-		.post('', () => 'a', { response: { 201: t.String() } })
-		.post('/true', () => true, { response: { 202: t.Boolean() } })
-		.get('/error', ({ status }) => status("I'm a teapot", 'a'))
-		.post('/mirror', ({ body }) => body)
-		.get('/immutable', '1')
-		.get('/immutable-error', ({ status }) => status("I'm a teapot", 'a'))
-		.get('/async', async ({ status }) => {
-			if (Math.random() > 0.5) return status("I'm a teapot", 'Nagisa')
+		.get("", () => "a")
+		.get("/true", () => true)
+		.post("", () => "a", { response: { 201: t.String() } })
+		.post("/true", () => true, { response: { 202: t.Boolean() } })
+		.get("/error", ({ status }) => status("I'm a teapot", "a"))
+		.post("/mirror", ({ body }) => body)
+		.get("/immutable", "1")
+		.get("/immutable-error", ({ status }) => status("I'm a teapot", "a"))
+		.get("/async", async ({ status }) => {
+			if (Math.random() > 0.5) return status("I'm a teapot", "Nagisa");
 
-			return 'Hifumi'
+			return "Hifumi";
 		})
-		.get('/default-error-code', ({ status }) => {
-			if (Math.random() > 0.5) return status(418, 'Nagisa')
-			if (Math.random() > 0.5) return status(401)
+		.get("/default-error-code", ({ status }) => {
+			if (Math.random() > 0.5) return status(418, "Nagisa");
+			if (Math.random() > 0.5) return status(401);
 
-			return 'Hifumi'
-		})
+			return "Hifumi";
+		});
 
-	type app = (typeof app)['~Routes']
+	type app = (typeof app)["~Routes"];
 
-	expectTypeOf<app['get']['response']>().toEqualTypeOf<{
-		200: string
-	}>()
+	expectTypeOf<app["get"]["response"]>().toEqualTypeOf<{
+		200: string;
+	}>();
 
-	expectTypeOf<app['post']['response']>().toEqualTypeOf<{
-		200: string
-		201: string
+	expectTypeOf<app["post"]["response"]>().toEqualTypeOf<{
+		200: string;
+		201: string;
 		422: {
-			type: 'validation'
-			on: string
-			summary?: string
-			message?: string
-			found?: unknown
-			property?: string
-			expected?: string
-		}
-	}>()
+			type: "validation";
+			on: string;
+			summary?: string;
+			message?: string;
+			found?: unknown;
+			property?: string;
+			expected?: string;
+		};
+	}>();
 
-	expectTypeOf<app['true']['get']['response']>().toEqualTypeOf<{
-		200: boolean
-	}>()
+	expectTypeOf<app["true"]["get"]["response"]>().toEqualTypeOf<{
+		200: boolean;
+	}>();
 
-	expectTypeOf<app['true']['post']['response']>().toEqualTypeOf<{
-		200: boolean
-		202: boolean
+	expectTypeOf<app["true"]["post"]["response"]>().toEqualTypeOf<{
+		200: boolean;
+		202: boolean;
 		422: {
-			type: 'validation'
-			on: string
-			summary?: string
-			message?: string
-			found?: unknown
-			property?: string
-			expected?: string
-		}
-	}>()
+			type: "validation";
+			on: string;
+			summary?: string;
+			message?: string;
+			found?: unknown;
+			property?: string;
+			expected?: string;
+		};
+	}>();
 
-	expectTypeOf<app['error']['get']['response']>().toEqualTypeOf<{
-		418: 'a'
-	}>()
+	expectTypeOf<app["error"]["get"]["response"]>().toEqualTypeOf<{
+		418: "a";
+	}>();
 
-	expectTypeOf<app['mirror']['post']['response']>().toEqualTypeOf<{}>()
+	expectTypeOf<app["mirror"]["post"]["response"]>().toEqualTypeOf<{}>();
 
-	expectTypeOf<app['immutable']['get']['response']>().toEqualTypeOf<{
-		200: '1'
-	}>()
+	expectTypeOf<app["immutable"]["get"]["response"]>().toEqualTypeOf<{
+		200: "1";
+	}>();
 
-	expectTypeOf<app['immutable-error']['get']['response']>().toEqualTypeOf<{
-		418: 'a'
-	}>()
+	expectTypeOf<app["immutable-error"]["get"]["response"]>().toEqualTypeOf<{
+		418: "a";
+	}>();
 
-	expectTypeOf<app['async']['get']['response']>().toEqualTypeOf<{
-		200: 'Hifumi'
-		418: 'Nagisa'
-	}>()
+	expectTypeOf<app["async"]["get"]["response"]>().toEqualTypeOf<{
+		200: "Hifumi";
+		418: "Nagisa";
+	}>();
 
-	expectTypeOf<app['default-error-code']['get']['response']>().toEqualTypeOf<{
-		200: 'Hifumi'
-		401: 'Unauthorized'
-		418: 'Nagisa'
-	}>()
+	expectTypeOf<app["default-error-code"]["get"]["response"]>().toEqualTypeOf<{
+		200: "Hifumi";
+		401: "Unauthorized";
+		418: "Nagisa";
+	}>();
 }
 
-app.get('/', ({ set }) => {
+app.get("/", ({ set }) => {
 	// ? Able to set literal type to set.status
-	set.status = "I'm a teapot"
+	set.status = "I'm a teapot";
 
 	// ? Able to number to set.status
-	set.status = 418
-})
+	set.status = 418;
+});
 
 // ? Ephemeral and Current type
 {
 	const child = new Elysia()
-		.derive({ as: 'scoped' }, () => {
+		.derive({ as: "scoped" }, () => {
 			return {
-				hello: 'world'
-			}
+				hello: "world",
+			};
 		})
-		.get('/', ({ hello }) => {
-			expectTypeOf<typeof hello>().toEqualTypeOf<'world'>()
+		.get("/", ({ hello }) => {
+			expectTypeOf<typeof hello>().toEqualTypeOf<"world">();
 
-			return 'hello'
-		})
+			return "hello";
+		});
 
-	const current = new Elysia().use(child).get('/', ({ hello }) => {
-		expectTypeOf<typeof hello>().toEqualTypeOf<'world'>()
+	const current = new Elysia().use(child).get("/", ({ hello }) => {
+		expectTypeOf<typeof hello>().toEqualTypeOf<"world">();
 
-		return 'hello'
-	})
+		return "hello";
+	});
 
-	const parrent = new Elysia().use(current).get('/', (context) => {
-		expectTypeOf<typeof context>().not.toHaveProperty('hello')
+	const parrent = new Elysia().use(current).get("/", (context) => {
+		expectTypeOf<typeof context>().not.toHaveProperty("hello");
 
-		return 'hello'
-	})
+		return "hello";
+	});
 }
 
 // ? Return file with File Schema
 {
 	const child = new Elysia().get(
-		'/',
+		"/",
 		() => {
-			return file('test/kyuukurarin.mp4')
+			return file("test/kyuukurarin.mp4");
 		},
 		{
-			response: t.File()
-		}
-	)
+			response: t.File(),
+		},
+	);
 }
 
 // ? Return file with Object File Schema
 {
 	const child = new Elysia().get(
-		'/',
+		"/",
 		() => {
 			return form({
-				a: file('test/kyuukurarin.mp4')
-			})
+				a: file("test/kyuukurarin.mp4"),
+			});
 		},
 		{
 			response: t.Form({
-				a: t.File()
-			})
-		}
-	)
+				a: t.File(),
+			}),
+		},
+	);
 }
 
 // ? Accept file with Object File Schema
 {
 	const child = new Elysia().get(
-		'/',
+		"/",
 		({ body: { file } }) => {
-			expectTypeOf<typeof file>().toEqualTypeOf<File>()
+			expectTypeOf<typeof file>().toEqualTypeOf<File>();
 
-			return file
+			return file;
 		},
 		{
 			body: t.Object({
-				file: t.File()
+				file: t.File(),
 			}),
-			response: t.File()
-		}
-	)
+			response: t.File(),
+		},
+	);
 }
 
-type a = keyof {}
+type a = keyof {};
 
 // It handle optional params
 {
 	new Elysia()
-		.get('/:id?', ({ params }) => {
+		.get("/:id?", ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				id?: string
-			}>()
+				id?: string;
+			}>();
 		})
-		.get('/:id/:name?', ({ params }) => {
+		.get("/:id/:name?", ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				id: string
-				name?: string
-			}>()
-		})
+				id: string;
+				name?: string;
+			}>();
+		});
 }
 
 // ? Elysia.as
@@ -1459,160 +1481,160 @@ type a = keyof {}
 	{
 		const inner = new Elysia()
 			.guard({
-				response: t.Number()
+				response: t.Number(),
 			})
 			// @ts-expect-error
-			.get('/inner', () => 'a')
-			.as('global')
+			.get("/inner", () => "a")
+			.as("global");
 
 		const plugin = new Elysia()
 			.use(inner)
 			// @ts-expect-error
-			.get('/plugin', () => true)
+			.get("/plugin", () => true);
 
 		// @ts-expect-error
-		const app = new Elysia().use(plugin).get('/', () => 'not a number')
+		const app = new Elysia().use(plugin).get("/", () => "not a number");
 	}
 
 	// handle as global with local override
 	{
 		const inner = new Elysia()
 			.guard({
-				response: t.Number()
+				response: t.Number(),
 			})
 			// @ts-expect-error
-			.get('/inner', () => 'a')
-			.as('global')
+			.get("/inner", () => "a")
+			.as("global");
 
 		const plugin = new Elysia()
 			.use(inner)
 			.guard({
-				response: t.Boolean()
+				response: t.Boolean(),
 			})
-			.get('/plugin', () => true)
+			.get("/plugin", () => true);
 
 		// @ts-expect-error
-		const app = new Elysia().use(plugin).get('/', () => 'not a number')
+		const app = new Elysia().use(plugin).get("/", () => "not a number");
 	}
 
 	// handle as global with scoped override'
 	{
 		const inner = new Elysia()
 			.guard({
-				response: t.Number()
+				response: t.Number(),
 			})
 			// @ts-expect-error
-			.get('/inner', () => 'a')
-			.as('global')
+			.get("/inner", () => "a")
+			.as("global");
 
 		const plugin = new Elysia()
 			.use(inner)
 			.guard({
-				as: 'scoped',
-				response: t.String()
+				as: "scoped",
+				response: t.String(),
 			})
-			.get('/plugin', () => 'ok')
+			.get("/plugin", () => "ok");
 
-		const app = new Elysia().use(plugin).get('/', () => 'not a number')
+		const app = new Elysia().use(plugin).get("/", () => "not a number");
 	}
 
 	// ? handle as global'
 	{
 		const inner = new Elysia()
 			.guard({
-				response: t.Number()
+				response: t.Number(),
 			})
 			// @ts-expect-error
-			.get('/inner', () => 'a')
-			.as('global')
+			.get("/inner", () => "a")
+			.as("global");
 
 		const plugin = new Elysia()
 			.use(inner)
 			// @ts-expect-error
-			.get('/plugin', () => true)
+			.get("/plugin", () => true);
 
 		// @ts-expect-error
-		const app = new Elysia().use(plugin).get('/', () => 'not a number')
+		const app = new Elysia().use(plugin).get("/", () => "not a number");
 	}
 
 	// ? handle as global with local override
 	{
 		const inner = new Elysia()
 			.guard({
-				response: t.Number()
+				response: t.Number(),
 			})
 			// @ts-expect-error
-			.get('/inner', () => 'a')
-			.as('global')
+			.get("/inner", () => "a")
+			.as("global");
 
 		const plugin = new Elysia()
 			.use(inner)
 			.guard({
-				response: t.Boolean()
+				response: t.Boolean(),
 			})
-			.get('/plugin', () => true)
+			.get("/plugin", () => true);
 
 		// @ts-expect-error
-		const app = new Elysia().use(plugin).get('/', () => 'not a number')
+		const app = new Elysia().use(plugin).get("/", () => "not a number");
 	}
 
 	// handle as global with scoped override
 	{
 		const inner = new Elysia()
 			.guard({
-				response: t.Number()
+				response: t.Number(),
 			})
 			// @ts-expect-error
-			.get('/inner', () => 'a')
-			.as('global')
+			.get("/inner", () => "a")
+			.as("global");
 
 		const plugin = new Elysia()
 			.use(inner)
 			.guard({
-				as: 'scoped',
-				response: t.String()
+				as: "scoped",
+				response: t.String(),
 			})
-			.get('/plugin', () => 'ok')
+			.get("/plugin", () => "ok");
 
-		const app = new Elysia().use(plugin).get('/', () => 'not a number')
+		const app = new Elysia().use(plugin).get("/", () => "not a number");
 	}
 
 	// ? handle as plugin
 	{
 		const inner = new Elysia()
 			.guard({
-				response: t.Number()
+				response: t.Number(),
 			})
 			// @ts-expect-error
-			.get('/inner', () => 'a')
-			.as('scoped')
+			.get("/inner", () => "a")
+			.as("scoped");
 
 		const plugin = new Elysia()
 			.use(inner)
 			// @ts-expect-error
-			.get('/plugin', () => true)
+			.get("/plugin", () => true);
 
-		const app = new Elysia().use(plugin).get('/', () => 'not a number')
+		const app = new Elysia().use(plugin).get("/", () => "not a number");
 	}
 
 	// ? handle as propagate twice
 	{
 		const inner = new Elysia()
 			.guard({
-				response: t.Number()
+				response: t.Number(),
 			})
 			// @ts-expect-error
-			.get('/inner', () => 'a')
-			.as('scoped')
+			.get("/inner", () => "a")
+			.as("scoped");
 
 		const plugin = new Elysia()
 			.use(inner)
 			// @ts-expect-error
-			.get('/plugin', () => true)
-			.as('scoped')
+			.get("/plugin", () => true)
+			.as("scoped");
 
 		// @ts-expect-error
-		const app = new Elysia().use(plugin).get('/', () => 'not a number')
+		const app = new Elysia().use(plugin).get("/", () => "not a number");
 	}
 
 	// ? Reconcile status
@@ -1621,25 +1643,25 @@ type a = keyof {}
 			.guard({
 				response: {
 					401: t.Number(),
-					402: t.Number()
-				}
+					402: t.Number(),
+				},
 			})
-			.get('/inner', () => '')
-			.as('global')
+			.get("/inner", () => "")
+			.as("global");
 
 		const plugin = new Elysia()
 			.use(inner)
 			.guard({
 				response: {
-					401: t.Boolean()
-				}
+					401: t.Boolean(),
+				},
 			})
-			.get('/plugin', ({ status }) => {
-				status('Payment Required', 20)
-				return status(401, true)
-			})
+			.get("/plugin", ({ status }) => {
+				status("Payment Required", 20);
+				return status(401, true);
+			});
 
-		const app = new Elysia().use(plugin).get('/', () => 'ok')
+		const app = new Elysia().use(plugin).get("/", () => "ok");
 	}
 
 	// ? Reconcile inline handle
@@ -1648,22 +1670,22 @@ type a = keyof {}
 			.guard({
 				response: {
 					401: t.Number(),
-					402: t.Number()
-				}
+					402: t.Number(),
+				},
 			})
-			.get('/inner', '')
-			.as('global')
+			.get("/inner", "")
+			.as("global");
 
 		const plugin = new Elysia()
 			.use(inner)
 			.guard({
 				response: {
-					401: t.Boolean()
-				}
+					401: t.Boolean(),
+				},
 			})
-			.get('/plugin', status(401, true))
+			.get("/plugin", status(401, true));
 
-		const app = new Elysia().use(plugin).get('/', 'ok')
+		const app = new Elysia().use(plugin).get("/", "ok");
 	}
 }
 
@@ -1672,260 +1694,260 @@ type a = keyof {}
 {
 	const inner = new Elysia()
 		.guard({
-			as: 'global',
-			response: t.Number()
+			as: "global",
+			response: t.Number(),
 		})
 		// @ts-expect-error
-		.get('/inner', () => 'a')
+		.get("/inner", () => "a");
 
 	const plugin = new Elysia()
 		.use(inner)
 		// @ts-expect-error
-		.get('/plugin', () => true)
+		.get("/plugin", () => true);
 
 	// @ts-expect-error
-	const app = new Elysia().use(plugin).get('/', () => 'not a number')
+	const app = new Elysia().use(plugin).get("/", () => "not a number");
 }
 
 // ? handle as global with local override
 {
 	const inner = new Elysia()
 		.guard({
-			as: 'global',
-			response: t.Number()
+			as: "global",
+			response: t.Number(),
 		})
 		// @ts-expect-error
-		.get('/inner', () => 'a')
+		.get("/inner", () => "a");
 
 	const plugin = new Elysia()
 		.use(inner)
 		.guard({
-			response: t.Boolean()
+			response: t.Boolean(),
 		})
-		.get('/plugin', () => true)
+		.get("/plugin", () => true);
 
 	// @ts-expect-error
-	const app = new Elysia().use(plugin).get('/', () => 'not a number')
+	const app = new Elysia().use(plugin).get("/", () => "not a number");
 }
 
 // handle as global with scoped override
 {
 	const inner = new Elysia()
 		.guard({
-			as: 'global',
-			response: t.Number()
+			as: "global",
+			response: t.Number(),
 		})
 		// @ts-expect-error
-		.get('/inner', () => 'a')
+		.get("/inner", () => "a");
 
 	const plugin = new Elysia()
 		.use(inner)
 		.guard({
-			as: 'scoped',
-			response: t.String()
+			as: "scoped",
+			response: t.String(),
 		})
-		.get('/plugin', () => 'ok')
+		.get("/plugin", () => "ok");
 
-	const app = new Elysia().use(plugin).get('/', () => 'not a number')
+	const app = new Elysia().use(plugin).get("/", () => "not a number");
 }
 
 // handle as global
 {
 	const inner = new Elysia()
 		.guard({
-			as: 'global',
-			response: t.Number()
+			as: "global",
+			response: t.Number(),
 		})
 		// @ts-expect-error
-		.get('/inner', () => 'a')
+		.get("/inner", () => "a");
 
 	const plugin = new Elysia()
 		.use(inner)
 		// @ts-expect-error
-		.get('/plugin', () => true)
+		.get("/plugin", () => true);
 
 	// @ts-expect-error
-	const app = new Elysia().use(plugin).get('/', () => 'not a number')
+	const app = new Elysia().use(plugin).get("/", () => "not a number");
 }
 
 // handle as global with local override
 {
 	const inner = new Elysia()
 		.guard({
-			as: 'global',
-			response: t.Number()
+			as: "global",
+			response: t.Number(),
 		})
 		// @ts-expect-error
-		.get('/inner', () => 'a')
+		.get("/inner", () => "a");
 
 	const plugin = new Elysia()
 		.use(inner)
 		.guard({
-			response: t.Boolean()
+			response: t.Boolean(),
 		})
-		.get('/plugin', () => true)
+		.get("/plugin", () => true);
 
 	// @ts-expect-error
-	const app = new Elysia().use(plugin).get('/', () => 'not a number')
+	const app = new Elysia().use(plugin).get("/", () => "not a number");
 }
 
 // ? handle as global with scoped override
 {
 	const inner = new Elysia()
 		.guard({
-			as: 'global',
-			response: t.Number()
+			as: "global",
+			response: t.Number(),
 		})
 		// @ts-expect-error
-		.get('/inner', () => 'a')
+		.get("/inner", () => "a");
 
 	const plugin = new Elysia()
 		.use(inner)
 		.guard({
-			as: 'scoped',
-			response: t.String()
+			as: "scoped",
+			response: t.String(),
 		})
-		.get('/plugin', () => 'ok')
+		.get("/plugin", () => "ok");
 
-	const app = new Elysia().use(plugin).get('/', () => 'not a number')
+	const app = new Elysia().use(plugin).get("/", () => "not a number");
 }
 
 // handle as scoped
 {
 	const inner = new Elysia()
 		.guard({
-			as: 'scoped',
-			response: t.Number()
+			as: "scoped",
+			response: t.Number(),
 		})
 		// @ts-expect-error
-		.get('/inner', () => 'a')
+		.get("/inner", () => "a");
 
 	const plugin = new Elysia()
 		.use(inner)
 		// @ts-expect-error
-		.get('/plugin', () => true)
+		.get("/plugin", () => true);
 
-	const app = new Elysia().use(plugin).get('/', () => 'not a number')
+	const app = new Elysia().use(plugin).get("/", () => "not a number");
 }
 
 // handle as local
 {
 	const inner = new Elysia()
 		.guard({
-			as: 'local',
-			response: t.Number()
+			as: "local",
+			response: t.Number(),
 		})
 		// @ts-expect-error
-		.get('/inner', () => 'a')
+		.get("/inner", () => "a");
 
-	const plugin = new Elysia().use(inner).get('/plugin', () => true)
+	const plugin = new Elysia().use(inner).get("/plugin", () => true);
 
-	const app = new Elysia().use(plugin).get('/', () => 'not a number')
+	const app = new Elysia().use(plugin).get("/", () => "not a number");
 }
 
 // ? Nested guard
 {
 	new Elysia()
-		.state('name', 'salt')
-		.get('/', ({ store: { name } }) => `Hi ${name}`, {
+		.state("name", "salt")
+		.get("/", ({ store: { name } }) => `Hi ${name}`, {
 			query: t.Object({
-				name: t.String()
-			})
+				name: t.String(),
+			}),
 		})
 		// If query 'name' is not preset, skip the whole handler
 		.guard(
 			{
 				query: t.Object({
-					name: t.String()
-				})
+					name: t.String(),
+				}),
 			},
 			(app) =>
 				app
 					// Query type is inherited from guard
-					.get('/profile', ({ query }) => `Hi`)
+					.get("/profile", ({ query }) => `Hi`)
 					// Store is inherited
 					.post(
-						'/name',
+						"/name",
 						({ store, body, query }) => {
 							expectTypeOf<typeof store>().toEqualTypeOf<{
-								name: string
-							}>()
+								name: string;
+							}>();
 
 							expectTypeOf<typeof query>().toEqualTypeOf<{
-								name: string
-							}>()
+								name: string;
+							}>();
 
 							expectTypeOf<typeof body>().toEqualTypeOf<{
-								id: number
-								username: string
+								id: number;
+								username: string;
 								profile: {
-									name: string
-								}
-							}>()
+									name: string;
+								};
+							}>();
 						},
 						{
 							body: t.Object({
 								id: t.Number({
-									minimum: 5
+									minimum: 5,
 								}),
 								username: t.String(),
 								profile: t.Object({
-									name: t.String()
-								})
-							})
-						}
-					)
-		)
+									name: t.String(),
+								}),
+							}),
+						},
+					),
+		);
 
 	// ? Reconcile status
 	{
 		const inner = new Elysia()
 			.guard({
-				as: 'global',
+				as: "global",
 				response: {
 					401: t.Number(),
-					402: t.Number()
-				}
+					402: t.Number(),
+				},
 			})
-			.get('/inner', () => '')
+			.get("/inner", () => "");
 
 		const plugin = new Elysia()
 			.use(inner)
 			.guard({
 				response: {
-					401: t.Boolean()
-				}
+					401: t.Boolean(),
+				},
 			})
-			.get('/plugin', ({ status }) => {
-				status('Payment Required', 20)
-				return status(401, true)
-			})
+			.get("/plugin", ({ status }) => {
+				status("Payment Required", 20);
+				return status(401, true);
+			});
 
-		const app = new Elysia().use(plugin).get('/', () => 'ok')
+		const app = new Elysia().use(plugin).get("/", () => "ok");
 	}
 
 	// ? Reconcile inline handle
 	{
 		const inner = new Elysia()
 			.guard({
-				as: 'global',
+				as: "global",
 				response: {
 					401: t.Number(),
-					402: t.Number()
-				}
+					402: t.Number(),
+				},
 			})
-			.get('/inner', '')
+			.get("/inner", "");
 
 		const plugin = new Elysia()
 			.use(inner)
 			.guard({
 				response: {
-					401: t.Boolean()
-				}
+					401: t.Boolean(),
+				},
 			})
-			.get('/plugin', status(401, true))
+			.get("/plugin", status(401, true));
 
-		const app = new Elysia().use(plugin).get('/', 'ok')
+		const app = new Elysia().use(plugin).get("/", "ok");
 	}
 }
 
@@ -1934,19 +1956,19 @@ type a = keyof {}
 	new Elysia()
 		.guard({
 			query: t.Object({
-				id: t.Number()
-			})
+				id: t.Number(),
+			}),
 		})
 		.derive(({ query }) => {
 			expectTypeOf<typeof query>().toEqualTypeOf<{
-				id: number
-			}>()
+				id: number;
+			}>();
 		})
 		.resolve(({ query }) => {
 			expectTypeOf<typeof query>().toEqualTypeOf<{
-				id: number
-			}>()
-		})
+				id: number;
+			}>();
+		});
 }
 
 // ? As cast shouldn't resolve derive as any key
@@ -1954,37 +1976,37 @@ type a = keyof {}
 	const plugin = new Elysia()
 		.derive(() => ({
 			pluginMethod() {
-				console.log('pluginMethod')
-			}
+				console.log("pluginMethod");
+			},
 		}))
 		.derive(({ pluginMethod, ...rest }) => ({
 			myPluginMethod: pluginMethod,
-			...rest
+			...rest,
 		}))
-		.as('scoped')
+		.as("scoped");
 
-	expectTypeOf<(typeof plugin)['~Ephemeral']['derive']>().toHaveProperty(
-		'pluginMethod'
-	)
+	expectTypeOf<(typeof plugin)["~Ephemeral"]["derive"]>().toHaveProperty(
+		"pluginMethod",
+	);
 }
 
 // ? afterResponse type
 {
 	const app = new Elysia().get(
-		'/',
+		"/",
 		() => {
 			return {
-				duration: 200
-			}
+				duration: 200,
+			};
 		},
 		{
 			response: {
 				200: t.Object({
-					duration: t.Number()
+					duration: t.Number(),
 				}),
 				400: t.Object({
-					stuff: t.Number()
-				})
+					stuff: t.Number(),
+				}),
 			},
 			afterResponse({ response }) {
 				// expectTypeOf<typeof response>().toEqualTypeOf<
@@ -1996,185 +2018,173 @@ type a = keyof {}
 				// 	  }
 				// >()
 				// return undefined as any
-			}
-		}
-	)
+			},
+		},
+	);
 }
 
 // ? params in local lifecycle should follow path prefix
 {
 	new Elysia()
 		.onParse(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<
-				Record<string, string>
-			>()
+			expectTypeOf<typeof params>().toEqualTypeOf<Record<string, string>>();
 		})
 		.derive(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<
-				Record<string, string>
-			>()
+			expectTypeOf<typeof params>().toEqualTypeOf<Record<string, string>>();
 
-			return {}
+			return {};
 		})
 		.resolve(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<never>()
+			expectTypeOf<typeof params>().toEqualTypeOf<never>();
 
-			return {}
+			return {};
 		})
 		.onTransform(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<{}>()
+			expectTypeOf<typeof params>().toEqualTypeOf<{}>();
 		})
 		.onBeforeHandle(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<
-				Record<string, string>
-			>()
+			expectTypeOf<typeof params>().toEqualTypeOf<Record<string, string>>();
 		})
 		.onAfterHandle(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<
-				Record<string, string>
-			>()
+			expectTypeOf<typeof params>().toEqualTypeOf<Record<string, string>>();
 		})
 		.mapResponse(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<
-				Record<string, string>
-			>()
+			expectTypeOf<typeof params>().toEqualTypeOf<Record<string, string>>();
 		})
 		.onAfterResponse(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<
-				Record<string, string>
-			>()
-		})
+			expectTypeOf<typeof params>().toEqualTypeOf<Record<string, string>>();
+		});
 }
 
 // ? params in local lifecycle should follow path prefix
 {
-	new Elysia({ prefix: '/:id' })
+	new Elysia({ prefix: "/:id" })
 		.onParse(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>()
+			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>();
 		})
 		.derive(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>()
+			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>();
 
-			return {}
+			return {};
 		})
 		.resolve(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>()
+			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>();
 
-			return {}
+			return {};
 		})
 		.onTransform(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>()
+			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>();
 		})
 		.onBeforeHandle(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>()
+			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>();
 		})
 		.onAfterHandle(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>()
+			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>();
 		})
 		.mapResponse(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>()
+			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>();
 		})
 		.onAfterResponse(({ params }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>()
-		})
+			expectTypeOf<typeof params>().toEqualTypeOf<{ id: string }>();
+		});
 }
 
 // ? params in local lifecycle should respect global scope
 {
-	new Elysia({ prefix: '/:id' })
-		.onParse({ as: 'global' }, ({ params }) => {
+	new Elysia({ prefix: "/:id" })
+		.onParse({ as: "global" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
+				[name: string]: string | undefined;
+			}>();
 		})
-		.derive({ as: 'global' }, ({ params }) => {
+		.derive({ as: "global" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
+				[name: string]: string | undefined;
+			}>();
 
-			return {}
+			return {};
 		})
-		.resolve({ as: 'global' }, ({ params }) => {
+		.resolve({ as: "global" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
+				[name: string]: string | undefined;
+			}>();
 
-			return {}
+			return {};
 		})
-		.onTransform({ as: 'global' }, ({ params }) => {
+		.onTransform({ as: "global" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
+				[name: string]: string | undefined;
+			}>();
 		})
-		.onBeforeHandle({ as: 'global' }, ({ params }) => {
+		.onBeforeHandle({ as: "global" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
+				[name: string]: string | undefined;
+			}>();
 		})
-		.onAfterHandle({ as: 'global' }, ({ params }) => {
+		.onAfterHandle({ as: "global" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
+				[name: string]: string | undefined;
+			}>();
 		})
-		.mapResponse({ as: 'global' }, ({ params }) => {
+		.mapResponse({ as: "global" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
+				[name: string]: string | undefined;
+			}>();
 		})
-		.onAfterResponse({ as: 'global' }, ({ params }) => {
+		.onAfterResponse({ as: "global" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
-		})
+				[name: string]: string | undefined;
+			}>();
+		});
 }
 
 // ? params in local lifecycle should respect scoped scope
 {
-	new Elysia({ prefix: '/:id' })
-		.onParse({ as: 'scoped' }, ({ params }) => {
+	new Elysia({ prefix: "/:id" })
+		.onParse({ as: "scoped" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
+				[name: string]: string | undefined;
+			}>();
 		})
-		.derive({ as: 'scoped' }, ({ params }) => {
+		.derive({ as: "scoped" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
+				[name: string]: string | undefined;
+			}>();
 
-			return {}
+			return {};
 		})
-		.resolve({ as: 'scoped' }, ({ params }) => {
+		.resolve({ as: "scoped" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
+				[name: string]: string | undefined;
+			}>();
 
-			return {}
+			return {};
 		})
-		.onTransform({ as: 'scoped' }, ({ params }) => {
+		.onTransform({ as: "scoped" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
+				[name: string]: string | undefined;
+			}>();
 		})
-		.onBeforeHandle({ as: 'scoped' }, ({ params }) => {
+		.onBeforeHandle({ as: "scoped" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
+				[name: string]: string | undefined;
+			}>();
 		})
-		.onAfterHandle({ as: 'scoped' }, ({ params }) => {
+		.onAfterHandle({ as: "scoped" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
+				[name: string]: string | undefined;
+			}>();
 		})
-		.mapResponse({ as: 'scoped' }, ({ params }) => {
+		.mapResponse({ as: "scoped" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
+				[name: string]: string | undefined;
+			}>();
 		})
-		.onAfterResponse({ as: 'scoped' }, ({ params }) => {
+		.onAfterResponse({ as: "scoped" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
-		})
+				[name: string]: string | undefined;
+			}>();
+		});
 }
 
 // ? onAfterResponse should have derivative
@@ -2182,23 +2192,23 @@ type a = keyof {}
 	new Elysia()
 		.derive(() => {
 			return {
-				startTime: performance.now()
-			}
+				startTime: performance.now(),
+			};
 		})
 		.onAfterResponse((ctx) => {
-			expectTypeOf<typeof ctx>().not.toBeNever()
-			expectTypeOf<(typeof ctx)['startTime']>().toBeNumber()
-		})
+			expectTypeOf<typeof ctx>().not.toBeNever();
+			expectTypeOf<(typeof ctx)["startTime"]>().toBeNumber();
+		});
 }
 
 // ? Websocket Response
 {
-	new Elysia().ws('/', {
+	new Elysia().ws("/", {
 		open: (ws) => {
-			ws.publish('channel', 'hello')
+			ws.publish("channel", "hello");
 		},
-		response: t.String()
-	})
+		response: t.String(),
+	});
 }
 
 // ? Macro resolve
@@ -2206,171 +2216,166 @@ type a = keyof {}
 	const app = new Elysia()
 		.macro({
 			user: (enabled: boolean) => ({
-				resolve: async ({ query: { name = 'anon' } }) => ({
+				resolve: async ({ query: { name = "anon" } }) => ({
 					user: {
 						name,
-						async: false
-					} as const
-				})
+						async: false,
+					} as const,
+				}),
 			}),
 			asyncUser: (enabled: boolean) => ({
-				resolve: async ({ query: { name = 'anon' } }) => ({
+				resolve: async ({ query: { name = "anon" } }) => ({
 					user: {
 						name,
-						async: true
-					} as const
-				})
-			})
+						async: true,
+					} as const,
+				}),
+			}),
 		})
 		.get(
-			'/',
+			"/",
 			({ user }) => {
 				expectTypeOf<typeof user>().toEqualTypeOf<{
-					readonly name: string
-					readonly async: false
-				}>()
+					readonly name: string;
+					readonly async: false;
+				}>();
 			},
 			{
-				user: true
-			}
+				user: true,
+			},
 		)
 		.get(
-			'/',
+			"/",
 			({ user }) => {
 				expectTypeOf<typeof user>().toEqualTypeOf<{
-					readonly name: string
-					readonly async: true
-				}>()
+					readonly name: string;
+					readonly async: true;
+				}>();
 			},
 			{
-				asyncUser: true
-			}
-		)
+				asyncUser: true,
+			},
+		);
 }
 
 // Macro
 {
-	const userService = new Elysia({ name: 'user/service' })
+	const userService = new Elysia({ name: "user/service" })
 		.state({
 			user: {} as Record<string, string>,
-			session: {} as Record<number, string>
+			session: {} as Record<number, string>,
 		})
 		.model({
 			signIn: t.Object({
 				username: t.String({ minLength: 1 }),
-				password: t.String({ minLength: 8 })
+				password: t.String({ minLength: 8 }),
 			}),
 			session: t.Cookie(
 				{
-					token: t.Number()
+					token: t.Number(),
 				},
 				{
-					secrets: 'seia'
-				}
+					secrets: "seia",
+				},
 			),
-			optionalSession: t.Optional(t.Ref('session'))
+			optionalSession: t.Optional(t.Ref("session")),
 		})
 		.macro({
 			isSignIn(enabled: boolean) {
-				if (!enabled) return {}
+				if (!enabled) return {};
 
 				return {
-					beforeHandle({
-						status,
-						cookie: { token },
-						store: { session }
-					}) {
+					beforeHandle({ status, cookie: { token }, store: { session } }) {
 						if (!token.value)
 							return status(401, {
 								success: false,
-								message: 'Unauthorized'
-							})
+								message: "Unauthorized",
+							});
 
 						expectTypeOf<typeof session>().toEqualTypeOf<
 							Record<number, string>
-						>()
+						>();
 
-						const username =
-							session[token.value as unknown as number]
+						const username = session[token.value as unknown as number];
 
 						if (!username)
 							return status(401, {
 								success: false,
-								message: 'Unauthorized'
-							})
-					}
-				}
-			}
-		})
+								message: "Unauthorized",
+							});
+					},
+				};
+			},
+		});
 }
 
 // Use validation response instead of return type
 {
 	const app = new Elysia().get(
-		'/',
+		"/",
 		() => {
 			return {
-				name: 'a',
-				a: 'b'
-			}
+				name: "a",
+				a: "b",
+			};
 		},
 		{
 			response: {
 				200: t.Object({
-					name: t.String()
+					name: t.String(),
 				}),
 				400: t.Object({
-					name: t.String()
-				})
-			}
-		}
-	)
+					name: t.String(),
+				}),
+			},
+		},
+	);
 
 	expectTypeOf<
-		(typeof app)['~Routes']['get']['response'][200]
+		(typeof app)["~Routes"]["get"]["response"][200]
 	>().toEqualTypeOf<{
-		name: string
-	}>()
+		name: string;
+	}>();
 }
 
 // Use return type when validation is not provided
 {
 	const app = new Elysia().get(
-		'/',
+		"/",
 		() => {
 			return {
-				name: 'a',
-				a: 'b'
-			}
+				name: "a",
+				a: "b",
+			};
 		},
 		{
 			response: {
 				400: t.Object({
-					name: t.String()
-				})
-			}
-		}
-	)
+					name: t.String(),
+				}),
+			},
+		},
+	);
 
 	expectTypeOf<
-		(typeof app)['~Routes']['get']['response'][200]
+		(typeof app)["~Routes"]["get"]["response"][200]
 	>().toEqualTypeOf<{
-		name: string
-		a: string
-	}>()
+		name: string;
+		a: string;
+	}>();
 }
 
 // ? cookie sample
 {
 	const app = new Elysia()
 		.get(
-			'/council',
+			"/council",
 			({ cookie: { council } }) =>
 				(council.value = [
 					{
-						name: 'Rin',
-						affilation: 'Administration'
-					}
+						name: "Rin",
+						affilation: "Administration",
+					},
 				]),
 			{
 				cookie: t.Cookie({
@@ -2378,55 +2383,55 @@ type a = keyof {}
 						t.Array(
 							t.Object({
 								name: t.String(),
-								affilation: t.String()
-							})
-						)
-					)
-				})
-			}
+								affilation: t.String(),
+							}),
+						),
+					),
+				}),
+			},
 		)
-		.get('/create', ({ cookie: { name } }) => (name.value = 'Himari'))
-		.get('/multiple', ({ cookie: { name, president } }) => {
-			name.value = 'Himari'
-			president.value = 'Rio'
+		.get("/create", ({ cookie: { name } }) => (name.value = "Himari"))
+		.get("/multiple", ({ cookie: { name, president } }) => {
+			name.value = "Himari";
+			president.value = "Rio";
 
-			return 'ok'
+			return "ok";
 		})
 		.get(
-			'/update',
+			"/update",
 			({ cookie: { name } }) => {
-				name.value = 'seminar: Himari'
+				name.value = "seminar: Himari";
 
-				return name.value
+				return name.value;
 			},
 			{
 				cookie: t.Cookie(
 					{
-						name: t.Optional(t.String())
+						name: t.Optional(t.String()),
 					},
 					{
-						secrets: 'a',
-						sign: ['name']
-					}
-				)
-			}
+						secrets: "a",
+						sign: ["name"],
+					},
+				),
+			},
 		)
-		.get('/remove', ({ cookie }) => {
-			for (const self of Object.values(cookie)) self.remove()
+		.get("/remove", ({ cookie }) => {
+			for (const self of Object.values(cookie)) self.remove();
 
-			return 'Deleted'
+			return "Deleted";
 		})
-		.get('/remove-with-options', ({ cookie }) => {
-			for (const self of Object.values(cookie)) self.remove()
+		.get("/remove-with-options", ({ cookie }) => {
+			for (const self of Object.values(cookie)) self.remove();
 
-			return 'Deleted'
+			return "Deleted";
 		})
-		.get('/set', ({ cookie: { session } }) => {
-			session.value = 'rin'
+		.get("/set", ({ cookie: { session } }) => {
+			session.value = "rin";
 			session.set({
-				path: '/'
-			})
-		})
+				path: "/",
+			});
+		});
 }
 
 // Handle macro with function
@@ -2435,75 +2440,73 @@ type a = keyof {}
 		.macro({
 			a: {
 				resolve: () => ({
-					a: 'a'
-				})
-			}
+					a: "a",
+				}),
+			},
 		})
 		.get(
-			'/a',
+			"/a",
 			({ a }) => {
-				expectTypeOf<typeof a>().toEqualTypeOf<string>()
+				expectTypeOf<typeof a>().toEqualTypeOf<string>();
 			},
 			{
-				a: true
+				a: true,
 				// beforeHandle: (c) => {}
-			}
+			},
 		)
-		.ws('/', {
+		.ws("/", {
 			a: true,
 			message({ data: { a } }) {
-				expectTypeOf<typeof a>().toEqualTypeOf<string>()
-			}
-		})
+				expectTypeOf<typeof a>().toEqualTypeOf<string>();
+			},
+		});
 }
 
 // Type AfterHandler according to known schema
 {
-	new Elysia().get('/', () => 'yay', {
+	new Elysia().get("/", () => "yay", {
 		afterResponse({ responseValue }) {
-			expectTypeOf<typeof responseValue>().toEqualTypeOf<
-				string | number
-			>()
+			expectTypeOf<typeof responseValue>().toEqualTypeOf<string | number>();
 		},
 		response: {
 			200: t.String(),
-			400: t.Number()
-		}
-	})
+			400: t.Number(),
+		},
+	});
 }
 
 // Handle Prefix
 {
-	const app = new Elysia().group('/users', (app) =>
+	const app = new Elysia().group("/users", (app) =>
 		app
-			.post('/', async ({ body }) => {
+			.post("/", async ({ body }) => {
 				// Create user endpoint
-				return { success: true, userId: 1 }
+				return { success: true, userId: 1 };
 			})
-			.get('/:id', async ({ params }) => {
+			.get("/:id", async ({ params }) => {
 				// Get user by ID endpoint
-				return { id: params.id, name: 'John Doe' }
-			})
-	)
+				return { id: params.id, name: "John Doe" };
+			}),
+	);
 
-	expectTypeOf<keyof (typeof app)['~Routes']['users']>().toEqualTypeOf<
-		'post' | ':id'
-	>()
+	expectTypeOf<keyof (typeof app)["~Routes"]["users"]>().toEqualTypeOf<
+		"post" | ":id"
+	>();
 }
 
 // onError should have status
 {
 	new Elysia().onError(({ status }) => {
-		status(200)
-	})
+		status(200);
+	});
 }
 
 // onAfterHandle should have response
 {
 	new Elysia().onAfterHandle(
-		{ as: 'scoped' },
-		({ responseValue }) => responseValue
-	)
+		{ as: "scoped" },
+		({ responseValue }) => responseValue,
+	);
 }
 
 /* Neither `a` or `b` exist at the type level, even though they do exist at runtime */
@@ -2512,215 +2515,207 @@ type a = keyof {}
 		.macro({
 			a: {
 				body: t.Object({
-					a: t.String()
+					a: t.String(),
 				}),
-				resolve: () => ({ a: 'a' as const })
+				resolve: () => ({ a: "a" as const }),
 			},
 			b: {
 				body: t.Object({
-					b: t.String()
+					b: t.String(),
 				}),
-				resolve: () => ({ b: 'b' as const })
-			}
+				resolve: () => ({ b: "b" as const }),
+			},
 		})
 		.get(
-			'/test',
+			"/test",
 			({ a, b, body }) => {
 				expectTypeOf<typeof body>().toEqualTypeOf<{
-					a: string
-					b: string
-				}>()
+					a: string;
+					b: string;
+				}>();
 
-				expectTypeOf<typeof a>().toEqualTypeOf<'a'>()
-				expectTypeOf<typeof b>().toEqualTypeOf<'b'>()
+				expectTypeOf<typeof a>().toEqualTypeOf<"a">();
+				expectTypeOf<typeof b>().toEqualTypeOf<"b">();
 
-				return { a, b }
+				return { a, b };
 			},
 			{
 				a: true,
-				b: true
-			}
-		)
+				b: true,
+			},
+		);
 }
 
 // append prefix / if not provided
 {
-	const plugin = new Elysia({ prefix: 'v1' }).get('thing', 'thing')
+	const plugin = new Elysia({ prefix: "v1" }).get("thing", "thing");
 
-	const app = new Elysia({ prefix: 'api' }).use(plugin)
+	const app = new Elysia({ prefix: "api" }).use(plugin);
 
 	// This should not error
-	app['~Routes']?.api.v1.thing
+	app["~Routes"]?.api.v1.thing;
 }
 
 // handle status in afterResponse
 {
-	new Elysia().get('/', () => '', {
-		afterHandle: ({ status }) => status(201, { foo: 'bar' }),
+	new Elysia().get("/", () => "", {
+		afterHandle: ({ status }) => status(201, { foo: "bar" }),
 		response: {
 			201: t.Object({
-				foo: t.String()
-			})
-		}
-	})
+				foo: t.String(),
+			}),
+		},
+	});
 
-	const route = new Elysia().get('/', () => ({ foo: 'a' }), {
+	const route = new Elysia().get("/", () => ({ foo: "a" }), {
 		// @ts-expect-error
-		afterHandle: () => ({ q: 'a' }),
+		afterHandle: () => ({ q: "a" }),
 		response: t.Object({
-			foo: t.String()
-		})
-	})
+			foo: t.String(),
+		}),
+	});
 }
 
 // infer SSE type correctly
 {
-	const app = new Elysia().get('/', function* () {
-		yield sse('a')
+	const app = new Elysia().get("/", function* () {
+		yield sse("a");
 
 		yield sse({
-			event: 'a',
-			data: 'b'
-		})
-	})
+			event: "a",
+			data: "b",
+		});
+	});
 
-	expectTypeOf<
-		(typeof app)['~Routes']['get']['response'][200]
-	>().toEqualTypeOf<
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"][200]>().toEqualTypeOf<
 		Generator<
 			| {
-					readonly data: 'a'
+					readonly data: "a";
 			  }
 			| {
-					readonly event: 'a'
-					readonly data: 'b'
+					readonly event: "a";
+					readonly data: "b";
 			  },
 			void,
 			unknown
 		>
-	>()
+	>();
 }
 
 // return generator SSE type correctly
 {
 	function* a() {
-		yield 'a'
-		yield 'b'
+		yield "a";
+		yield "b";
 	}
 
-	const app = new Elysia().get('/', () => sse(a()))
+	const app = new Elysia().get("/", () => sse(a()));
 
-	expectTypeOf<
-		(typeof app)['~Routes']['get']['response'][200]
-	>().toEqualTypeOf<
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"][200]>().toEqualTypeOf<
 		Generator<
 			| {
-					readonly data: 'a'
+					readonly data: "a";
 			  }
 			| {
-					readonly data: 'b'
+					readonly data: "b";
 			  },
 			void,
 			unknown
 		>
-	>()
+	>();
 }
 
 // return async generator SSE type correctly
 {
 	async function* a() {
-		yield 'a'
-		yield 'b'
+		yield "a";
+		yield "b";
 	}
 
-	const app = new Elysia().get('/', () => sse(a()))
+	const app = new Elysia().get("/", () => sse(a()));
 
-	expectTypeOf<
-		(typeof app)['~Routes']['get']['response'][200]
-	>().toEqualTypeOf<
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"][200]>().toEqualTypeOf<
 		AsyncGenerator<
 			| {
-					readonly data: 'a'
+					readonly data: "a";
 			  }
 			| {
-					readonly data: 'b'
+					readonly data: "b";
 			  },
 			void,
 			unknown
 		>
-	>()
+	>();
 }
 
 // return ReadableStream SSE type correctly
 {
 	async function* a() {
-		yield 'a'
-		yield 'b'
+		yield "a";
+		yield "b";
 	}
 
-	const app = new Elysia().get('/', () =>
-		sse(undefined as any as ReadableStream<'a'>)
-	)
+	const app = new Elysia().get("/", () =>
+		sse(undefined as any as ReadableStream<"a">),
+	);
 
-	expectTypeOf<
-		(typeof app)['~Routes']['get']['response'][200]
-	>().toEqualTypeOf<
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"][200]>().toEqualTypeOf<
 		ReadableStream<{
-			readonly data: 'a'
+			readonly data: "a";
 		}>
-	>()
+	>();
 }
 
 // infer ReadableStream to Iterable
 {
 	const app = new Elysia()
-		.get('/', () => undefined as any as ReadableStream<'a'>)
-		.listen(3000)
+		.get("/", () => undefined as any as ReadableStream<"a">)
+		.listen(3000);
 
-	expectTypeOf<
-		(typeof app)['~Routes']['get']['response'][200]
-	>().toEqualTypeOf<ReadableStream<'a'>>()
+	expectTypeOf<(typeof app)["~Routes"]["get"]["response"][200]>().toEqualTypeOf<
+		ReadableStream<"a">
+	>();
 }
 
 // Inline Elysia file
 {
-	new Elysia().get('/file', file('public/takodachi.png'))
+	new Elysia().get("/file", file("public/takodachi.png"));
 }
 
 // derive should add property union correctly
 {
 	const app = new Elysia()
 		.derive(({ request, status }) => {
-			const apiKey = request.headers.get('x-api-key')
-			if (!apiKey) return { auth: null }
+			const apiKey = request.headers.get("x-api-key");
+			if (!apiKey) return { auth: null };
 
-			if (Math.random() > 0.5) return status(401)
+			if (Math.random() > 0.5) return status(401);
 
-			return { auth: { id: 1 } }
+			return { auth: { id: 1 } };
 		})
 		.onBeforeHandle(({ auth }) => {
 			expectTypeOf<typeof auth>().toEqualTypeOf<{
-				readonly id: 1
-			} | null>()
-		})
+				readonly id: 1;
+			} | null>();
+		});
 }
 
 // resolve should add property union correctly
 {
 	const app = new Elysia()
 		.resolve(({ request, status }) => {
-			const apiKey = request.headers.get('x-api-key')
-			if (!apiKey) return { auth: null }
+			const apiKey = request.headers.get("x-api-key");
+			if (!apiKey) return { auth: null };
 
-			if (Math.random() > 0.5) return status(401)
+			if (Math.random() > 0.5) return status(401);
 
-			return { auth: { id: 1 } }
+			return { auth: { id: 1 } };
 		})
 		.onBeforeHandle(({ auth }) => {
 			expectTypeOf<typeof auth>().toEqualTypeOf<{
-				readonly id: 1
-			} | null>()
-		})
+				readonly id: 1;
+			} | null>();
+		});
 }
 
 // transform shouldn't inherit schema type
@@ -2728,57 +2723,57 @@ type a = keyof {}
 	new Elysia()
 		.guard({
 			body: t.Object({
-				a: t.String()
+				a: t.String(),
 			}),
 			params: t.Object({
-				id: t.String()
-			})
+				id: t.String(),
+			}),
 		})
 		.onTransform(({ params, body }) => {
-			expectTypeOf<typeof params>().toEqualTypeOf<{}>()
+			expectTypeOf<typeof params>().toEqualTypeOf<{}>();
 
-			expectTypeOf<typeof body>().toBeUnknown()
-		})
+			expectTypeOf<typeof body>().toBeUnknown();
+		});
 }
 
 // transform should cast params to unknown when scope is over local
 {
-	new Elysia({ prefix: '/:id' })
+	new Elysia({ prefix: "/:id" })
 		.onTransform(({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				id: string
-			}>()
+				id: string;
+			}>();
 		})
-		.onTransform({ as: 'scoped' }, ({ params }) => {
+		.onTransform({ as: "scoped" }, ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				[name: string]: string | undefined
-			}>()
-		})
+				[name: string]: string | undefined;
+			}>();
+		});
 }
 
 // Enforce return type in OptionalHandler
 {
 	new Elysia().get(
-		'/',
+		"/",
 		({ status }) => {
-			return status(401, { error: 'Unauthorized' })
+			return status(401, { error: "Unauthorized" });
 		},
 		{
 			beforeHandle: ({ status }) => {
 				if (Math.random() > 0.5) {
 					// @ts-expect-error
-					return status(401, { a: 'Unauthorized' })
+					return status(401, { a: "Unauthorized" });
 				}
 
-				return status(401, { error: 'Unauthorized' })
+				return status(401, { error: "Unauthorized" });
 			},
 			response: {
 				401: t.Object({
-					error: t.String()
-				})
-			}
-		}
-	)
+					error: t.String(),
+				}),
+			},
+		},
+	);
 }
 
 // Enforce return type of Generator
@@ -2787,27 +2782,27 @@ type a = keyof {}
 		event: t.String(),
 		data: t.Object({
 			message: t.String(),
-			timestamp: t.String()
-		})
-	})
+			timestamp: t.String(),
+		}),
+	});
 
 	new Elysia().get(
-		'/sse',
+		"/sse",
 		function* () {
 			yield sse({
-				event: 'message',
+				event: "message",
 				data: {
-					message: 'This is a message',
-					timestamp: new Date().toISOString()
-				}
-			})
+					message: "This is a message",
+					timestamp: new Date().toISOString(),
+				},
+			});
 		},
 		{
 			response: {
-				200: message
-			}
-		}
-	)
+				200: message,
+			},
+		},
+	);
 }
 
 // Enforce return type of AsyncGenerator
@@ -2816,174 +2811,174 @@ type a = keyof {}
 		event: t.String(),
 		data: t.Object({
 			message: t.String(),
-			timestamp: t.String()
-		})
-	})
+			timestamp: t.String(),
+		}),
+	});
 
 	new Elysia().get(
-		'/sse',
+		"/sse",
 		async function* () {
 			yield sse({
-				event: 'message',
+				event: "message",
 				data: {
-					message: 'This is a message',
-					timestamp: new Date().toISOString()
-				}
-			})
+					message: "This is a message",
+					timestamp: new Date().toISOString(),
+				},
+			});
 		},
 		{
 			response: {
-				200: message
-			}
-		}
-	)
+				200: message,
+			},
+		},
+	);
 }
 
 // Strict status response
 {
 	new Elysia().post(
-		'/mirror',
+		"/mirror",
 		async ({ status, body }) => {
 			if (Math.random() > 0.5)
 				// @ts-expect-error - should reject extra 'body' property
-				return status(201, { body, success: false })
+				return status(201, { body, success: false });
 
 			// @ts-expect-error
-			if (Math.random() > 0.5) return status(200, { success: false })
+			if (Math.random() > 0.5) return status(200, { success: false });
 
 			// @ts-expect-error
-			if (Math.random() > 0.5) return status(201, { success: true })
-			if (Math.random() > 0.5) return status(200, { success: true })
+			if (Math.random() > 0.5) return status(201, { success: true });
+			if (Math.random() > 0.5) return status(200, { success: true });
 
-			return status(201, { success: false })
+			return status(201, { success: false });
 		},
 		{
 			body: t.Object({
-				code: t.String()
+				code: t.String(),
 			}),
 			response: {
 				200: t.Object({
-					success: t.Literal(true)
+					success: t.Literal(true),
 				}),
 				201: t.Object({
-					success: t.Literal(false)
-				})
-			}
-		}
-	)
+					success: t.Literal(false),
+				}),
+			},
+		},
+	);
 }
 
 // Status code 200 type inference (issue #1584)
 {
 	const app = new Elysia().get(
-		'/',
-		() => ({ message: 'Hello Elysia' as const }),
+		"/",
+		() => ({ message: "Hello Elysia" as const }),
 		{
 			response: {
 				200: t.Object({
-					message: t.Literal('Hello Elysia')
-				})
-			}
-		}
-	)
+					message: t.Literal("Hello Elysia"),
+				}),
+			},
+		},
+	);
 
-	type AppResponse = (typeof app)['~Routes']['get']['response']
+	type AppResponse = (typeof app)["~Routes"]["get"]["response"];
 
 	// Should properly infer the 200 response type, not [x: string]: any
 	const _typeTest: AppResponse extends {
-		200: { message: 'Hello Elysia' }
+		200: { message: "Hello Elysia" };
 	}
 		? true
-		: false = true
+		: false = true;
 
 	// Test with multiple status codes including 200
 	const app2 = new Elysia().post(
-		'/test',
+		"/test",
 		({ status }) => {
 			if (Math.random() > 0.5) {
-				return status(200, { message: 'Hello Elysia' as const })
+				return status(200, { message: "Hello Elysia" as const });
 			}
-			return status(422, { error: 'Validation error' })
+			return status(422, { error: "Validation error" });
 		},
 		{
 			response: {
 				200: t.Object({
-					message: t.Literal('Hello Elysia')
+					message: t.Literal("Hello Elysia"),
 				}),
 				422: t.Object({
-					error: t.String()
-				})
-			}
-		}
-	)
+					error: t.String(),
+				}),
+			},
+		},
+	);
 
-	type App2Response = (typeof app2)['~Routes']['test']['post']['response']
+	type App2Response = (typeof app2)["~Routes"]["test"]["post"]["response"];
 
 	const _typeTest2: App2Response extends {
-		200: { message: 'Hello Elysia' }
-		422: { error: string }
+		200: { message: "Hello Elysia" };
+		422: { error: string };
 	}
 		? true
-		: false = true
+		: false = true;
 }
 
 // group empty prefix
 {
 	const app = new Elysia()
-		.group('', (app) => {
-			return app.get('/ok', () => 'Hello World')
+		.group("", (app) => {
+			return app.get("/ok", () => "Hello World");
 		})
-		.listen(3000)
+		.listen(3000);
 
-	type Routes = keyof (typeof app)['~Routes']
+	type Routes = keyof (typeof app)["~Routes"];
 
-	expectTypeOf<Routes>().toEqualTypeOf<'ok'>()
+	expectTypeOf<Routes>().toEqualTypeOf<"ok">();
 }
 
 // override group prefix type
 {
-	new Elysia().group('/:example', (app) =>
+	new Elysia().group("/:example", (app) =>
 		app.get(
-			'/',
+			"/",
 			({ params: { example } }) => {
-				expectTypeOf<typeof example>().toBeNumber()
+				expectTypeOf<typeof example>().toBeNumber();
 			},
 			{
 				params: t.Object({
-					example: t.Numeric()
-				})
-			}
-		)
-	)
+					example: t.Numeric(),
+				}),
+			},
+		),
+	);
 }
 
 // ? params with model
 {
 	new Elysia()
 		.model({
-			'character.name': t.String(),
-			'character.thing': t.Object({
-				name: t.String()
-			})
+			"character.name": t.String(),
+			"character.thing": t.Object({
+				name: t.String(),
+			}),
 		})
-		.get('/id/:id/name/:name', ({ params }) => {
+		.get("/id/:id/name/:name", ({ params }) => {
 			expectTypeOf<typeof params>().toEqualTypeOf<{
-				id: string
-				name: string
-			}>()
-		})
+				id: string;
+				name: string;
+			}>();
+		});
 }
 
 // ? Promise<Response>
 {
 	async function handler() {
-		return new Response(JSON.stringify({ text: 'hello' }), {
+		return new Response(JSON.stringify({ text: "hello" }), {
 			status: 200,
-			headers: { 'Content-Type': 'application/json' }
-		})
+			headers: { "Content-Type": "application/json" },
+		});
 	}
 
-	new Elysia().get('/hello', () => handler(), {
-		response: { 200: t.Object({ text: t.String() }) }
-	})
+	new Elysia().get("/hello", () => handler(), {
+		response: { 200: t.Object({ text: t.String() }) },
+	});
 }

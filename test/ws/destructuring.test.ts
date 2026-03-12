@@ -1,11 +1,11 @@
-import { describe, it, expect } from 'bun:test'
-import { Elysia } from '../../src'
-import { newWebsocket, wsOpen, wsClosed, wsMessage } from './utils'
+import { describe, expect, it } from "bun:test";
+import { Elysia } from "../../src";
+import { newWebsocket, wsClosed, wsMessage, wsOpen } from "./utils";
 
-describe('WebSocket destructuring', () => {
-	it('should destructure', async () => {
+describe("WebSocket destructuring", () => {
+	it("should destructure", async () => {
 		const app = new Elysia()
-			.ws('/ws', {
+			.ws("/ws", {
 				async open(ws) {
 					const {
 						subscribe,
@@ -16,33 +16,33 @@ describe('WebSocket destructuring', () => {
 						send,
 						// close,
 						// terminate
-					} = ws
+					} = ws;
 
-					subscribe('asdf')
-					const subscribed = isSubscribed('asdf')
-					publish('asdf', 'data')
-					unsubscribe('asdf')
-					cork(() => ws)
-					send('Hello!' + subscribed)
+					subscribe("asdf");
+					const subscribed = isSubscribed("asdf");
+					publish("asdf", "data");
+					unsubscribe("asdf");
+					cork(() => ws);
+					send("Hello!" + subscribed);
 					// malloc error on macOS
 					// close()
 					// terminate()
-				}
+				},
 			})
-			.listen(0)
+			.listen(0);
 
-		const ws = newWebsocket(app.server!)
+		const ws = newWebsocket(app.server!);
 
-		const message = wsMessage(ws)
+		const message = wsMessage(ws);
 
-		await wsOpen(ws)
+		await wsOpen(ws);
 
-		const { type, data } = await message
+		const { type, data } = await message;
 
-		expect(type).toBe('message')
-		expect(data).toBe('Hello!true')
+		expect(type).toBe("message");
+		expect(data).toBe("Hello!true");
 
-		await wsClosed(ws)
-		app.stop()
-	})
-})
+		await wsClosed(ws);
+		app.stop();
+	});
+});

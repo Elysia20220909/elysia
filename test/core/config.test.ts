@@ -1,28 +1,28 @@
-import { describe, it, expect } from 'bun:test'
-import { Elysia, t } from '../../src'
+import { describe, expect, it } from "bun:test";
+import { Elysia, t } from "../../src";
 
-describe('config', () => {
-	it('standard hostname', async () => {
+describe("config", () => {
+	it("standard hostname", async () => {
 		const app = new Elysia({ handler: { standardHostname: false } }).get(
-			'/a',
-			'a'
-		)
+			"/a",
+			"a",
+		);
 
 		const response = await app
-			.handle(new Request('http://a/a'))
-			.then((x) => x.text())
+			.handle(new Request("http://a/a"))
+			.then((x) => x.text());
 
-		expect(response).toBe('a')
-	})
+		expect(response).toBe("a");
+	});
 
-	it('append prefix / if not provided', () => {
-		const plugin = new Elysia({ prefix: 'v1' }).get('thing', 'thing')
+	it("append prefix / if not provided", () => {
+		const plugin = new Elysia({ prefix: "v1" }).get("thing", "thing");
 
-		const app = new Elysia({ prefix: 'api' }).use(plugin)
+		const app = new Elysia({ prefix: "api" }).use(plugin);
 
-		expect(app.routes[0].path).toBe('/api/v1/thing')
+		expect(app.routes[0].path).toBe("/api/v1/thing");
 
 		// This should not error
-		app['~Routes']?.api.v1.thing
-	})
-})
+		app["~Routes"]?.api.v1.thing;
+	});
+});

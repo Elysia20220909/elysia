@@ -1,76 +1,76 @@
-import { Elysia, t } from '../src'
-import { openapi as OpenAPI } from '@elysiajs/openapi'
-import { fromTypes } from '@elysiajs/openapi/gen'
+import { openapi as OpenAPI } from "@elysiajs/openapi";
+import { fromTypes } from "@elysiajs/openapi/gen";
+import { Elysia, t } from "../src";
 
 const openapi = (a: any) =>
 	new Elysia().use((app) => {
 		app.use(
-			// @ts-ignore
-			OpenAPI(a)
-		)
+			// @ts-expect-error
+			OpenAPI(a),
+		);
 
-		return app
-	})
+		return app;
+	});
 
 // Elysia 1.4: lifecycle event type soundness
 export const app = new Elysia()
 	.use(
 		openapi({
-			references: fromTypes('example/openapi.ts')
-		})
+			references: fromTypes("example/openapi.ts"),
+		}),
 	)
 	.macro({
 		auth: {
 			response: {
-				409: t.Literal('Conflict')
+				409: t.Literal("Conflict"),
 			},
 			beforeHandle({ status }) {
-				if (Math.random() < 0.05) return status(410)
+				if (Math.random() < 0.05) return status(410);
 			},
-			resolve: () => ({ a: 'a' })
-		}
+			resolve: () => ({ a: "a" }),
+		},
 	})
 	.onError(({ status }) => {
-		if (Math.random() < 0.05) return status(400)
+		if (Math.random() < 0.05) return status(400);
 	})
 	.resolve(({ status }) => {
-		if (Math.random() < 0.05) return status(401)
+		if (Math.random() < 0.05) return status(401);
 	})
 	.onBeforeHandle([
 		({ status }) => {
-			if (Math.random() < 0.05) return status(402)
+			if (Math.random() < 0.05) return status(402);
 		},
 		({ status }) => {
-			if (Math.random() < 0.05) return status(403)
-		}
+			if (Math.random() < 0.05) return status(403);
+		},
 	])
 	.guard({
 		beforeHandle: [
 			({ status }) => {
-				if (Math.random() < 0.05) return status(405)
+				if (Math.random() < 0.05) return status(405);
 			},
 			({ status }) => {
-				if (Math.random() < 0.05) return status(406)
-			}
+				if (Math.random() < 0.05) return status(406);
+			},
 		],
 		afterHandle({ status }) {
-			if (Math.random() < 0.05) return status(407)
+			if (Math.random() < 0.05) return status(407);
 		},
 		error({ status }) {
-			if (Math.random() < 0.05) return status(408)
-		}
+			if (Math.random() < 0.05) return status(408);
+		},
 	})
 	.post(
-		'/',
+		"/",
 		({ status }) =>
-			Math.random() < 0.05 ? status(409, 'Conflict') : 'Type Soundness',
+			Math.random() < 0.05 ? status(409, "Conflict") : "Type Soundness",
 		{
 			auth: true,
 			response: {
-				411: t.Literal('Length Required')
-			}
-		}
+				411: t.Literal("Length Required"),
+			},
+		},
 	)
-	.listen(3000)
+	.listen(3000);
 
 // app['~Routes']['post']['response']
